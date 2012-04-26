@@ -1,0 +1,13 @@
+*.swp
+*.pyc
+.gitignore
+.installed.cfg
+bin/
+bootstrap.py
+develop-eggs/
+eggs/
+include/
+lib/
+parts/
+src/chill.egg-info/
+var/
