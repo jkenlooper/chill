@@ -1,4 +1,5 @@
 import os.path
+import glob
 
 from flask import Flask
 from pystache.context import Context
@@ -27,19 +28,34 @@ def init_db(db_name=None):
     """Create the database tables."""
 
 def build_context_data():
+    def build_search_dirs(relative_path):
+        """ checks each dir for .mustache templates """
+        parent_path = relative_path
+        search_dirs = []
+        while parent_path != '':
+            path = os.path.join(app.config['DATA_PATH'], parent_path)
+            if glob.glob(os.path.join(path, "*.mustache")):
+                search_dirs.append(path)
+            parent_path = os.path.dirname(parent_path)
+        return search_dirs
+
     app.data = {}
     for (dirpath, dirnames, filenames) in os.walk(app.config['DATA_PATH'], topdown=True):
         start = len(os.path.commonprefix((app.config['DATA_PATH'], dirpath)))
         relative_path = dirpath[start+1:]
-        app.logger.debug(relative_path)
+        #app.logger.debug(relative_path)
         d = {}
         for f in filenames: #filenames here are considered page fragments
             file_path = os.path.join(dirpath, f)
             (filename, ext) = os.path.splitext(f)
             if ext in ('.html', '.htm', '.txt'):
                 h = open(file_path, 'r')
-                d[filename] = h.read()
+                s = h.read()
+                if ext == '.txt':
+                    s = s.strip()
+                d[filename] = s
 
+        search_dirs = build_search_dirs(relative_path)
 
         ctx = Context(d)
         ctx_list = []
@@ -50,6 +66,12 @@ def build_context_data():
             #parent_page = os.path.dirname(parent_page)
         ctx_list.append(ctx)
         ctx_with_parent = Context.create(*ctx_list)
+
+        #add the theme dir to search_dirs
+        themename = ctx_with_parent.get('_theme', 'default')
+        search_dirs.append(os.path.join(app.config['THEME_PATH'], themename))
+        ctx_with_parent.push({'_search_dirs':search_dirs})
+
         app.data[relative_path] = ctx_with_parent
 
 build_context_data()

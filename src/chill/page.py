@@ -10,7 +10,7 @@ from chill import app
 class Page(object):
     """
     """
-    template = "{{content}}"
+    template = "{{> base}}"
     context = None
     def __init__(self, uri_path):
         # set the context
@@ -24,10 +24,21 @@ class Page(object):
         render the page
         """
         app.logger.debug(self.uri_path)
-        app.logger.debug(app.data[self.uri_path])
-        app.logger.debug(app.data[self.uri_path].get('content'))
 
-        renderer = Renderer()
+        template_name = '%s.mustache' % app.data[self.uri_path].get('_template')
+        app.logger.debug(template_name)
+        search_dirs=app.data[self.uri_path].get('_search_dirs')
+        for d in search_dirs:
+            template_path = os.path.join(d, template_name)
+            if os.path.exists(template_path):
+                template_file = open(template_path, 'r')
+                self.template = template_file.read()
+                template_file.close()
+                app.logger.debug('setting template %s' % template_path)
+                break
+
+
+        renderer = Renderer(search_dirs=search_dirs)
         return renderer.render(self.template, self.context, **kwargs)
 
 class PageView(MethodView):
