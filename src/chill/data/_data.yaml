@@ -1,1 +1,17 @@
 # global data for the site
+# This is added to the context and can be accessed by the whole site as it is
+# at the top level
+
+sitetitle: Chill Examples and Tests
+
+menuitems:
+    - 
+        title: examples
+        url: /examples
+    -
+        title: simple
+        url: /simple
+    - 
+        title: imatitleinamenu
+        url: /examples
+

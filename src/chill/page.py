@@ -23,10 +23,8 @@ class Page(object):
         """
         render the page
         """
-        app.logger.debug(self.uri_path)
 
         template_name = '%s.mustache' % app.data[self.uri_path].get('_template')
-        app.logger.debug(template_name)
         search_dirs=app.data[self.uri_path].get('_search_dirs')
         for d in search_dirs:
             template_path = os.path.join(d, template_name)
@@ -34,7 +32,6 @@ class Page(object):
                 template_file = open(template_path, 'r')
                 self.template = template_file.read()
                 template_file.close()
-                app.logger.debug('setting template %s' % template_path)
                 break
 
 

@@ -23,6 +23,7 @@ setup(
     install_requires=[
         'setuptools',
         'Flask',
+        'PyYAML',
         'pystache',
       ],
     entry_points="""

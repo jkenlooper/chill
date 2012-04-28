@@ -1,6 +1,8 @@
 <html>
     <head>
-        <title>{{pagetitle}}</title>
+        <title>
+            {{sitetitle}} | {{pagetitle}}
+        </title>
         {{meta}}
         {{style}}
         {{headscript}}
@@ -9,6 +11,8 @@
         testing
         <div id="page">
             {{> header}}
+
+            {{> menu}}
 
             {{> body}}
 

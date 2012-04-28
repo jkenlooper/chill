@@ -55,10 +55,6 @@ class CascadeTestCase(unittest.TestCase):
         self.app = chill.app.test_client()
         chill.init_db()
 
-    def tearDown(self):
-        """Get rid of the database again after each test."""
-        pass
-
     def test_one_page(self):
         """Test one page."""
         rv = self.app.get('/cascade_test/five/four/three/two/one')
@@ -69,9 +65,42 @@ class CascadeTestCase(unittest.TestCase):
         rv = self.app.get('/cascade_test/five/four/three')
         assert 'cascade test parent page' in rv.data
 
+class YAMLDataCascadeTestCase(unittest.TestCase):
+
+    def setUp(self):
+        """Before each test, set up a blank database"""
+        self.app = chill.app.test_client()
+        chill.init_db()
+
+    def test_top_level_yaml(self):
+        rv = self.app.get('/')
+        assert 'Chill Examples and Tests' in rv.data
+
+    def test_yaml_and_txt_conflict(self):
+        rv = self.app.get('/simple')
+        assert 'just a simple page' in rv.data
+        assert 'this pagetitle gets replaced by the pagetitle.txt' not in rv.data
+
+    def test_replace_top_yaml(self):
+        rv = self.app.get('/simple')
+        assert 'Simple sitetitle' in rv.data
+
+class YAMLDataTestCase(unittest.TestCase):
+
+    def setUp(self):
+        """Before each test, set up a blank database"""
+        self.app = chill.app.test_client()
+        chill.init_db()
+
+    def test_menu_yaml(self):
+        rv = self.app.get('/')
+        assert 'imatitleinamenu' in rv.data
+
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(IndexTestCase))
+    suite.addTest(unittest.makeSuite(YAMLDataTestCase))
     return suite
 
 
