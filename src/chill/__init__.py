@@ -23,6 +23,7 @@ app.config.from_object(_DefaultSettings)
 del _DefaultSettings
 
 # init the views...
+import resource # me first
 import page
 
 def init_db(db_name=None):
