@@ -5,6 +5,7 @@ from functools import partial
 
 import paste.script.command
 import werkzeug.script
+from flask_frozen import Freezer
 
 etc = partial(os.path.join, 'parts', 'etc')
 
@@ -77,6 +78,8 @@ def _serve(action, debug=False, dry_run=False):
         argv += [action, '--daemon']
     elif action in ('', 'fg', 'foreground'):
         argv += ['--reload']
+    elif action in ('freeze',):
+        pass #...
     else:
         argv += [action]
     # Print the 'paster' command
@@ -127,3 +130,22 @@ def run():
         _serve('stop', dry_run=dry_run)
 
     werkzeug.script.run()
+
+# bin/freeze
+def freeze():
+    """Freeze the application by creating a static version of it."""
+    app = make_app()
+    app.logger.debug('freezing app to directory: %s' % app.config['FREEZER_DESTINATION'])
+    freezer = Freezer(app)
+
+    @freezer.register_generator
+    def page():
+        for (dirpath, dirnames, filenames) in os.walk(app.config['DATA_PATH'], topdown=True):
+            start = len(os.path.commonprefix((app.config['DATA_PATH'], dirpath)))
+            relative_path = dirpath[start+1:]
+            for dirname in dirnames:
+                yield {'uri': '.'.join((os.path.join(relative_path, dirname),
+                'html'))}
+
+
+    freezer.freeze()

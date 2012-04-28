@@ -23,12 +23,14 @@ setup(
     install_requires=[
         'setuptools',
         'Flask',
+        'Frozen-Flask',
         'PyYAML',
         'pystache',
       ],
     entry_points="""
     [console_scripts]
     flask-ctl = chill.script:run
+    freeze = chill.script:freeze
 
     [paste.app_factory]
     main = chill.script:make_app
