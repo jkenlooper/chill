@@ -104,27 +104,44 @@ class ResourceFileTestCase(unittest.TestCase):
         chill.init_db()
 
     def test_if_file_exists(self):
-        rv = self.app.get('/test.js')
+        rv = self.app.get('/_data/test.js')
         assert 'test.js file in data path' in rv.data
 
     def test_for_file_outside_of_data_path(self):
         " test for file outside of data path "
-        rv = self.app.get('/../cantgetthisfile.js')
-        chill.app.logger.debug(rv)
+        rv = self.app.get('/_data/../cantgetthisfile.js')
+        assert 'Should NOT be able to retreive this file!' not in rv.data
+
+        rv = self.app.get('/_data/../../cantgetthisfile.js')
         assert 'Should NOT be able to retreive this file!' not in rv.data
 
     def test_for_file_way_outside_of_data_path(self):
         " test for file way outside of data path "
-        rv = self.app.get('/../../../README.txt')
-        chill.app.logger.debug(rv)
+        rv = self.app.get('/_data/../../../../README.txt')
         assert 404 == rv.status_code
 
     def test_for_file_outside_of_data_path_but_get_other(self):
         " test for file outside of data path but get other "
-        rv = self.app.get('/../cantgetthisfile.js')
-        chill.app.logger.debug(rv)
+        rv = self.app.get('/_data/../../cantgetthisfile.js')
         assert 200 == rv.status_code
         assert 'This file will be returned instead of the one above this directory' in rv.data
+
+class ThemeFileTestCase(unittest.TestCase):
+    def setUp(self):
+        """Before each test, set up a blank database"""
+        self.app = chill.app.test_client()
+        chill.init_db()
+
+    def test_if_css_file_exists(self):
+        " check if site.css file in default theme css directory exists "
+        rv = self.app.get('/_themes/default/css/site.css')
+        assert 200 == rv.status_code
+
+    def test_if_mustache_file_exists(self):
+        " check if base.mustache file can be accessed"
+        rv = self.app.get('/_themes/default/base.mustache')
+        assert 200 == rv.status_code
+
 
 def suite():
     suite = unittest.TestSuite()

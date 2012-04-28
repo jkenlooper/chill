@@ -11,6 +11,7 @@ class ResourceView(MethodView):
     A resource is considered anything that does not use a template.
     It will also need an extension and cannot start with a "."
     """
+    restricted_dir = None # absolute path of directory to restrict items
 
     def get(self, uri, ext):
         """
@@ -26,16 +27,17 @@ class ResourceView(MethodView):
         uri_split = modified_uri.split('/')
         uri_path = os.path.join(*uri_split)
         uri_path = '.'.join((uri_path, ext))
-        abs_path = os.path.join(app.config['DATA_PATH'], uri_path)
+        abs_path = os.path.join(
+                self.restricted_dir,
+                uri_path
+                )
 
         #just in case...
-        def resource_within_data_path(data_path, resource_file_path):
-            app.logger.debug(data_path)
-            app.logger.debug(resource_file_path)
+        def resource_within_restricted_path(data_path, resource_file_path):
             return data_path == os.path.commonprefix((data_path,
                 resource_file_path))
 
-        if not resource_within_data_path(app.config['DATA_PATH'], abs_path):
+        if not resource_within_restricted_path(self.restricted_dir, abs_path):
             abort(404)
 
         if not os.path.isfile(abs_path):
@@ -50,4 +52,21 @@ class ResourceView(MethodView):
 
         return send_file(abs_path, mimetype=mimetype[0])
 
-app.add_url_rule('/<path:uri>.<ext>', view_func=ResourceView.as_view('resource'))
+class DataResourceView(ResourceView):
+    """
+    Allow access to resource files within the data directory.
+    """
+    restricted_dir = app.config['DATA_PATH']
+
+app.add_url_rule('/_data/<path:uri>.<ext>', view_func=DataResourceView.as_view('data_resource'))
+
+
+class ThemesResourceView(ResourceView):
+    """
+    Allow access to resource files within the themes directory.
+    """
+    restricted_dir = app.config['THEME_PATH']
+
+app.add_url_rule('/_themes/<path:uri>.<ext>',
+        view_func=ThemesResourceView.as_view('themes_resource'))
+
