@@ -1,6 +1,6 @@
 import os.path
 
-from flask import abort
+from flask import abort, redirect
 from flask.views import MethodView
 from pystache.renderer import Renderer
 from pystache.context import Context
@@ -42,7 +42,7 @@ class PageView(MethodView):
     """
     """
 
-    def get(self, uri='index'):
+    def get(self, uri='index.html'):
         """
         view a page
         """
@@ -63,5 +63,14 @@ class PageView(MethodView):
 
         return page.render()
 
+#@app.route('/<path:uri>')
+#def redirect_to_index(uri=''):
+#    return redirect('%s/index.html' % uri)
+
 app.add_url_rule('/', view_func=PageView.as_view('page'))
-app.add_url_rule('/<path:uri>', view_func=PageView.as_view('page'))
+app.add_url_rule('/index.html', view_func=PageView.as_view('index_page'))
+
+# flask auto redirects urls without a '/' on the end to this
+app.add_url_rule('/<path:uri>/', view_func=PageView.as_view('page'))
+
+app.add_url_rule('/<path:uri>/index.html', view_func=PageView.as_view('index_page'))

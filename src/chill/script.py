@@ -139,13 +139,12 @@ def freeze():
     freezer = Freezer(app)
 
     @freezer.register_generator
-    def page():
+    def index_page():
         for (dirpath, dirnames, filenames) in os.walk(app.config['DATA_PATH'], topdown=True):
             start = len(os.path.commonprefix((app.config['DATA_PATH'], dirpath)))
             relative_path = dirpath[start+1:]
             for dirname in dirnames:
-                yield {'uri': '.'.join((os.path.join(relative_path, dirname),
-                'html'))}
+                yield {'uri': os.path.join(relative_path, dirname)}
 
 
     freezer.freeze()
