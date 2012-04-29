@@ -146,5 +146,31 @@ def freeze():
             for dirname in dirnames:
                 yield {'uri': os.path.join(relative_path, dirname)}
 
+    @freezer.register_generator
+    def data_resource():
+        for (dirpath, dirnames, filenames) in os.walk(app.config['DATA_PATH'], topdown=True):
+            start = len(os.path.commonprefix((app.config['DATA_PATH'], dirpath)))
+            relative_path = dirpath[start+1:]
+            for filename in filenames:
+                (name, ext) = os.path.splitext(filename)
+                if ext[1:]:
+                    yield {
+                            'uri': os.path.join(relative_path, name),
+                            'ext': ext[1:]
+                            }
+
+    @freezer.register_generator
+    def themes_resource():
+        for (dirpath, dirnames, filenames) in os.walk(app.config['THEME_PATH'], topdown=True):
+            start = len(os.path.commonprefix((app.config['THEME_PATH'], dirpath)))
+            relative_path = dirpath[start+1:]
+            for filename in filenames:
+                (name, ext) = os.path.splitext(filename)
+                if ext[1:]:
+                    yield {
+                            'uri': os.path.join(relative_path, name),
+                            'ext': ext[1:]
+                            }
+
 
     freezer.freeze()
