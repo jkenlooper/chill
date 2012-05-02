@@ -17,6 +17,9 @@ class ResourceView(MethodView):
         """
         get the specified resource
         """
+        app.logger.debug(app.config['DATA_PATH'])
+        app.logger.debug(app.config['THEME_PATH'])
+        app.logger.debug(self.restricted_dir())
         # check if it exists in data_path
 
         # a//b == a/b/ == a/./b == a/foo/../b
@@ -28,7 +31,7 @@ class ResourceView(MethodView):
         uri_path = os.path.join(*uri_split)
         uri_path = '.'.join((uri_path, ext))
         abs_path = os.path.join(
-                self.restricted_dir,
+                self.restricted_dir(),
                 uri_path
                 )
 
@@ -37,7 +40,7 @@ class ResourceView(MethodView):
             return data_path == os.path.commonprefix((data_path,
                 resource_file_path))
 
-        if not resource_within_restricted_path(self.restricted_dir, abs_path):
+        if not resource_within_restricted_path(self.restricted_dir(), abs_path):
             abort(404)
 
         if not os.path.isfile(abs_path):
@@ -56,7 +59,9 @@ class DataResourceView(ResourceView):
     """
     Allow access to resource files within the data directory.
     """
-    restricted_dir = app.config['DATA_PATH']
+    
+    def restricted_dir(self):
+        return app.config['DATA_PATH']
 
 app.add_url_rule('/_data/<path:uri>.<ext>', view_func=DataResourceView.as_view('data_resource'))
 
@@ -65,7 +70,8 @@ class ThemesResourceView(ResourceView):
     """
     Allow access to resource files within the themes directory.
     """
-    restricted_dir = app.config['THEME_PATH']
+    def restricted_dir(self):
+        return app.config['THEME_PATH']
 
 app.add_url_rule('/_themes/<path:uri>.<ext>',
         view_func=ThemesResourceView.as_view('themes_resource'))

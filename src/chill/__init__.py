@@ -28,10 +28,12 @@ import page
 
 def init_db(db_name=None):
     """Create the database tables."""
+    app.logger.debug("create db tables")
 
-def build_context_data():
+def build_context_data(app):
     def build_search_dirs(relative_path):
         """ checks each dir for .mustache templates """
+        app.logger.debug("build search dirs %s" % relative_path)
         parent_path = relative_path
         search_dirs = []
         while parent_path != '':
@@ -85,6 +87,7 @@ def build_context_data():
 
         app.data[relative_path] = ctx_with_parent
 
-build_context_data()
+#build_context_data()
+app.build_context_data = build_context_data
 
 

@@ -28,6 +28,7 @@ def make_app(global_conf={}, config=DEPLOY_CFG, debug=False):
     from chill import app
     app.config.from_pyfile(abspath(config))
     app.debug = debug
+    app.build_context_data(app)
     return app
 
 
@@ -35,6 +36,8 @@ def make_app(global_conf={}, config=DEPLOY_CFG, debug=False):
 def make_debug(global_conf={}, **conf):
     from werkzeug.debug import DebuggedApplication
     app = make_app(global_conf, config=DEBUG_CFG, debug=True)
+    app.build_context_data(app)
+    app.logger.debug(app.data)
     return DebuggedApplication(app, evalex=True)
 
 
