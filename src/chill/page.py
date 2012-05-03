@@ -17,7 +17,6 @@ class Page(object):
         # set the template
         self.uri_path = uri_path
         self.context = app.data[uri_path]
-        pass
 
     def render(self, **kwargs):
         """
@@ -76,5 +75,4 @@ app.add_url_rule('/index.html', view_func=PageView.as_view('index_page'))
 
 # flask auto redirects urls without a '/' on the end to this
 app.add_url_rule('/<path:uri>/', view_func=PageView.as_view('page'))
-
 app.add_url_rule('/<path:uri>/index.html', view_func=PageView.as_view('index_page'))

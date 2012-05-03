@@ -44,7 +44,7 @@ class ResourceView(MethodView):
             abort(404)
 
         if uri != modified_uri:
-            redirect(uri_path)
+            return redirect(uri_path)
 
         mimetype = guess_type(abs_path)
         if not (mimetype):
@@ -60,7 +60,20 @@ class DataResourceView(ResourceView):
     def restricted_dir(self):
         return app.config['DATA_PATH']
 
-app.add_url_rule('/_data/<path:uri>.<ext>', view_func=DataResourceView.as_view('data_resource'))
+    def get(self, uri, ext=None):
+        """
+        get the specified resource
+        """
+        if (ext == 'html') and (uri[len(uri)-5:] == 'index'):
+            # Assume that visitor is requesting a page and not just a fragment
+            # of a page.
+            return redirect('/%s' % uri[:len(uri)-5])
+        if ext == None:
+            ext = 'html'
+        return super(DataResourceView, self).get(uri, ext)
+
+app.add_url_rule('/_data/<path:uri>.html', view_func=DataResourceView.as_view('data_resource'))
+app.add_url_rule('/<path:uri>.<ext>', view_func=DataResourceView.as_view('data_resource'))
 
 
 class ThemesResourceView(ResourceView):
