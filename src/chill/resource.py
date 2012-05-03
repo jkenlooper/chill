@@ -43,6 +43,14 @@ class ResourceView(MethodView):
         if not os.path.isfile(abs_path):
             abort(404)
 
+        if os.path.basename(abs_path)[:1] == '.':
+            # no dot files
+            abort(404)
+
+        if '/.' in abs_path:
+            # no dot directories
+            abort(404)
+
         if uri != modified_uri:
             return redirect(uri_path)
 

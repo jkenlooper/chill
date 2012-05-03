@@ -104,6 +104,32 @@ class ResourceFileTestCase(Mixin, unittest.TestCase):
         assert 200 == rv.status_code
         assert 'This file will be returned instead of the one above this directory' in rv.data
 
+    def test_for_humans(self):
+        " humans? "
+        rv = self.app.get('/humans.txt', follow_redirects=True)
+        assert 200 == rv.status_code
+
+    def test_for_page_fragment(self):
+        " page fragments viewable "
+        rv = self.app.get('/content.html', follow_redirects=True)
+        assert 200 == rv.status_code
+        rv = self.app.get('/_data.yaml', follow_redirects=True)
+        assert 200 == rv.status_code
+
+    def test_no_dot_files(self):
+        " no dot files accessible "
+        rv = self.app.get('/.nope.txt', follow_redirects=True)
+        assert 404 == rv.status_code
+        rv = self.app.get('/simple/.nope.html', follow_redirects=True)
+        assert 404 == rv.status_code
+
+    def test_no_dot_directories(self):
+        " no dot directories accessible "
+        rv = self.app.get('/.imadot/nope.txt', follow_redirects=True)
+        assert 404 == rv.status_code
+        rv = self.app.get('/simple/.imadot/nope.html', follow_redirects=True)
+        assert 404 == rv.status_code
+
 class ThemeFileTestCase(Mixin, unittest.TestCase):
 
     def test_if_css_file_exists(self):

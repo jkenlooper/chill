@@ -1,0 +1,18 @@
+/* the humans responsible & colophon */
+/* humanstxt.org */
+
+
+/* TEAM */
+  QA Lead: Harold the Llama
+  Site: chill.testing-labs.llama-division.weboftomorrow.example.com
+  Twitter:
+  Location:
+
+/* THANKS */
+  Names (& URL):
+
+/* SITE */
+  Standards: HTML5, CSS3
+  Components: Modernizr, jQuery
+  Software:
+        Flask
