@@ -42,7 +42,7 @@ class PageView(MethodView):
     """
     """
 
-    def get(self, uri='index.html'):
+    def get(self, uri=''):
         """
         view a page
         """
@@ -59,6 +59,10 @@ class PageView(MethodView):
         if not os.path.isdir(abs_path):
             abort(404)
 
+        if (os.path.normpath(os.path.join(abs_path, uri_path)) ==
+                os.path.normpath(abs_path)):
+            # if the uri is the same as DATA_PATH
+            uri_path = '' # key for the 'root' Data
         page = Page(uri_path)
 
         return page.render()

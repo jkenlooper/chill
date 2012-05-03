@@ -28,12 +28,10 @@ import page
 
 def init_db(db_name=None):
     """Create the database tables."""
-    app.logger.debug("create db tables")
 
 def build_context_data(app):
     def build_search_dirs(relative_path):
         """ checks each dir for .mustache templates """
-        app.logger.debug("build search dirs %s" % relative_path)
         parent_path = relative_path
         search_dirs = []
         while parent_path != '':
@@ -48,7 +46,6 @@ def build_context_data(app):
         filenames.sort() # affects which data fragments get replaced by yaml or other files
         start = len(os.path.commonprefix((app.config['DATA_PATH'], dirpath)))
         relative_path = dirpath[start+1:]
-        #app.logger.debug(relative_path)
         d = {}
         for f in filenames: #filenames here are considered page fragments
             file_path = os.path.join(dirpath, f)

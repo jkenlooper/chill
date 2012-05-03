@@ -17,9 +17,6 @@ class ResourceView(MethodView):
         """
         get the specified resource
         """
-        app.logger.debug(app.config['DATA_PATH'])
-        app.logger.debug(app.config['THEME_PATH'])
-        app.logger.debug(self.restricted_dir())
         # check if it exists in data_path
 
         # a//b == a/b/ == a/./b == a/foo/../b
