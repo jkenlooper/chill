@@ -1,17 +1,18 @@
 import unittest
 import chill
 
-
-class IndexTestCase(unittest.TestCase):
-
+class Mixin(object):
     def setUp(self):
         """Before each test, set up a blank database"""
         self.app = chill.app.test_client()
+        chill.app.build_context_data(chill.app)
         chill.init_db()
 
     def tearDown(self):
         """Get rid of the database again after each test."""
         pass
+
+class IndexTestCase(Mixin, unittest.TestCase):
 
     def test_index_page(self):
         """Test index page."""
@@ -45,12 +46,7 @@ class IndexTestCase(unittest.TestCase):
         rv = self.app.get('/simple/subpage/index.html')
         assert 'a simple subpage' in rv.data
 
-class CascadeTestCase(unittest.TestCase):
-
-    def setUp(self):
-        """Before each test, set up a blank database"""
-        self.app = chill.app.test_client()
-        chill.init_db()
+class CascadeTestCase(Mixin, unittest.TestCase):
 
     def test_one_page(self):
         """Test one page."""
@@ -62,12 +58,7 @@ class CascadeTestCase(unittest.TestCase):
         rv = self.app.get('/cascade_test/five/four/three/')
         assert 'cascade test parent page' in rv.data
 
-class YAMLDataCascadeTestCase(unittest.TestCase):
-
-    def setUp(self):
-        """Before each test, set up a blank database"""
-        self.app = chill.app.test_client()
-        chill.init_db()
+class YAMLDataCascadeTestCase(Mixin, unittest.TestCase):
 
     def test_top_level_yaml(self):
         rv = self.app.get('/')
@@ -82,23 +73,13 @@ class YAMLDataCascadeTestCase(unittest.TestCase):
         rv = self.app.get('/simple/')
         assert 'Simple sitetitle' in rv.data
 
-class YAMLDataTestCase(unittest.TestCase):
-
-    def setUp(self):
-        """Before each test, set up a blank database"""
-        self.app = chill.app.test_client()
-        chill.init_db()
+class YAMLDataTestCase(Mixin, unittest.TestCase):
 
     def test_menu_yaml(self):
         rv = self.app.get('/')
         assert 'imatitleinamenu' in rv.data
 
-class ResourceFileTestCase(unittest.TestCase):
-
-    def setUp(self):
-        """Before each test, set up a blank database"""
-        self.app = chill.app.test_client()
-        chill.init_db()
+class ResourceFileTestCase(Mixin, unittest.TestCase):
 
     def test_if_file_exists(self):
         rv = self.app.get('/_data/test.js')
@@ -123,11 +104,7 @@ class ResourceFileTestCase(unittest.TestCase):
         assert 200 == rv.status_code
         assert 'This file will be returned instead of the one above this directory' in rv.data
 
-class ThemeFileTestCase(unittest.TestCase):
-    def setUp(self):
-        """Before each test, set up a blank database"""
-        self.app = chill.app.test_client()
-        chill.init_db()
+class ThemeFileTestCase(Mixin, unittest.TestCase):
 
     def test_if_css_file_exists(self):
         " check if site.css file in default theme css directory exists "
