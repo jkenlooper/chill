@@ -142,6 +142,14 @@ class ThemeFileTestCase(Mixin, unittest.TestCase):
         rv = self.app.get('/_themes/default/base.mustache')
         assert 200 == rv.status_code
 
+class MustacheDataTestCase(Mixin, unittest.TestCase):
+
+    def test_mustache_wrap(self):
+        " content.html and content.mustache no conflict "
+        rv = self.app.get('/simple/mustache/')
+        assert "Some content that should be inside the content.mustache template." in rv.data
+        assert "mustache file with same name as a page fragment" in rv.data
+
 
 def suite():
     suite = unittest.TestSuite()
