@@ -29,7 +29,7 @@ def freeze(config):
             start = len(os.path.commonprefix((app.config['DATA_PATH'], dirpath)))
             relative_path = dirpath[start+1:]
             for dirname in dirnames:
-                yield {'uri': os.path.join(relative_path, dirname)}
+                yield ('page.index_page', {'uri': os.path.join(relative_path, dirname)})
 
     @freezer.register_generator
     def data_resource():
@@ -39,10 +39,10 @@ def freeze(config):
             for filename in filenames:
                 (name, ext) = os.path.splitext(filename)
                 if ext[1:]:
-                    yield {
+                    yield ('resource.data_resource', {
                             'uri': os.path.join(relative_path, name),
                             'ext': ext[1:]
-                            }
+                            })
 
     @freezer.register_generator
     def themes_resource():
@@ -52,10 +52,10 @@ def freeze(config):
             for filename in filenames:
                 (name, ext) = os.path.splitext(filename)
                 if ext[1:]:
-                    yield {
+                    yield ('resource.themes_resource', {
                             'uri': os.path.join(relative_path, name),
                             'ext': ext[1:]
-                            }
+                            })
 
 
     freezer.freeze()
