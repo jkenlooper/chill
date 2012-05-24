@@ -2,7 +2,7 @@ import os.path
 import glob
 
 from flask import Flask
-from pystache.context import Context
+from pystache.context import ContextStack
 import yaml
 
 class _DefaultSettings(object):
@@ -67,7 +67,7 @@ def build_context_data(app):
 
         search_dirs = build_search_dirs(relative_path)
 
-        ctx = Context(d)
+        ctx = ContextStack(d)
         ctx_list = []
         #parent_pages = os.path.dirname(relative_path).split('/')
         parent_page = os.path.dirname(relative_path)
@@ -75,7 +75,7 @@ def build_context_data(app):
             ctx_list.insert(0, app.data[parent_page])
             #parent_page = os.path.dirname(parent_page)
         ctx_list.append(ctx)
-        ctx_with_parent = Context.create(*ctx_list)
+        ctx_with_parent = ContextStack.create(*ctx_list)
 
         #add the theme dir to search_dirs
         themename = ctx_with_parent.get('_theme', 'default')

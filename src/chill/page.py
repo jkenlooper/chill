@@ -3,7 +3,7 @@ import os.path
 from flask import abort, redirect
 from flask.views import MethodView
 from pystache.renderer import Renderer
-from pystache.context import Context
+#from pystache.context import Context
 
 from chill import app
 
