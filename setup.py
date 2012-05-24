@@ -42,11 +42,7 @@ setup(
       ],
     entry_points="""
     [console_scripts]
-    flask-ctl = chill.script:run
+    run = chill.script:run
     freeze = chill.script:freeze
-
-    [paste.app_factory]
-    main = chill.script:make_app
-    debug = chill.script:make_debug
     """,
 )

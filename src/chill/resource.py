@@ -1,10 +1,10 @@
 import os.path
 from mimetypes import guess_type
 
-from flask import abort, redirect, send_file
+from flask import abort, redirect, send_file, Blueprint, current_app
 from flask.views import MethodView
 
-from chill import app
+resource = Blueprint('resource', __name__)
 
 class ResourceView(MethodView):
     """
@@ -66,7 +66,7 @@ class DataResourceView(ResourceView):
     """
     
     def restricted_dir(self):
-        return app.config['DATA_PATH']
+        return current_app.config['DATA_PATH']
 
     def get(self, uri, ext=None):
         """
@@ -80,8 +80,8 @@ class DataResourceView(ResourceView):
             ext = 'html'
         return super(DataResourceView, self).get(uri, ext)
 
-app.add_url_rule('/_data/<path:uri>.html', view_func=DataResourceView.as_view('data_resource'))
-app.add_url_rule('/<path:uri>.<ext>', view_func=DataResourceView.as_view('data_resource'))
+resource.add_url_rule('/_data/<path:uri>.html', view_func=DataResourceView.as_view('data_resource'))
+resource.add_url_rule('/<path:uri>.<ext>', view_func=DataResourceView.as_view('data_resource'))
 
 
 class ThemesResourceView(ResourceView):
@@ -89,8 +89,8 @@ class ThemesResourceView(ResourceView):
     Allow access to resource files within the themes directory.
     """
     def restricted_dir(self):
-        return app.config['THEME_PATH']
+        return current_app.config['THEME_PATH']
 
-app.add_url_rule('/_themes/<path:uri>.<ext>',
+resource.add_url_rule('/_themes/<path:uri>.<ext>',
         view_func=ThemesResourceView.as_view('themes_resource'))
 

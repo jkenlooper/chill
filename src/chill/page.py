@@ -1,11 +1,11 @@
 import os.path
 
-from flask import abort, redirect
+from flask import abort, redirect, Blueprint, current_app
 from flask.views import MethodView
 from pystache.renderer import Renderer
 #from pystache.context import Context
 
-from chill import app
+page = Blueprint('page', __name__)
 
 class Page(object):
     """
@@ -16,15 +16,15 @@ class Page(object):
         # set the context
         # set the template
         self.uri_path = uri_path
-        self.context = app.data[uri_path]
+        self.context = current_app.data[uri_path]
 
     def render(self, **kwargs):
         """
         render the page
         """
 
-        template_name = '%s.mustache' % app.data[self.uri_path].get('_template')
-        search_dirs=app.data[self.uri_path].get('_search_dirs')
+        template_name = '%s.mustache' % current_app.data[self.uri_path].get('_template')
+        search_dirs=current_app.data[self.uri_path].get('_search_dirs')
         for d in search_dirs:
             template_path = os.path.join(d, template_name)
             if os.path.exists(template_path):
@@ -54,7 +54,7 @@ class PageView(MethodView):
 
         uri_split = uri.split('/')
         uri_path = os.path.join(*uri_split)
-        abs_path = os.path.join(app.config['DATA_PATH'], uri_path)
+        abs_path = os.path.join(current_app.config['DATA_PATH'], uri_path)
         if not os.path.isdir(abs_path):
             abort(404)
 
@@ -70,9 +70,9 @@ class PageView(MethodView):
 #def redirect_to_index(uri=''):
 #    return redirect('%s/index.html' % uri)
 
-app.add_url_rule('/', view_func=PageView.as_view('page'))
-app.add_url_rule('/index.html', view_func=PageView.as_view('index_page'))
+page.add_url_rule('/', view_func=PageView.as_view('page'))
+page.add_url_rule('/index.html', view_func=PageView.as_view('index_page'))
 
 # flask auto redirects urls without a '/' on the end to this
-app.add_url_rule('/<path:uri>/', view_func=PageView.as_view('page'))
-app.add_url_rule('/<path:uri>/index.html', view_func=PageView.as_view('index_page'))
+page.add_url_rule('/<path:uri>/', view_func=PageView.as_view('page'))
+page.add_url_rule('/<path:uri>/index.html', view_func=PageView.as_view('index_page'))
