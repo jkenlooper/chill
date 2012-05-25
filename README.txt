@@ -58,4 +58,53 @@ to the content where you may want sub pages under this directory, like:
 these can be omitted as webservers are usually configured to redirect to the
 'index.html' if accessing a directory.
 
+Building a website
+------------------
 
+A buildout config file will be needed to 'buildout' the site. At the least this
+will need to specify where the data and themes directories are located.  A
+sample (and minimal) buildout.cfg can be seen below::
+
+    [buildout]
+    parts = 
+            site_cfg
+            scripts
+
+    [scripts]
+    # installs the run and freeze scripts in the bin directory
+    recipe = zc.recipe.egg:scripts
+    eggs = chill
+    # The run and freeze scripts need this site.cfg file path sent to them.
+    arguments = '${buildout:parts-directory}/site.cfg' 
+
+    [site_cfg]
+    # Creates the site.cfg in the parts directory
+    recipe = collective.recipe.template
+    input = inline:
+        HOST = '127.0.0.1' # default
+        PORT = 5000 # default
+        FREEZER_DESTINATION = "${buildout:directory}/frozen"
+        THEME_PATH = "${buildout:directory}/themes"
+        DATA_PATH = "${buildout:directory}/data"
+    output = ${buildout:parts-directory}/site.cfg
+
+If you have buildout installed on your system then just run the command:
+``buildout -c buildout.cfg`` or just ``buildout`` as it defaults to using the
+config file buildout.cfg.  Buildout will create a few extra directories
+including a bin directory that will have the run and freeze scripts in it.  
+
+Buildout can also be installed on your system with ``pip install zc.buildout``
+
+bin/run
+*******
+
+This script is used when you are developing your site's content and structure.
+It stays in the foreground and logs access to the default host and port which
+is http://localhost:5000 . This really is just designed to run on your
+development machine and not under a production environment.
+
+bin/freeze
+**********
+
+This is basically a wrapper around the Frozen-Flask python package that freezes
+your site into static files ready to be uploaded to a server or something.
