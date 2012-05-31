@@ -6,9 +6,9 @@ from flask_frozen import Freezer
 from chill.app import make_app
 
 # bin/run
-def run(config):
+def run(config, debug=False):
     "Run app in foreground. don't use for production"
-    app = make_app(config=config)
+    app = make_app(config=config, debug=debug)
 
     app.run(
             host=app.config.get("HOST", '127.0.0.1'),
