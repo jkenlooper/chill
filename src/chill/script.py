@@ -17,9 +17,9 @@ def run(config, debug=False):
             )
 
 # bin/freeze
-def freeze(config):
+def freeze(config, debug=False):
     """Freeze the application by creating a static version of it."""
-    app = make_app(config=config)
+    app = make_app(config=config, debug=debug)
     app.logger.debug('freezing app to directory: %s' % app.config['FREEZER_DESTINATION'])
     freezer = Freezer(app)
 
