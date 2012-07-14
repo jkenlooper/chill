@@ -32,7 +32,8 @@ Overview of Resource Directories
 
 There are two directories that are used when creating a website:  `themes`, and
 `data`.  Ideally, these are specified in your own buildout.cfg and are under
-some kind of version control.  
+some kind of version control.  An example of these are included in the source
+of this package and are used for unit tests.
 
 Themes
 ******

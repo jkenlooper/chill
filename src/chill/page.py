@@ -1,20 +1,37 @@
+#chill - Simple Frozen website management
+#Copyright (C) 2012  Jake Hickenlooper
+#
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+#
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import os.path
 
 from flask import abort, redirect, Blueprint, current_app
 from flask.views import MethodView
 from pystache.renderer import Renderer
-#from pystache.context import Context
 
 page = Blueprint('page', __name__)
 
 class Page(object):
     """
+    A page uses a template to render it's data found at the 'uri_path' which is
+    passed to it on init.
     """
+    # base is the default mustach template and is only used if '_template' is
+    # not set for a page
     template = "{{> base}}"
     context = None
     def __init__(self, uri_path):
-        # set the context
-        # set the template
         self.uri_path = uri_path
         self.context = current_app.data[uri_path]
 
@@ -39,6 +56,7 @@ class Page(object):
 
 class PageView(MethodView):
     """
+    Handles access to a page.
     """
 
     def get(self, uri=''):
@@ -66,9 +84,6 @@ class PageView(MethodView):
 
         return page.render()
 
-#@app.route('/<path:uri>')
-#def redirect_to_index(uri=''):
-#    return redirect('%s/index.html' % uri)
 
 page.add_url_rule('/', view_func=PageView.as_view('page'))
 page.add_url_rule('/index.html', view_func=PageView.as_view('index_page'))
