@@ -35,6 +35,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'setuptools',
+        'docutils',
         'Flask',
         'Frozen-Flask',
         'PyYAML',

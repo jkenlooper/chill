@@ -98,6 +98,14 @@ class YAMLDataTestCase(Mixin, unittest.TestCase):
         rv = self.test_client.get('/')
         assert 'imatitleinamenu' in rv.data
 
+class ReStructuredTextTestCase(Mixin, unittest.TestCase):
+
+    def test_simple_rest_inline(self):
+        """Simple inline ReStructuredText"""
+        rv = self.test_client.get('/rst/')
+        print rv.data
+        assert '<p><em>Just some simple inline markup in reST</em></p>' in rv.data
+
 class ResourceFileTestCase(Mixin, unittest.TestCase):
 
     def test_if_file_exists(self):

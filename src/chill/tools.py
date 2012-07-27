@@ -17,6 +17,7 @@
 import os.path
 import glob
 
+from docutils.core import publish_parts
 from pystache.context import ContextStack
 import yaml
 
@@ -58,6 +59,11 @@ def build_context_data(app):
                 s = h.read()
                 if ext == '.txt':
                     s = s.strip()
+                d[filename] = s
+            if ext in ('.rst',): #reStructuredText
+                h = open(file_path, 'r')
+                s = h.read()
+                s = publish_parts(s, writer_name='html').get('body')
                 d[filename] = s
             if ext in ('.yaml', '.yml'):
                 #each top level key is used as a page fragment
