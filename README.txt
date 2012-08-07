@@ -17,6 +17,9 @@ Templates are also used for a page in a similiar cascading manner.  Each page
 can override any part of a template by just including it in it's own directory.
 Any sub pages of that page directory will also use that template.
 
+To get up and running quickly checkout this boilerplate code:
+https://github.com/jkenlooper/chill-boilerplate
+
 Mustache Templates
 ------------------
 
