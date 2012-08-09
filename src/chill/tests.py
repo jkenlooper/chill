@@ -177,6 +177,17 @@ class MustacheDataTestCase(Mixin, unittest.TestCase):
         assert "Some content that should be inside the content.mustache template." in rv.data
         assert "mustache file with same name as a page fragment" in rv.data
 
+class GlobalMustacheTemplates(Mixin, unittest.TestCase):
+
+    def test_for_imaglobal(self):
+        "includes global templates"
+        rv = self.test_client.get('/')
+        assert ".lookforthistexttopassthetest." in rv.data
+
+    def test_for_globalpartial(self):
+        "includes global partial templates"
+        rv = self.test_client.get('/')
+        assert "imatestpartial" in rv.data
 
 def suite():
     suite = unittest.TestSuite()

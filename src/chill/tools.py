@@ -86,6 +86,10 @@ def build_context_data(app):
         #add the theme dir to search_dirs
         themename = ctx_with_parent.get('_theme', 'default')
         search_dirs.append(os.path.join(app.config['THEME_PATH'], themename))
+
+        # Add the theme directory to search_dirs which will allow for global
+        # templates to be used.
+        search_dirs.append(app.config['THEME_PATH'])
         ctx_with_parent.push({'_search_dirs':search_dirs})
 
         app.data[relative_path] = ctx_with_parent
