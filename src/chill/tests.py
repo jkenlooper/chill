@@ -189,6 +189,15 @@ class GlobalMustacheTemplates(Mixin, unittest.TestCase):
         rv = self.test_client.get('/')
         assert "imatestpartial" in rv.data
 
+class AlternateThemeTestCase(Mixin, unittest.TestCase):
+
+    def test_for_alternate_theme(self):
+        "Alternate theme"
+        rv = self.test_client.get('/alternate_test/')
+        assert "testpartial in alternate theme" in rv.data
+        assert ".alternate_test-content.html." in rv.data
+
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(IndexTestCase))
