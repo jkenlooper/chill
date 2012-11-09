@@ -18,7 +18,7 @@ import os.path
 import glob
 
 from docutils.core import publish_parts
-from pystache.context import ContextStack
+from pystache.context import ContextStack, KeyNotFoundError
 import yaml
 
 def build_context_data(app):
@@ -84,7 +84,11 @@ def build_context_data(app):
         ctx_with_parent = ContextStack.create(*ctx_list)
 
         #add the theme dir to search_dirs
-        themename = ctx_with_parent.get('_theme', 'default')
+        try:
+            themename = ctx_with_parent.get('_theme')
+        except KeyNotFoundError:
+            themename = 'default'
+
         search_dirs.append(os.path.join(app.config['THEME_PATH'], themename))
 
         # Add the theme directory to search_dirs which will allow for global

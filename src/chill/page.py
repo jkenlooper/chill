@@ -18,6 +18,7 @@ import os.path
 
 from flask import abort, redirect, Blueprint, current_app
 from flask.views import MethodView
+from pystache.context import KeyNotFoundError
 from pystache.renderer import Renderer
 
 page = Blueprint('page', __name__)
@@ -40,8 +41,17 @@ class Page(object):
         render the page
         """
 
-        template_name = '%s.mustache' % current_app.data[self.uri_path].get('_template')
-        search_dirs=current_app.data[self.uri_path].get('_search_dirs')
+        try:
+            template_name = '%s.mustache' % current_app.data[self.uri_path].get('_template')
+        except KeyNotFoundError:
+            # something that shouldn't exist
+            template_name = '.mustache'
+
+        try:
+            search_dirs=current_app.data[self.uri_path].get('_search_dirs')
+        except KeyNotFoundError:
+            search_dirs = u''
+
         for d in search_dirs:
             template_path = os.path.join(d, template_name)
             if os.path.exists(template_path):
