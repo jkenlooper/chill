@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import os
 
 name = "chill"
-version = "0.1.1"
+version = "0.1.2"
 
 def read(*rnames):
     return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
@@ -14,7 +14,7 @@ setup(
     author_email='jake@weboftomorrow.com',
     description="Simple Frozen website management",
     long_description=read('README.txt'),
-    url='http://www.weboftomorrow.com',
+    url='https://github.com/jkenlooper/chill',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
