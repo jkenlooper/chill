@@ -40,10 +40,12 @@ setup(
         'Frozen-Flask',
         'PyYAML',
         'pystache',
+        'gevent',
       ],
     entry_points="""
     [console_scripts]
     run = chill.script:run
+    serve = chill.script:serve
     freeze = chill.script:freeze
     """,
 )

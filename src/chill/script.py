@@ -32,6 +32,19 @@ def run(config, debug=False):
             use_reloader=True,
             )
 
+# bin/serve
+def serve(config, debug=False):
+    "Serve the app with Gevent"
+    from gevent.wsgi import WSGIServer
+
+    app = make_app(config=config, debug=debug)
+
+    host = app.config.get("HOST", '127.0.0.1')
+    port = app.config.get("PORT", 5000)
+    http_server = WSGIServer((host, port), app)
+    http_server.serve_forever()
+
+
 # bin/freeze
 def freeze(config, debug=False):
     """Freeze the application by creating a static version of it."""
