@@ -14,12 +14,39 @@
 #You should have received a copy of the GNU General Public License
 #along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Chill scripts"""
+"""Chill
+
+Usage: chill run --config <file>
+       chill serve --config <file>
+       chill freeze --config <file>
+
+Options:
+  -h --help         Show this screen.
+  --config <file>   Set config file.
+
+"""
 import os
 
+from docopt import docopt
 from flask_frozen import Freezer
 
 from chill.app import make_app
+
+def main():
+    ""
+    args = docopt(__doc__)
+    # parse args and pass to run, server, etc.
+    if args['run']:
+        run(args['--config'])
+
+    if args['serve']:
+        serve(args['--config'])
+
+    if args['freeze']:
+        freeze(args['--config'])
+
+if __name__ == '__main__':
+    main()
 
 # bin/run
 def run(config, debug=False):

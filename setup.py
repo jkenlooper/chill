@@ -1,3 +1,6 @@
+import ez_setup
+ez_setup.use_setuptools()
+
 from setuptools import setup, find_packages
 import os
 
@@ -13,7 +16,7 @@ setup(
     author='Jake Hickenlooper',
     author_email='jake@weboftomorrow.com',
     description="Simple Frozen website management",
-    long_description=read('README.txt'),
+    long_description=read('README.rst'),
     url='https://github.com/jkenlooper/chill',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
@@ -33,19 +36,23 @@ setup(
     include_package_data=True,
     package_data={name:['chill/data/*','chill/themes/*']},
     zip_safe=False,
+    test_suite="chill.tests",
     install_requires=[
         'setuptools',
         'docutils',
-        'Flask',
+        'Flask == 0.9',
         'Frozen-Flask',
         'PyYAML',
         'pystache',
         'gevent',
+        'docopt',
       ],
-    entry_points="""
-    [console_scripts]
-    run = chill.script:run
-    serve = chill.script:serve
-    freeze = chill.script:freeze
-    """,
+    entry_points={
+        'console_scripts': [
+            'chill = chill.script:main',
+            'run = chill.script:run',
+            'serve = chill.script:serve',
+            'freeze = chill.script:freeze',
+            ]
+        },
 )
