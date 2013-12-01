@@ -89,3 +89,9 @@ chill freeze
 
 This is basically a wrapper around the Frozen-Flask python package that freezes
 your site into static files ready to be uploaded to a server or something.
+
+
+.. image:: https://d2weczhvl823v0.cloudfront.net/jkenlooper/chill/trend.png
+   :alt: Bitdeli badge
+   :target: https://bitdeli.com/free
+
