@@ -1,28 +1,15 @@
-#chill - Simple Frozen website management
-#Copyright (C) 2012  Jake Hickenlooper
-#
-#This program is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
-#
-#This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-#
-#You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 import os.path
 
-from flask import abort, redirect, Blueprint, current_app
+from flask import abort, redirect, Blueprint, current_app, render_template
 from flask.views import MethodView
 from pystache.context import KeyNotFoundError
 from pystache.renderer import Renderer
 
 page = Blueprint('page', __name__)
 
+# TODO: decouple the `Page` from any specific template rendering language
+# TODO: Create a `PageData` for data that will be rendered with the template
+#
 class Page(object):
     """
     A page uses a template to render it's data found at the 'uri_path' which is
@@ -64,6 +51,8 @@ class Page(object):
         renderer = Renderer(search_dirs=search_dirs)
         return renderer.render(self.template, self.context, **kwargs)
 
+# TODO: Change how the 404 stuff is handled.
+
 class PageView(MethodView):
     """
     Handles access to a page.
@@ -90,9 +79,10 @@ class PageView(MethodView):
                 os.path.normpath(abs_path)):
             # if the uri is the same as DATA_PATH
             uri_path = '' # key for the 'root' Data
-        page = Page(uri_path)
+        #page = Page(uri_path)
 
-        return page.render()
+        #return page.render()
+        return 
 
 
 page.add_url_rule('/', view_func=PageView.as_view('page'))

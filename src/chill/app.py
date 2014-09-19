@@ -1,38 +1,66 @@
-#chill - Simple Frozen website management
-#Copyright (C) 2012  Jake Hickenlooper
-#
-#This program is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
-#
-#This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-#
-#You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from werkzeug.local import LocalProxy
+from flask import Flask, g, current_app
+import sqlite3
 
-from flask import Flask
 
-from chill.resource import resource
-from chill.page import page
-from chill.tools import build_context_data
+#from chill.resource import resource
+#from chill.page import page
 
-def make_app(config, **kw):
+def connect_to_database():
+    return sqlite3.connect(current_app.config['CHILL_DATABASE_URI'])
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = connect_to_database()
+    return db
+
+
+db = LocalProxy(get_db)
+
+def make_app(config=None, **kw):
     "factory to create the app"
 
-    app = Flask(__name__)
+    app = Flask('chill', static_url_path='/home/jake/projects/chill2/tmp/', static_folder='static')
 
-    app.config.from_pyfile(config)
+    if config:
+        app.config.from_pyfile(config)
     app.config.update(kw)
-    #app.debug = debug
+
+    @app.teardown_appcontext
+    def teardown_db(exception):
+        db = getattr(g, '_database', None)
+        if db is not None:
+            db.close()
+
+
+    # Environment has STATIC_URL='http://my_s3_bucket.aws.amazon.com/'
+    @app.context_processor
+    def inject_static_url():
+        """
+        Inject the variable 'static_url' into the templates. Grab it from
+        the environment variable STATIC_URL, or use the default.
+
+        Template variable will always have a trailing slash.
+
+        """
+        #static_url = os.environ.get('STATIC_URL', app.static_url_path)
+        static_url = app.config.get('STATIC_URL', app.static_url_path)
+        if not static_url.endswith('/'):
+            static_url += '/'
+        return dict(
+            static_url=static_url
+        )
 
     # register any blueprints here
-    app.register_blueprint(resource)
+    app.logger.warning("Not registering resource blueprint")
+    #app.register_blueprint(resource)
+
+    from chill.public import page
+    #app.logger.warning("Not registering page blueprint")
     app.register_blueprint(page)
 
-    build_context_data(app)
+    # not here...
+    #build_context_data(app)
 
     return app

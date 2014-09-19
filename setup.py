@@ -1,11 +1,11 @@
-import ez_setup
-ez_setup.use_setuptools()
+#import ez_setup
+#ez_setup.use_setuptools()
 
 from setuptools import setup, find_packages
 import os
 
 name = "chill"
-version = "0.1.2"
+version = "0.2.0"
 
 def read(*rnames):
     return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
@@ -40,19 +40,19 @@ setup(
     install_requires=[
         'setuptools',
         'docutils',
-        'Flask == 0.9',
+        'Flask',
+        'Jinja2',
         'Frozen-Flask',
+        'pytable',
+        'SQLAlchemy',
+        'Flask-SQLAlchemy',
         'PyYAML',
-        'pystache',
         'gevent',
         'docopt',
       ],
     entry_points={
         'console_scripts': [
-            'chill = chill.script:main',
-            'run = chill.script:run',
-            'serve = chill.script:serve',
-            'freeze = chill.script:freeze',
+            'chill = chill.script:main'
             ]
         },
 )

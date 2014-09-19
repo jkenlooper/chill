@@ -1,206 +1,160 @@
-#chill - Simple Frozen website management
-#Copyright (C) 2012  Jake Hickenlooper
-#
-#This program is free software: you can redistribute it and/or modify
-#it under the terms of the GNU General Public License as published by
-#the Free Software Foundation, either version 3 of the License, or
-#(at your option) any later version.
-#
-#This program is distributed in the hope that it will be useful,
-#but WITHOUT ANY WARRANTY; without even the implied warranty of
-#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#GNU General Public License for more details.
-#
-#You should have received a copy of the GNU General Public License
-#along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-import os.path
 import unittest
+import tempfile
+import flask
 
-import chill.app
+from chill.app import make_app, db
+from chill.database import init_db, add_node_to_node, path_for_node, add_node_for_route
 
-TEST_CFG = os.path.join(os.path.dirname(__file__), 'test.cfg')
+class ChillTestCase(unittest.TestCase):
 
-class Mixin(object):
     def setUp(self):
-        """Before each test, set up a blank database"""
-        self.app = chill.app.make_app(config=TEST_CFG, debug=True)
-        self.test_client = self.app.test_client()
+        self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
+        self.app = make_app(CHILL_DATABASE_URI=self.tmp_db.name, DEBUG=True)
 
     def tearDown(self):
         """Get rid of the database again after each test."""
-        pass
+        self.tmp_db.unlink(self.tmp_db.name)
 
-class IndexTestCase(Mixin, unittest.TestCase):
+class SimpleCheck(ChillTestCase):
+    def test_db(self):
+        """Check usage of db"""
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
 
-    def test_index_page(self):
-        """Test index page."""
+                cursor = db.cursor()
+                cursor.execute("""insert into Node (name, left, right, value) values (:name, 0, 0, :value)""", {"name": "bill", "value": "?"})
+                db.commit()
 
-        # all get the same page
-        rv = self.test_client.get('/index.html', follow_redirects=True)
-        assert 'stuff goes here' in rv.data
-        rv = self.test_client.get('/')
-        assert 'stuff goes here' in rv.data
+                #rv = c.get('/bill', follow_redirects=True)
+                #assert '?' in rv.data
 
-    def test_simple_page(self):
-        """Test simple page."""
-        rv = self.test_client.get('/simple/')
-        assert 'a simple page' in rv.data
-        rv = self.test_client.get('/simple/index.html', follow_redirects=True)
-        assert 'a simple page' in rv.data
+class Route(ChillTestCase):
+    def test_paths(self):
+        with self.app.app_context():
+            init_db()
 
-    def test_simple_index_page(self):
-        """Test simple sub index page."""
-        rv = self.test_client.get('/simple/')
-        assert 'a index within the simple directory' not in rv.data
-        rv = self.test_client.get('/simple/index/')
-        assert 'a index within the simple directory' in rv.data
-        rv = self.test_client.get('/simple/index/index.html', follow_redirects=True)
-        assert 'a index within the simple directory' in rv.data
+            top_id = add_node_to_node(1, 'top', value='hello')
+            add_node_for_route('/', top_id)
 
-    def test_sub_page(self):
-        """Test sub page."""
-        rv = self.test_client.get('/simple/subpage/')
-        assert 'a simple subpage' in rv.data
-        rv = self.test_client.get('/simple/subpage/index.html', follow_redirects=True)
-        assert 'a simple subpage' in rv.data
+            one_id = add_node_to_node(1, 'one', value='1')
+            add_node_for_route('/one', one_id)
+            two_id = add_node_to_node(one_id, 'two', value='2')
+            add_node_for_route('/one/two', two_id)
+            three_id = add_node_to_node(two_id, 'three', value='3')
+            add_node_for_route('/one/two/three', three_id)
+            add_node_for_route('/one/two/other_three', three_id)
+            flask.current_app.logger.debug(db.execute("select * from route").fetchall())
 
-class CascadeTestCase(Mixin, unittest.TestCase):
+            with self.app.test_client() as c:
 
-    def test_one_page(self):
-        """Test one page."""
-        rv = self.test_client.get('/cascade_test/five/four/three/two/one/')
-        assert 'one content page' in rv.data
+                rv = c.get('/', follow_redirects=True)
+                assert 'hello' == rv.data
+                rv = c.get('/.', follow_redirects=True)
+                assert 'hello' == rv.data
+                rv = c.get('/index.html', follow_redirects=True)
+                assert 'hello' == rv.data
+                rv = c.get('', follow_redirects=True)
+                assert 'hello' == rv.data
 
-    def test_empty_page(self):
-        """Test empty page."""
-        rv = self.test_client.get('/cascade_test/five/four/three/')
-        assert 'cascade test parent page' in rv.data
+                rv = c.get('/one', follow_redirects=True)
+                assert '1' == rv.data
+                rv = c.get('/one/', follow_redirects=True)
+                assert '1' == rv.data
+                rv = c.get('/one/.', follow_redirects=True)
+                assert '1' == rv.data
+                rv = c.get('/one/index.html', follow_redirects=True)
+                assert '1' == rv.data
+                rv = c.get('/one/two', follow_redirects=True)
+                assert '2' == rv.data
+                rv = c.get('/one/foo/../two', follow_redirects=True)
+                assert '2' == rv.data
+                rv = c.get('/./one//two', follow_redirects=True)
+                assert '2' == rv.data
+                rv = c.get('/one/two/', follow_redirects=True)
+                assert '2' == rv.data
+                rv = c.get('/one/two/index.html', follow_redirects=True)
+                assert '2' == rv.data
+                rv = c.get('/one/two/three', follow_redirects=True)
+                assert '3' == rv.data
+                rv = c.get('/one/two/other_three', follow_redirects=True)
+                assert '3' == rv.data
+                rv = c.get('/one/two/other_three/index.html', follow_redirects=True)
+                assert '3' == rv.data
+                rv = c.get('/one///////two/other_three/index.html', follow_redirects=True)
+                assert '3' == rv.data
+                rv = c.get('/one/two/other_three/nothing', follow_redirects=True)
+                assert 404 == rv.status_code
 
-class YAMLDataCascadeTestCase(Mixin, unittest.TestCase):
+class Populate(ChillTestCase):
+    def test_add_single_nodes(self):
+        """Check usage of nested set sql adding"""
+        with self.app.app_context():
+            init_db()
 
-    def test_top_level_yaml(self):
-        rv = self.test_client.get('/')
-        assert 'Chill Examples and Tests' in rv.data
+            ice_cream_id = add_node_to_node(1, 'ice_cream', value='yummy')
+            blueberry_id = add_node_to_node(ice_cream_id, 'ice_cream blueberry', value='blueberry')
+            raspberry_id = add_node_to_node(ice_cream_id, 'ice_cream raspberry', value='raspberry')
+            candy_id = add_node_to_node(1, 'candy', value='yummy candy')
+            strawberry_id = add_node_to_node(ice_cream_id, 'ice_cream strawberry', value='strawberry')
+            for i in range(0, 33):
+                sub_id = add_node_to_node(strawberry_id, 'sub%i' % i, value='strawberry sub %i' % i)
+                if sub_id % 5:
+                    other_id = add_node_to_node(sub_id, 'other%i' % i, value='other')
+                    another_id = add_node_to_node(blueberry_id, 'blueberry_other%i' % i, value='other')
+                    extra_id = add_node_to_node(1, 'extra%i' % i, value='other')
+                if sub_id % 7:
+                    sev_id = add_node_to_node(candy_id, 'seven other%i' % i, value='other')
+            banana_id = add_node_to_node(1, 'banana', value='')
+            orange_id = add_node_to_node(1, 'orange', value='')
+            eggplant_id = add_node_to_node(1, 'eggplant', value='')
 
-    def test_yaml_and_txt_conflict(self):
-        rv = self.test_client.get('/simple/')
-        assert 'just a simple page' in rv.data
-        assert 'this pagetitle gets replaced by the pagetitle.txt' not in rv.data
+            orange2_id = add_node_to_node(orange_id, 'color-is-orange', value='')
 
-    def test_replace_top_yaml(self):
-        rv = self.test_client.get('/simple/')
-        assert 'Simple sitetitle' in rv.data
+            assert path_for_node(orange2_id) == u'root/orange/color-is-orange'
+            assert path_for_node(eggplant_id) == u'root/eggplant'
+            assert path_for_node(strawberry_id) == u'root/ice_cream/ice_cream strawberry'
 
-class YAMLDataTestCase(Mixin, unittest.TestCase):
 
-    def test_menu_yaml(self):
-        rv = self.test_client.get('/')
-        assert 'imatitleinamenu' in rv.data
 
-class ReStructuredTextTestCase(Mixin, unittest.TestCase):
+class NothingConfigured(ChillTestCase):
+    def test_empty(self):
+        """Show something for nothing"""
+        with self.app.test_client() as c:
+            rv = c.get('/')
+            assert 404 == rv.status_code
+            rv = c.get('/index.html')
+            assert 404 == rv.status_code
+            rv = c.get('/something/')
+            assert 404 == rv.status_code
+            rv = c.get('/something/test.txt', follow_redirects=True)
+            assert 404 == rv.status_code
+            rv = c.get('/static/afile.txt', follow_redirects=True)
+            assert 404 == rv.status_code
+            rv = c.get('/something/nothing/')
+            assert 404 == rv.status_code
 
-    def test_simple_rest_inline(self):
-        """Simple inline ReStructuredText"""
-        rv = self.test_client.get('/rst/')
-        assert '<p><em>Just some simple inline markup in reST</em></p>' in rv.data
 
-class ResourceFileTestCase(Mixin, unittest.TestCase):
+            rv = c.get('/chill/')
+            assert 'Llamas' in rv.data
+            rv = c.get('/chill/index.html')
+            assert 'Llamas' in rv.data
 
-    def test_if_file_exists(self):
-        rv = self.test_client.get('/test.js')
-        assert 'test.js file in data path' in rv.data
+class ContextData(ChillTestCase):
+    def test_some_data(self):
+        """
+        Build some example context data that works with a cascade...
+        """
 
-    def test_for_file_outside_of_data_path(self):
-        " test for file outside of data path "
-        rv = self.test_client.get('/../cantgetthisfile.js')
-        assert 'Should NOT be able to retreive this file!' not in rv.data
-
-        rv = self.test_client.get('/../../cantgetthisfile.js')
-        assert 'Should NOT be able to retreive this file!' not in rv.data
-
-    def test_for_file_way_outside_of_data_path(self):
-        " test for file way outside of data path "
-        rv = self.test_client.get('/../../../../README.txt')
-        assert 404 == rv.status_code
-
-    def test_for_file_outside_of_data_path_but_get_other(self):
-        " test for file outside of data path but get other "
-        rv = self.test_client.get('/../../cantgetthisfile.js', follow_redirects=True)
-        assert 200 == rv.status_code
-        assert 'This file will be returned instead of the one above this directory' in rv.data
-
-    def test_for_humans(self):
-        " humans? "
-        rv = self.test_client.get('/humans.txt', follow_redirects=True)
-        assert 200 == rv.status_code
-
-    def test_for_page_fragment(self):
-        " page fragments viewable "
-        rv = self.test_client.get('/content.html', follow_redirects=True)
-        assert 200 == rv.status_code
-        rv = self.test_client.get('/_data.yaml', follow_redirects=True)
-        assert 200 == rv.status_code
-
-    def test_no_dot_files(self):
-        " no dot files accessible "
-        rv = self.test_client.get('/.nope.txt', follow_redirects=True)
-        assert 404 == rv.status_code
-        rv = self.test_client.get('/simple/.nope.html', follow_redirects=True)
-        assert 404 == rv.status_code
-
-    def test_no_dot_directories(self):
-        " no dot directories accessible "
-        rv = self.test_client.get('/.imadot/nope.txt', follow_redirects=True)
-        assert 404 == rv.status_code
-        rv = self.test_client.get('/simple/.imadot/nope.html', follow_redirects=True)
-        assert 404 == rv.status_code
-
-class ThemeFileTestCase(Mixin, unittest.TestCase):
-
-    def test_if_css_file_exists(self):
-        " check if site.css file in default theme css directory exists "
-        rv = self.test_client.get('/_themes/default/css/site.css')
-        assert 200 == rv.status_code
-
-    def test_if_mustache_file_exists(self):
-        " check if base.mustache file can be accessed"
-        rv = self.test_client.get('/_themes/default/base.mustache')
-        assert 200 == rv.status_code
-
-class MustacheDataTestCase(Mixin, unittest.TestCase):
-
-    def test_mustache_wrap(self):
-        " content.html and content.mustache no conflict "
-        rv = self.test_client.get('/simple/mustache/')
-        assert "Some content that should be inside the content.mustache template." in rv.data
-        assert "mustache file with same name as a page fragment" in rv.data
-
-class GlobalMustacheTemplates(Mixin, unittest.TestCase):
-
-    def test_for_imaglobal(self):
-        "includes global templates"
-        rv = self.test_client.get('/')
-        assert ".lookforthistexttopassthetest." in rv.data
-
-    def test_for_globalpartial(self):
-        "includes global partial templates"
-        rv = self.test_client.get('/')
-        assert "imatestpartial" in rv.data
-
-class AlternateThemeTestCase(Mixin, unittest.TestCase):
-
-    def test_for_alternate_theme(self):
-        "Alternate theme"
-        rv = self.test_client.get('/alternate_test/')
-        assert "testpartial in alternate theme" in rv.data
-        assert ".alternate_test-content.html." in rv.data
-
+class Template(ChillTestCase):
+    def test_some_template(self):
+        """
+        """
 
 def suite():
     suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(IndexTestCase))
-    suite.addTest(unittest.makeSuite(YAMLDataTestCase))
+    suite.addTest(unittest.makeSuite(NothingConfigured))
+    suite.addTest(unittest.makeSuite(SimpleCheck))
     return suite
 
 
