@@ -9,8 +9,7 @@ from chill.app import db
 
 
 # The page blueprint has no static files or templates read from disk.
-page = Blueprint('public', __name__, static_folder=None)
-
+page = Blueprint('public', __name__, static_folder=None, template_folder=None)
 
 class PageView(MethodView):
     """
@@ -29,7 +28,7 @@ class PageView(MethodView):
         uri = os.path.normpath(os.path.join('/', uri))
 
         uri, ext = os.path.splitext(uri)
-        current_app.logger.debug('uri: "%s"' % uri)
+        #current_app.logger.debug('uri: "%s"' % uri)
        
         c = db.cursor()
         try:
@@ -66,7 +65,8 @@ class PageView(MethodView):
                     template = template_result[1]
 
                     # TODO: render the template with value
-                    return 'TODO: render template: "%s" with value: "%s"' % (template, value)
+                    #return 'TODO: render template: "%s" with value: "%s"' % (template, value)
+                    return render_template(template, value=value)
                 else:
                     # No template for this node so just return the value
                     return value

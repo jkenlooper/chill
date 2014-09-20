@@ -1,5 +1,8 @@
+import os
+
 from werkzeug.local import LocalProxy
 from flask import Flask, g, current_app
+from jinja2 import FileSystemLoader
 import sqlite3
 
 
@@ -21,11 +24,14 @@ db = LocalProxy(get_db)
 def make_app(config=None, **kw):
     "factory to create the app"
 
-    app = Flask('chill', static_url_path='/home/jake/projects/chill2/tmp/', static_folder='static')
+    app = Flask('chill', static_url_path=os.path.abspath('.'), static_folder='static', template_folder='templates')
 
     if config:
         app.config.from_pyfile(config)
     app.config.update(kw)
+
+    # Set the jinja2 template folder eith fallback for app.template_folder
+    app.jinja_env.loader = FileSystemLoader( app.config.get('TEMPLATE_FOLDER', app.template_folder) )
 
     @app.teardown_appcontext
     def teardown_db(exception):
@@ -34,7 +40,7 @@ def make_app(config=None, **kw):
             db.close()
 
 
-    # Environment has STATIC_URL='http://my_s3_bucket.aws.amazon.com/'
+    # STATIC_URL='http://cdn.example.com/whatever/works/'
     @app.context_processor
     def inject_static_url():
         """
@@ -44,7 +50,6 @@ def make_app(config=None, **kw):
         Template variable will always have a trailing slash.
 
         """
-        #static_url = os.environ.get('STATIC_URL', app.static_url_path)
         static_url = app.config.get('STATIC_URL', app.static_url_path)
         if not static_url.endswith('/'):
             static_url += '/'

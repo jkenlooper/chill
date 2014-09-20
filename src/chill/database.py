@@ -68,7 +68,7 @@ def add_template_for_node(name, node_id):
         if result:
             template_id = result[0]
             c.execute("""
-              insert or ignore into Template_Node (template_id, node_id) values (:template_id, :node_id);
+              insert or replace into Template_Node (template_id, node_id) values (:template_id, :node_id);
               """, {'template_id':template_id, 'node_id':node_id})
         db.commit()
 

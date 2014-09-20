@@ -1,19 +1,38 @@
 import unittest
 import tempfile
 import flask
+import os
 
 from chill.app import make_app, db
-from chill.database import init_db, add_node_to_node, path_for_node, add_node_for_route
+from chill.database import ( init_db,
+        add_node_to_node,
+        path_for_node,
+        add_node_for_route,
+        add_template_for_node )
 
 class ChillTestCase(unittest.TestCase):
 
     def setUp(self):
+        self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
-        self.app = make_app(CHILL_DATABASE_URI=self.tmp_db.name, DEBUG=True)
+        self.app = make_app(CHILL_DATABASE_URI=self.tmp_db.name,
+                TEMPLATE_FOLDER=self.tmp_template_dir,
+                DEBUG=True)
 
     def tearDown(self):
-        """Get rid of the database again after each test."""
+        """Get rid of the database and templates after each test."""
         self.tmp_db.unlink(self.tmp_db.name)
+       
+        # Walk and remove all files and directories in the created temp directory
+        for root, dirs, files in os.walk(self.tmp_template_dir, topdown=False):
+            for name in files:
+                #self.app.logger.debug('removing: %s', os.path.join(root, name))
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                #self.app.logger.debug('removing: %s', os.path.join(root, name))
+                os.rmdir(os.path.join(root, name))
+
+        os.rmdir(self.tmp_template_dir)
 
 class SimpleCheck(ChillTestCase):
     def test_db(self):
@@ -150,6 +169,70 @@ class Template(ChillTestCase):
     def test_some_template(self):
         """
         """
+        f = open(os.path.join(self.tmp_template_dir, 'base.html'), 'w')
+        f.write("""
+          <!doctype html>
+          <html><head><title>test</title></head>
+          <body>
+          <div>{% block content %}{% endblock %}</div>
+          </body>
+          </html>
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'template_a.html'), 'w')
+        f.write("""
+          {% extends "base.html" %}
+          {% block content %}
+          <h1>template_a</h1>
+          {{ value }}
+          {% endblock %}
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'template_b.html'), 'w')
+        f.write("""
+          {% extends "base.html" %}
+          {% block content %}
+          <h1>template_b</h1>
+          {{ value }}
+          {% endblock %}
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                test_id = add_node_to_node(1, 'test one', value='testing one')
+                add_node_for_route('/test/1', test_id)
+                add_template_for_node('template_a.html', test_id)
+
+                rv = c.get('/test/1', follow_redirects=True)
+                assert 'testing one' in rv.data
+
+                a_id = add_node_to_node(1, 'a', value='apple')
+                add_node_for_route('/fruit/a', a_id)
+                add_template_for_node('template_a.html', a_id)
+
+                rv = c.get('/fruit/a', follow_redirects=True)
+                assert 'apple' in rv.data
+                assert 'template_a' in rv.data
+
+                b_id = add_node_to_node(1, 'b', value='banana')
+                add_template_for_node('template_b.html', b_id)
+                o_id = add_node_to_node(1, 'orange', value='orange')
+                add_template_for_node('template_b.html', o_id)
+                
+                eggplant_id = add_node_to_node(1, 'eggplant', value='eggplant')
+                add_template_for_node('template_b.html', eggplant_id)
+
+                # overwrite ( fruit/a use to be set to template_a.html )
+                add_template_for_node('template_b.html', a_id)
+
+                rv = c.get('/fruit/a', follow_redirects=True)
+                assert 'apple' in rv.data
+                assert 'template_b' in rv.data
 
 def suite():
     suite = unittest.TestSuite()
