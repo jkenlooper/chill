@@ -6,6 +6,7 @@ from flask import abort, redirect, Blueprint, current_app, render_template
 from flask.views import MethodView
 
 from chill.app import db
+from database import fetch_sql_string
 
 
 # The page blueprint has no static files or templates read from disk.
@@ -29,13 +30,12 @@ class PageView(MethodView):
 
         uri, ext = os.path.splitext(uri)
         #current_app.logger.debug('uri: "%s"' % uri)
+
+        select_node_from_route = fetch_sql_string('select_node_from_route.sql')
        
         c = db.cursor()
         try:
-            c.execute("""
-              select Node.name, Node.value, Node.id, route.node_id, route.path from Node
-              join route on route.node_id = Node.id where route.path = :uri
-              group by Node.name;""", {'uri':uri})
+            c.execute(select_node_from_route, {'uri':uri})
         except sqlite3.DatabaseError as err:
             current_app.logger.error("DatabaseError: %s", err)
             if uri == '/chill':
@@ -44,36 +44,40 @@ class PageView(MethodView):
 
         result = c.fetchone()
         if result:
-            if result[1]:
-                # Has a value set.
-                value = result[1]
-            else:
-                # Look up value by using SelectSQL table
-                value = None # TODO:
 
-            # TODO: check if a template is assigned to it and render that instead
-            try:
-                c.execute("""
-                    select t.id, t.name from Template as t
-                    join Template_Node as tn on ( tn.template_id = t.id )
-                    join Node as n on ( n.id = tn.node_id )
-                    where n.id is :node_id 
-                    group by t.id;
-                """, {'node_id':result[2]})
-                template_result = c.fetchone()
-                if template_result and template_result[1]:
-                    template = template_result[1]
-
-                    # TODO: render the template with value
-                    #return 'TODO: render template: "%s" with value: "%s"' % (template, value)
-                    return render_template(template, value=value)
-                else:
-                    # No template for this node so just return the value
-                    return value
-            except sqlite3.DatabaseError as err:
-                current_app.logger.error("DatabaseError: %s", err)
+            rendered = self.render_node(result[2], result[1])
+            if rendered:
+                return rendered
 
         abort(404)
+
+    def render_node(self, node_id, value):
+        c = db.cursor()
+        if value == None:
+            # Look up value by using SelectSQL table
+            value = None # 'TODO: get value from SelectSQL' # TODO:
+            # TODO: recursive  set value to dict with each node found as a key?
+            # Or just render?
+
+        # TODO: check if a template is assigned to it and render that instead
+        select_template_from_node = fetch_sql_string('select_template_from_node.sql')
+        try:
+            c.execute(select_template_from_node, {'node_id':node_id})
+            template_result = c.fetchone()
+            if template_result and template_result[1]:
+                template = template_result[1]
+
+                # TODO: render the template with value
+                #return 'TODO: render template: "%s" with value: "%s"' % (template, value)
+                return render_template(template, value=value)
+            #else:
+            #    # No template for this node so just return the value if not None
+            #    if value:
+            #        return value
+        except sqlite3.DatabaseError as err:
+            current_app.logger.error("DatabaseError: %s", err)
+        
+        return value
 
 
 page.add_url_rule('/', view_func=PageView.as_view('page'))

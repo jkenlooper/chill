@@ -8,9 +8,15 @@ def init_db():
             db.cursor().executescript(f.read())
         db.commit()
 
-def add_node_to_node(target_node_id, name, **kw):
+def fetch_sql_string(file_name):
+    # TODO: optimize reading this into memory or get it elsewhere.
+    with current_app.open_resource(file_name, mode='r') as f:
+        return f.read()
+
+def add_node_to_node(target_node_id, name, value=None, **kw):
     values = {'target_node_id':target_node_id,
-            'name': name}
+            'name': name,
+            'value': value}
     values.update(kw)
 
     with current_app.app_context():

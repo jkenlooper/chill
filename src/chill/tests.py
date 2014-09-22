@@ -63,7 +63,6 @@ class Route(ChillTestCase):
             three_id = add_node_to_node(two_id, 'three', value='3')
             add_node_for_route('/one/two/three', three_id)
             add_node_for_route('/one/two/other_three', three_id)
-            flask.current_app.logger.debug(db.execute("select * from route").fetchall())
 
             with self.app.test_client() as c:
 
@@ -159,11 +158,21 @@ class NothingConfigured(ChillTestCase):
             rv = c.get('/chill/index.html')
             assert 'Llamas' in rv.data
 
-class ContextData(ChillTestCase):
+class SelectSQL(ChillTestCase):
     def test_some_data(self):
         """
-        Build some example context data that works with a cascade...
         """
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                # Not setting a value for a node
+                four_id = add_node_to_node(1, 'empty')
+                add_node_for_route('/empty', four_id)
+
+                # When no value is set and no SelectSQL or Template is set
+                rv = c.get('/empty', follow_redirects=True)
+                assert 404 == rv.status_code
 
 class Template(ChillTestCase):
     def test_some_template(self):
