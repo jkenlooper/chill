@@ -36,8 +36,18 @@ create table SelectSQL (
     name varchar(255) not null
 );
 create table SelectSQL_Node (
-    select_sql_id integer,
-    node_id integer
+    selectsql_id integer,
+    node_id integer,
+    foreign key ( selectsql_id ) references SelectSQL ( id ) on delete set null,
+    foreign key ( node_id ) references Node ( id ) on delete set null
+);
+
+/* Link a node to a some other node's value */
+create table Node_Node (
+    node_id integer,
+    target_node_id integer,
+    foreign key ( node_id ) references Node ( id ) on delete set null,
+    foreign key ( target_node_id ) references Node ( id ) on delete set null
 );
   
 /*

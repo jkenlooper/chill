@@ -1,3 +1,4 @@
+import os
 from flask import current_app
 from chill.app import db
 
@@ -8,10 +9,30 @@ def init_db():
             db.cursor().executescript(f.read())
         db.commit()
 
+#TODO: change the 'normalize' name...
+def normalize(l, description):
+    d = []
+    if l != None and description != None:
+        col_names = [x[0] for x in description]
+        for row in l:
+            d.append(dict(zip(col_names, row)))
+    return (d, col_names)
+
 def fetch_sql_string(file_name):
     # TODO: optimize reading this into memory or get it elsewhere.
     with current_app.open_resource(file_name, mode='r') as f:
         return f.read()
+
+def fetch_selectsql_string(file_name):
+    # TODO: optimize reading this into memory or get it elsewhere.
+    folder = current_app.config.get('SELECTSQL_FOLDER', '')
+    file_path = os.path.join(os.path.abspath('.'), folder, file_name) 
+    if os.path.isfile(file_path):
+        with open(file_path, 'r') as f:
+            return f.read()
+    else:
+        # fallback on one that's in app resources
+        return fetch_sql_string(file_name)
 
 def add_node_to_node(target_node_id, name, value=None, **kw):
     values = {'target_node_id':target_node_id,
@@ -79,3 +100,28 @@ def add_template_for_node(name, node_id):
         db.commit()
 
 
+def add_selectsql_for_node(name, node_id):
+    with current_app.app_context():
+        c = db.cursor()
+        c.execute("""
+          insert or ignore into SelectSQL (name) values (:name)
+          """, {'name':name, 'node_id':node_id})
+        c.execute("""
+          select s.id, s.name from SelectSQL as s where s.name is :name;
+          """, {'name':name, 'node_id':node_id})
+        result = c.fetchone()
+        if result:
+            selectsql_id = result[0]
+            c.execute("""
+              insert or replace into SelectSQL_Node (selectsql_id, node_id) values (:selectsql_id, :node_id);
+              """, {'selectsql_id':selectsql_id, 'node_id':node_id})
+        db.commit()
+
+
+def link_node_to_node(node_id, target_node_id):
+    with current_app.app_context():
+        c = db.cursor()
+        c.execute("""
+          insert or replace into Node_Node (node_id, target_node_id) values (:node_id, :target_node_id);
+          """, {'node_id':node_id, 'target_node_id':target_node_id})
+        db.commit()

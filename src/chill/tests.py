@@ -5,9 +5,13 @@ import os
 
 from chill.app import make_app, db
 from chill.database import ( init_db,
+        normalize,
         add_node_to_node,
+        link_node_to_node,
         path_for_node,
         add_node_for_route,
+        fetch_sql_string,
+        add_selectsql_for_node,
         add_template_for_node )
 
 class ChillTestCase(unittest.TestCase):
@@ -17,6 +21,7 @@ class ChillTestCase(unittest.TestCase):
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
         self.app = make_app(CHILL_DATABASE_URI=self.tmp_db.name,
                 TEMPLATE_FOLDER=self.tmp_template_dir,
+                SELECTSQL_FOLDER=self.tmp_template_dir,
                 DEBUG=True)
 
     def tearDown(self):
@@ -158,8 +163,128 @@ class NothingConfigured(ChillTestCase):
             rv = c.get('/chill/index.html')
             assert 'Llamas' in rv.data
 
+class SQL(ChillTestCase):
+    def test_link(self):
+        """
+        Link to any node 
+        """
+        with self.app.app_context():
+            init_db()
+            a = add_node_to_node(1, 'a')
+            b = add_node_to_node(1, 'b')
+            c = add_node_to_node(1, 'c')
+            aa = add_node_to_node(a, 'aa')
+            bb = add_node_to_node(b, 'bb')
+            cc = add_node_to_node(c, 'cc')
+
+            # test for these
+            link_node_to_node(a, b)
+            link_node_to_node(a, cc)
+
+            link_node_to_node(b, cc)
+            link_node_to_node(b, a)
+            link_node_to_node(b, aa)
+
+            c = db.cursor()
+            result = c.execute(fetch_sql_string('select_link_node_from_node.sql'), {'node_id': a}).fetchall()
+            (result, col_names) = normalize(result, c.description)
+            result = [x.get('node_id', None) for x in result]
+            assert cc in result
+            assert b in result
+            assert a not in result
+            #self.app.logger.debug(result)
+
+    def test_template(self):
+        with self.app.app_context():
+            init_db()
+
+            a = add_node_to_node(1, 'a')
+            add_template_for_node('template_a.html', a)
+            aa = add_node_to_node(1, 'aa')
+            add_template_for_node('template_a.html', aa)
+            b = add_node_to_node(1, 'b')
+            add_template_for_node('template_b.html', b)
+            c = add_node_to_node(1, 'c')
+            add_template_for_node('template_c.html', c)
+            d = add_node_to_node(1, 'd')
+            e = add_node_to_node(1, 'e')
+
+            c = db.cursor()
+            result = c.execute(fetch_sql_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
+            (result, col_names) = normalize(result, c.description)
+            result = [x.get('name', None) for x in result]
+            assert len(result) == 1
+            assert result[0] == 'template_a.html'
+
+            # another node that uses the same template
+            c = db.cursor()
+            result = c.execute(fetch_sql_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
+            (result, col_names) = normalize(result, c.description)
+            result = [x.get('name', None) for x in result]
+            assert len(result) == 1
+            assert result[0] == 'template_a.html'
+
+            # can overwrite what node is tied to what template
+            add_template_for_node('template_over_a.html', a)
+
+            c = db.cursor()
+            result = c.execute(fetch_sql_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
+            (result, col_names) = normalize(result, c.description)
+            result = [x.get('name', None) for x in result]
+            assert len(result) == 1
+            assert result[0] == 'template_over_a.html'
+
+            # this one still uses the other template
+            c = db.cursor()
+            result = c.execute(fetch_sql_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
+            (result, col_names) = normalize(result, c.description)
+            result = [x.get('name', None) for x in result]
+            assert len(result) == 1
+            assert result[0] == 'template_a.html'
+
+    def test_selectsql(self):
+
+        with self.app.app_context():
+            init_db()
+
+            # a node can have multiple selectsql's
+            a = add_node_to_node(1, 'a')
+            add_selectsql_for_node('simple_a.sql', a)
+            add_selectsql_for_node('simple_aa.sql', a)
+
+            # or just one
+            b = add_node_to_node(1, 'b')
+            add_selectsql_for_node('simple_b.sql', b)
+
+            # other nodes can use the same
+            d = add_node_to_node(1, 'd')
+            add_selectsql_for_node('simple_a.sql', d)
+            e = add_node_to_node(1, 'e')
+            add_selectsql_for_node('simple_a.sql', e)
+
+            c = db.cursor()
+
+            result = c.execute(fetch_sql_string('select_selectsql_from_node.sql'), {'node_id': a}).fetchall()
+            (result, col_names) = normalize(result, c.description)
+            result = [x.get('name', None) for x in result]
+            assert len(result) == 2
+            assert 'simple_a.sql' in result
+            assert 'simple_aa.sql' in result
+
+            result = c.execute(fetch_sql_string('select_selectsql_from_node.sql'), {'node_id': b}).fetchall()
+            (result, col_names) = normalize(result, c.description)
+            result = [x.get('name', None) for x in result]
+            assert len(result) == 1
+            assert 'simple_b.sql' in result
+
+            result = c.execute(fetch_sql_string('select_selectsql_from_node.sql'), {'node_id': d}).fetchall()
+            (result, col_names) = normalize(result, c.description)
+            result = [x.get('name', None) for x in result]
+            assert len(result) == 1
+            assert 'simple_a.sql' in result
+
 class SelectSQL(ChillTestCase):
-    def test_some_data(self):
+    def test_empty(self):
         """
         """
         with self.app.app_context():
@@ -173,6 +298,154 @@ class SelectSQL(ChillTestCase):
                 # When no value is set and no SelectSQL or Template is set
                 rv = c.get('/empty', follow_redirects=True)
                 assert 404 == rv.status_code
+
+    def test_flat_data_without_templates(self):
+        """
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'simple.sql'), 'w')
+        f.write("""
+          select 'yup', 'pretty', 'darn', 'simple';
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'by_name.sql'), 'w')
+        f.write("""
+          select n.id as node_id, n.name as name, n.value as value from Node as n where name = :name;
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'by_node_id.sql'), 'w')
+        f.write("""
+          select n.id as node_id, n.name as name, n.value as value from Node as n where id = :node_id;
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'by_value.sql'), 'w')
+        f.write("""
+          select n.id as node_id, n.name as name, n.value as value from Node as n where value = :value;
+          """)
+        f.close()
+
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                colors = add_node_to_node(1, 'colors')
+                i=0
+                color_nodes = []
+                for col in ('red', 'blue', 'yellow'):
+                    color_nodes.append(add_node_to_node(colors, 'color-%i' % i, value=col))
+                    i += 1
+
+                llamas = add_node_to_node(1, 'llamas', value=None)
+                add_node_for_route('/llamas', llamas)
+                add_selectsql_for_node('select_immediate_children.sql', llamas)
+                i=0
+                for x in ('a','b','c'):
+                    llama = add_node_to_node(llamas, 'llama-%s' % x, value=x)
+                    add_node_to_node(llama, 'title', value="Llama %s" % x)
+                    color = add_node_to_node(llama, 'color')
+                    # Link the llama to it's color
+                    link_node_to_node(color, color_nodes[i])
+                    i += 1
+
+                rv = c.get('/llamas', follow_redirects=True)
+                self.app.logger.debug(rv.data)
+                assert 200 == rv.status_code
+
+    def test_nested_data_without_templates(self):
+        """
+        TODO: messy...
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'simple.sql'), 'w')
+        f.write("""
+          select 'yup', 'I reckon';
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'by_name.sql'), 'w')
+        f.write("""
+          select n.id as node_id, n.name as name, n.value as value from Node as n where name = :name;
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'by_node_id.sql'), 'w')
+        f.write("""
+          select n.id as node_id, n.name as name, n.value as value from Node as n where id = :node_id;
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                # Not setting a value for a node
+                four_id = add_node_to_node(1, 'empty')
+                add_node_for_route('/empty', four_id)
+
+                # When no value is set and no SelectSQL or Template is set
+                rv = c.get('/empty', follow_redirects=True)
+                assert 404 == rv.status_code
+
+
+                page_id = add_node_to_node(1, 'page')
+                add_node_for_route('/page', page_id)
+                add_node_to_node(page_id, 'title', value="test page title")
+                add_node_to_node(page_id, 'description', value="This is a short description for the test page")
+                add_node_to_node(page_id, 'body', value='<p>yup. "this is just a test"</p>')
+                add_node_to_node(page_id, 'body', value='<p>Same name.</p>')
+
+                menu_id = add_node_to_node(1, 'menu')
+                menu_item1 = add_node_to_node(menu_id, 'menuitem1')
+                add_node_to_node(menu_item1, 'title', value='menu title for test page')
+                add_node_to_node(menu_item1, 'link', value='/page')
+                add_node_to_node(menu_item1, 'target', value='_blank')
+
+                #add_selectsql_for_node('simple.sql', page_id)
+                add_selectsql_for_node('select_immediate_children.sql', page_id)
+
+                #add_template_for_node('a_page_template.html', page_id)
+
+                rv = c.get('/page', follow_redirects=True)
+                self.app.logger.debug(rv.data)
+                assert 200 == rv.status_code
+
+
+#        f = open(os.path.join(self.tmp_template_dir, 'base.html'), 'w')
+#        f.write("""
+#          <!doctype html>
+#          <html><head><title>test</title></head>
+#          <body>
+#          <div>{% block menu %}
+#              <ul>
+#                  {% for menuitem in menu %}
+#                    <li>
+#                      <a href="{{ menuitem.link }}" target="{{ menuitem.target }}">
+#                        {{menuitem.title}}
+#                      </a>
+#                    </li>
+#                  {% endfor %}
+#                  </ul>
+#          {% endblock %}</div>
+#          <div>{% block content %}{% endblock %}</div>
+#          </body>
+#          </html>
+#          """)
+#        f.close()
+#
+#        f = open(os.path.join(self.tmp_template_dir, 'a_page_template.html'), 'w')
+#        f.write("""
+#          {% extends "base.html" %}
+#          {% block content %}
+#          <code>a page template</code>
+#          <h1>{{ value.title }}</h1>
+#          {{ value.body }}
+#          {% endblock %}
+#          """)
+#        f.close()
 
 class Template(ChillTestCase):
     def test_some_template(self):
