@@ -58,7 +58,7 @@ def make_app(config=None, **kw):
         )
 
     # register any blueprints here
-    app.logger.warning("Not registering resource blueprint")
+    #app.logger.warning("Not registering resource blueprint")
     #app.register_blueprint(resource)
 
     from chill.public import page
