@@ -1,3 +1,3 @@
-select Node.name, Node.value, Node.id, route.node_id, route.path from Node
-join route on route.node_id = Node.id where route.path = :uri
-group by Node.name;
+select n.name, n.value, n.id, r.node_id, r.path from Node as n
+join Route as r on r.node_id = n.id
+where r.path = :uri;

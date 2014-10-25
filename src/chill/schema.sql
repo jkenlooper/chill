@@ -1,20 +1,20 @@
 create table Node (
     id integer primary key autoincrement,
-    name varchar(255) not null,
-    left integer not null,
-    right integer not null,
-    value text,
-    modified datetime,
-    created datetime,
-    something);
+    name varchar(255),
+    value text
+    );
 
-insert into Node (name, left, right) values ('root', 1, 2);
-
-
-create table route (
+/* The Route table specifies the URL for which a page can be rendered. Supports
+ * dynamic Werkzeug style routes with angle brackets like
+ * '/<int:year>/<int:month>/<int:day>/<slug>'. The weight value is used to
+ * order these desc.
+ */
+create table Route (
     id integer primary key autoincrement,
     path text unique not null,
-    node_id integer
+    node_id integer,
+    weight integer default 0,
+    foreign key ( node_id ) references Node ( id ) on delete set null
 );
 
 /* Name of a template file that will be used to render the node's value. */

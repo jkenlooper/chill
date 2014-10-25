@@ -18,7 +18,6 @@ def get_db():
         db = g._database = connect_to_database()
     return db
 
-
 db = LocalProxy(get_db)
 
 def make_app(config=None, **kw):

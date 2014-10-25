@@ -4,30 +4,61 @@ from flask import current_app, render_template
 from chill.app import db
 from database import fetch_sql_string, fetch_selectsql_string, normalize
 
-def _selectsql(node_id, value=None):
+def _short_circuit(value=None):
+    """
+    Add the `value` to the `collection` by modifying the collection to be
+    either a dict or list depending on what is already in the collection and
+    value.
+    Returns the collection with the value added to it.
+
+    Clean up by removing single item array and single key dict.
+    ['abc'] -> 'abc'
+    [['abc']] -> 'abc'
+    [{'abc':123},{'def':456}] -> {'abc':123,'def':456}
+    [{'abc':123},{'abc':456}] -> [{'abc':123,'abc':456}] # skip for same set keys
+    [[{'abc':123},{'abc':456}]] -> [{'abc':123,'abc':456}]
+    """
+    if not isinstance(value, list):
+        return value
+    if len(value) == 1:
+        if not isinstance(value[0], list):
+            return value[0]
+        else:
+            if len(value[0]) == 1:
+                return value[0][0]
+            else:
+                return value[0]
+    else:
+        # Only checking first item and assumin all others are same type
+        if isinstance(value[0], dict):
+            if set(value[0].keys()) == set(value[1].keys()):
+                return value
+            elif max([len(x.keys()) for x in value]) == 1:
+                newvalue = {}
+                for v in value:
+                    key = v.keys()[0]
+                    newvalue[key] = v[key]
+                return newvalue
+            else:
+                return value
+        else:
+            return value
+
+
+
+def _selectsql(_node_id, value=None, **kw):
     "Look up value by using SelectSQL table"
     c = db.cursor()
-    select_selectsql_from_node = fetch_sql_string('select_selectsql_from_node.sql')
     try:
-        c.execute(select_selectsql_from_node, {'node_id':node_id})
-        # TODO: change to fetchall 
-        selectsql_result = c.fetchone()
-        if selectsql_result and selectsql_result[1]:
-            selectsql_name = selectsql_result[1]
-            selectsql = fetch_selectsql_string(selectsql_name)
-            value = c.execute(selectsql, {'node_id':node_id}).fetchall()
-            if value and (len(value) >= 1):
-                (value, col_names) = normalize(value, c.description)
-                #TODO: only encode json if no template is set for it? Or just if route ends with .json?
-                #TODO: determine if selecting from Node table
-                #TODO: check if 'node_id' in description and render_node for any
-                if 'node_id' in col_names:
-                    list = []
-                    for v in value:
-                        list.append({v['name']: render_node(v['node_id'], v.get('value',None), v.get('name', None))})
-                    value = list
-
-                value = {'name':value} #TODO: restructure this
+        result = c.execute(fetch_sql_string('select_selectsql_from_node.sql'), kw).fetchall()
+        (selectsql_result, selectsql_col_names) = normalize(result, c.description)
+        if selectsql_result:
+            values = []
+            for selectsql_name in [x.get('name', None) for x in selectsql_result]:
+                if selectsql_name:
+                    result = c.execute(fetch_selectsql_string(selectsql_name), kw).fetchall()
+                    values.append( normalize(result, c.description) )
+            value = values
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
     return value
@@ -40,7 +71,6 @@ def _link(node_id):
         if len(linked_value) > 1:
             list = []
             for v in linked_value:
-                current_app.logger.debug(v)
                 list.append({v[1]: render_node(v[2], None, v[1])})
             linked_value = list
         else:
@@ -82,13 +112,27 @@ def _template(node_id, value=None):
     # No template assigned to this node so just return the value
     return value
 
-def render_node(node_id, value, name):
-    #c = db.cursor()
+def render_node(_node_id, value=None, **kw):
     if value == None:
-        value = _selectsql(node_id)
+        results = _selectsql(_node_id, **kw)
+        if results and results[0]:
+            values = []
+            for (result, cols) in results:
+                if set(cols) == set(['node_id', 'name']):
+                    for subresult in result:
+                        #if subresult.get('name') == kw.get('name'):
+                            # This is a link node
+                        values.append( {subresult.get('name'): render_node( subresult.get('node_id'), **subresult )} )
+                elif 'node_id' and 'name' in cols:
+                    for subresult in result:
+                        values.append( {subresult.get('name'): render_node( subresult.get('node_id'), **subresult )} )
+                else:
+                    values.append( result )
 
-        value = _add_value(value, _link(node_id))
+            value = values
+        #value = _add_value(value, _link(_node_id))
 
-    value = _template(node_id, value)
-    
+    value = _short_circuit(value)
+    value = _template(_node_id, value)
+
     return value
