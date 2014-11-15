@@ -20,6 +20,8 @@ def _short_circuit(value=None):
     """
     if not isinstance(value, list):
         return value
+    if len(value) == 0:
+        return value
     if len(value) == 1:
         if not isinstance(value[0], list):
             return value[0]
@@ -30,6 +32,7 @@ def _short_circuit(value=None):
                 return value[0]
     else:
         # Only checking first item and assumin all others are same type
+        current_app.logger.debug( value )
         if isinstance(value[0], dict):
             if set(value[0].keys()) == set(value[1].keys()):
                 return value
@@ -51,16 +54,21 @@ def _selectsql(_node_id, value=None, **kw):
     c = db.cursor()
     try:
         result = c.execute(fetch_sql_string('select_selectsql_from_node.sql'), kw).fetchall()
-        (selectsql_result, selectsql_col_names) = normalize(result, c.description)
-        if selectsql_result:
-            values = []
-            for selectsql_name in [x.get('name', None) for x in selectsql_result]:
-                if selectsql_name:
-                    result = c.execute(fetch_selectsql_string(selectsql_name), kw).fetchall()
-                    values.append( normalize(result, c.description) )
-            value = values
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
+        return value
+    (selectsql_result, selectsql_col_names) = normalize(result, c.description)
+    current_app.logger.debug("selectsql: %s", selectsql_result)
+    if selectsql_result:
+        values = []
+        for selectsql_name in [x.get('name', None) for x in selectsql_result]:
+            if selectsql_name:
+                try:
+                    result = c.execute(fetch_selectsql_string(selectsql_name), kw).fetchall()
+                    values.append( normalize(result, c.description) )
+                except sqlite3.DatabaseError as err:
+                    current_app.logger.error("DatabaseError (%s) %s: %s", selectsql_name, kw, err)
+        value = values
     return value
 
 def _link(node_id):

@@ -194,11 +194,6 @@ class NothingConfigured(ChillTestCase):
             rv = c.get('/something/nothing/')
             assert 404 == rv.status_code
 
-            rv = c.get('/chill/')
-            assert 'Llamas' in rv.data
-            rv = c.get('/chill/index.html')
-            assert 'Llamas' in rv.data
-
 class SQL(ChillTestCase):
     def test_insert_one_node(self):
         """
@@ -510,6 +505,59 @@ class Template(ChillTestCase):
                 assert 'template_b' in rv.data
 
 
+class PostMethod(ChillTestCase):
+    def test_a(self):
+        """
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'insert_llama.sql'), 'w')
+        f.write("""
+          insert into Llama (name, location, description) values (:name, :location, :description);
+          """)
+        f.close()
+        f = open(os.path.join(self.tmp_template_dir, 'select_llama.sql'), 'w')
+        f.write("""
+          select * from Llama where name = :name;
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+                cursor = db.cursor()
+                cursor.execute("""
+                create table Llama (
+                  name varchar(255),
+                  location varchar(255),
+                  description text
+                  );
+                """)
+                db.commit()
+
+                llamas_id = insert_node(name='llamas', value=None)
+                insert_route(path="/api/llamas/", node_id=llamas_id, weight=1)
+                insert_selectsql(name='insert_llama.sql', node_id=llamas_id)
+
+                llama_1 = {
+                        'name': 'Rocky',
+                        'location': 'unknown',
+                        'description': 'first llama'
+                        }
+                rv = c.post('/api/llamas/', data=llama_1)
+                assert 201 == rv.status_code
+                self.app.logger.debug(rv.data)
+
+                llama_2 = {
+                        'name': 'Nocky',
+                        'location': 'unknown',
+                        'description': 'second llama'
+                        }
+                rv = c.post('/api/llamas/', data=llama_2)
+
+                select_llama = insert_node(name='llamas', value=None)
+                insert_route(path="/api/llamas/name/<name>", node_id=select_llama, weight=1)
+                insert_selectsql(name='select_llama.sql', node_id=select_llama)
+                rv = c.get('/api/llamas/name/Rocky', follow_redirects=True)
+                self.app.logger.debug(rv.data)
 
 
 def suite():

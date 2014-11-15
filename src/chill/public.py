@@ -3,12 +3,14 @@ import os.path
 
 import sqlite3
 from werkzeug.routing import Map, Rule
-from flask import abort, redirect, Blueprint, current_app, render_template, json, request
+from werkzeug.exceptions import HTTPException
+
+from flask import abort, redirect, Blueprint, current_app, render_template, json, request, make_response
 from flask.views import MethodView
 
 from chill.app import db
 from database import fetch_sql_string, fetch_selectsql_string, normalize
-from api import render_node
+from api import render_node, _selectsql
 
 encoder = json.JSONEncoder(indent=2, sort_keys=True)
 
@@ -32,12 +34,17 @@ def check_map(uri, url_root):
     result = c.fetchall()
     if result:
         (routes, col_names) = normalize(result, c.description)
-        #current_app.logger.debug( [x['rule'] for x in routes] )
+        current_app.logger.debug( [x['rule'] for x in routes] )
         rules = map( lambda r: Rule(r['rule'], endpoint='dynamic'), routes )
         d_map = Map( rules )
         map_adapter = d_map.bind(url_root)
-        (rule, rule_kw) = map_adapter.match(path_info=uri, return_rule=True)
-        return (str(rule), rule_kw)
+        current_app.logger.debug(uri)
+        try:
+            (rule, rule_kw) = map_adapter.match(path_info=uri, return_rule=True)
+            current_app.logger.debug(rule)
+            return (str(rule), rule_kw)
+        except HTTPException:
+            pass
     return (None, None)
 
 # The page blueprint has no static files or templates read from disk.
@@ -48,18 +55,14 @@ page = Blueprint('public', __name__, static_folder=None, template_folder=None)
 
 class PageView(MethodView):
     """
-    Handles access to a page.
+    Handles access to a uri.
     The uri is first matched directly with a route to get a node. If that
     fails, it will load up the custom map and check the uri with any matching
     routes.  
     
-    When a node is retrieved it renders that nodes value. (See `render_node`.)
+    When a node is retrieved (get) it renders that nodes value. (See `render_node`.)
     """
-
-    def get(self, uri=''):
-        """
-        view a page
-        """
+    def _node_from_uri(self, uri):
         # check if page exists in data_path
 
         # a//b == a/b/ == a/./b == a/foo/../b
@@ -68,7 +71,10 @@ class PageView(MethodView):
         uri = os.path.normpath(os.path.join('/', uri))
 
         uri, ext = os.path.splitext(uri)
-        #current_app.logger.debug('uri: "%s"' % uri)
+        if not uri.endswith('/'):
+            uri = ''.join((uri, '/'))
+
+        current_app.logger.debug('uri: "%s"' % uri)
 
         rule_kw = {}
         select_node_from_route = fetch_sql_string('select_node_from_route.sql')
@@ -78,36 +84,82 @@ class PageView(MethodView):
             c.execute(select_node_from_route, {'uri':uri})
         except sqlite3.DatabaseError as err:
             current_app.logger.error("DatabaseError: %s", err)
-            if uri == '/chill':
-                # Show something for fun
-                return "Cascading, Highly Irrelevant, Lost Llamas"
 
         result = c.fetchall()
-        if not result:
+        current_app.logger.debug('result: "%s"' % result)
+        if not result or len(result) == 0:
             # See if the uri matches any dynamic rules
             (rule, rule_kw) = check_map(uri, request.url_root)
+            current_app.logger.debug(rule)
+            current_app.logger.debug('rule: "%s"' % rule or '')
             if rule:
-                c.execute(select_node_from_route, {'uri':rule})
-                result = c.fetchall()
+                try:
+                    c.execute(select_node_from_route, {'uri':rule})
+                    result = c.fetchall()
+                except sqlite3.DatabaseError as err:
+                    current_app.logger.error("DatabaseError: %s", err)
 
         if result:
             (result, col_names) = normalize(result, c.description)
 
             # Only one result for a getting a node from a unique path.
-            node = result[0] 
+            return (result[0], rule_kw)
+        return (None, rule_kw)
 
-            rule_kw.update( node )
-            values = rule_kw
-            values.update( request.values )
+    def get(self, uri=''):
+        """
+        view a page
+        """
+        (node, rule_kw) = self._node_from_uri(uri)
 
-            rendered = render_node(node['id'], **values)
-            if rendered:
-                if not isinstance(rendered, (str, unicode, int, float)):
-                    # return a json string
-                    return encoder.encode(rendered)
-                return rendered
+        rule_kw.update( node )
+        values = rule_kw
+        values.update( request.values )
 
+        rendered = render_node(node['id'], **values)
+        if rendered:
+            if not isinstance(rendered, (str, unicode, int, float)):
+                # return a json string
+                return encoder.encode(rendered)
+            return rendered
+
+        # Nothing to show, so nothing found
         abort(404)
+
+
+    def post(self, uri=''):
+        "Modify"
+        
+        (node, rule_kw) = self._node_from_uri(uri)
+        current_app.logger.debug(node)
+        current_app.logger.debug(rule_kw)
+        current_app.logger.debug(request.form)
+        current_app.logger.debug(request.args)
+        # render node...
+        rule_kw.update( node )
+        values = rule_kw
+        values.update( request.form.to_dict(flat=True) )
+        values.update( request.args.to_dict(flat=True) )
+        current_app.logger.debug(values)
+        sql = _selectsql(node.get('id'), **values)
+        db.commit()
+        response = make_response('ok', 201)
+        return response
+
+    def put(self, uri=''):
+        "Modify"
+        
+        (node, rule_kw) = self._node_from_uri(uri)
+
+    def patch(self, uri=''):
+        "Modify"
+        
+        (node, rule_kw) = self._node_from_uri(uri)
+
+    def delete(self, uri=''):
+        "Modify"
+        
+        (node, rule_kw) = self._node_from_uri(uri)
 
 
 
