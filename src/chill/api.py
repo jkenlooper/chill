@@ -55,7 +55,7 @@ def _selectsql(_node_id, value=None, **kw):
     try:
         result = c.execute(fetch_sql_string('select_selectsql_from_node.sql'), kw).fetchall()
     except sqlite3.DatabaseError as err:
-        current_app.logger.error("DatabaseError: %s", err)
+        current_app.logger.error("DatabaseError: %s, %s", err, kw)
         return value
     (selectsql_result, selectsql_col_names) = normalize(result, c.description)
     current_app.logger.debug("selectsql: %s", selectsql_result)
@@ -69,6 +69,7 @@ def _selectsql(_node_id, value=None, **kw):
                 except sqlite3.DatabaseError as err:
                     current_app.logger.error("DatabaseError (%s) %s: %s", selectsql_name, kw, err)
         value = values
+    current_app.logger.debug("value: %s", value)
     return value
 
 def _link(node_id):
@@ -130,10 +131,12 @@ def render_node(_node_id, value=None, **kw):
                     for subresult in result:
                         #if subresult.get('name') == kw.get('name'):
                             # This is a link node
+                        current_app.logger.debug("sub: %s", subresult)
                         values.append( {subresult.get('name'): render_node( subresult.get('node_id'), **subresult )} )
-                elif 'node_id' and 'name' in cols:
-                    for subresult in result:
-                        values.append( {subresult.get('name'): render_node( subresult.get('node_id'), **subresult )} )
+                #elif 'node_id' and 'name' in cols:
+                #    for subresult in result:
+                #        current_app.logger.debug("sub2: %s", subresult)
+                #        values.append( {subresult.get('name'): render_node( subresult.get('node_id'), **subresult )} )
                 else:
                     values.append( result )
 

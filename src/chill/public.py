@@ -45,7 +45,7 @@ def check_map(uri, url_root):
             return (str(rule), rule_kw)
         except HTTPException:
             pass
-    return (None, None)
+    return (None, {})
 
 # The page blueprint has no static files or templates read from disk.
 page = Blueprint('public', __name__, static_folder=None, template_folder=None)
@@ -112,11 +112,16 @@ class PageView(MethodView):
         """
         (node, rule_kw) = self._node_from_uri(uri)
 
+        if node == None:
+            abort(404)
         rule_kw.update( node )
         values = rule_kw
-        values.update( request.values )
+        values.update( request.form.to_dict(flat=True) )
+        values.update( request.args.to_dict(flat=True) )
 
+        current_app.logger.debug("get kw: %s", values)
         rendered = render_node(node['id'], **values)
+        current_app.logger.debug("rendered: %s", rendered)
         if rendered:
             if not isinstance(rendered, (str, unicode, int, float)):
                 # return a json string

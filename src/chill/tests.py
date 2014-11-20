@@ -63,12 +63,12 @@ class Route(ChillTestCase):
             insert_route(path='/', node_id=top_id)
 
             one_id = insert_node(name='one', value='1')
-            insert_route(path='/one', node_id=one_id)
+            insert_route(path='/one/', node_id=one_id)
             two_id = insert_node(name='two', value='2')
-            insert_route(path='/one/two', node_id=two_id)
+            insert_route(path='/one/two/', node_id=two_id)
             three_id = insert_node(name='three', value='3')
-            insert_route(path='/one/two/three', node_id=three_id)
-            insert_route(path='/one/two/other_three', node_id=three_id)
+            insert_route(path='/one/two/three/', node_id=three_id)
+            insert_route(path='/one/two/other_three/', node_id=three_id)
 
             with self.app.test_client() as c:
 
@@ -115,7 +115,7 @@ class Route(ChillTestCase):
             init_db()
 
             id = insert_node(name='top', value='hello')
-            insert_route(path='/<int:count>', node_id=id)
+            insert_route(path='/<int:count>/', node_id=id)
 
             with self.app.test_client() as c:
 
@@ -137,9 +137,9 @@ class Route(ChillTestCase):
             init_db()
 
             id = insert_node(name='fruit', value='fruit')
-            insert_route(path='/fruit/<anything>', node_id=id)
+            insert_route(path='/fruit/<anything>/', node_id=id)
             id = insert_node(name='vegetables', value='vegetables')
-            insert_route(path='/vegetables/<anything>', node_id=id)
+            insert_route(path='/vegetables/<anything>/', node_id=id)
 
             with self.app.test_client() as c:
 
@@ -157,11 +157,11 @@ class Route(ChillTestCase):
             init_db()
 
             id = insert_node(name='a', value='a')
-            insert_route(path='/<path:anything>', node_id=id, weight=1)
+            insert_route(path='/<path:anything>/', node_id=id, weight=1)
             id = insert_node(name='aardvark', value='aardvark')
-            insert_route(path='/animals/<anything>', node_id=id, weight=1)
+            insert_route(path='/animals/<anything>/', node_id=id, weight=1)
             id = insert_node(name='b', value='b')
-            insert_route(path='/<path:something>', node_id=id, weight=2)
+            insert_route(path='/<path:something>/', node_id=id, weight=2)
 
             with self.app.test_client() as c:
 
@@ -304,7 +304,7 @@ class SelectSQL(ChillTestCase):
 
                 # Not setting a value for a node
                 four_id = insert_node(name='empty', value=None)
-                insert_route(path='/empty', node_id=four_id)
+                insert_route(path='/empty/', node_id=four_id)
 
                 # When no value is set and no SelectSQL or Template is set
                 rv = c.get('/empty', follow_redirects=True)
@@ -326,7 +326,7 @@ class SelectSQL(ChillTestCase):
                 simple_id = insert_node(name='simple', value=None)
                 insert_selectsql(name='simple.sql', node_id=simple_id)
 
-                insert_route(path="/simple", node_id=simple_id)
+                insert_route(path="/simple/", node_id=simple_id)
 
                 rv = c.get('/simple', follow_redirects=True)
                 assert 200 == rv.status_code
@@ -401,7 +401,7 @@ class SelectSQL(ChillTestCase):
 
 
                 page_id = insert_node(name='page1', value=None)
-                insert_route(path="/page1", node_id=page_id)
+                insert_route(path='/page1/', node_id=page_id)
                 insert_selectsql(name='select_link_node_from_node.sql', node_id=page_id)
 
                 pageattr_id = insert_node(name='pageattr', value=None)
@@ -475,14 +475,14 @@ class Template(ChillTestCase):
                 init_db()
 
                 test_id = insert_node(name='test one', value='testing one')
-                insert_route(path='/test/1', node_id=test_id)
+                insert_route(path='/test/1/', node_id=test_id)
                 add_template_for_node('template_a.html', test_id)
 
                 rv = c.get('/test/1', follow_redirects=True)
                 assert 'testing one' in rv.data
 
                 a_id = insert_node(name='a', value='apple')
-                insert_route(path='/fruit/a', node_id=a_id)
+                insert_route(path='/fruit/a/', node_id=a_id)
                 add_template_for_node('template_a.html', a_id)
 
                 rv = c.get('/fruit/a', follow_redirects=True)
@@ -511,12 +511,13 @@ class PostMethod(ChillTestCase):
         """
         f = open(os.path.join(self.tmp_template_dir, 'insert_llama.sql'), 'w')
         f.write("""
-          insert into Llama (name, location, description) values (:name, :location, :description);
+          insert into Llama (llama_name, location, description) values (:llama_name, :location, :description);
           """)
         f.close()
         f = open(os.path.join(self.tmp_template_dir, 'select_llama.sql'), 'w')
         f.write("""
-          select * from Llama where name = :name;
+          select * from Llama
+          where llama_name = :llama_name;
           """)
         f.close()
 
@@ -526,7 +527,7 @@ class PostMethod(ChillTestCase):
                 cursor = db.cursor()
                 cursor.execute("""
                 create table Llama (
-                  name varchar(255),
+                  llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
@@ -534,11 +535,11 @@ class PostMethod(ChillTestCase):
                 db.commit()
 
                 llamas_id = insert_node(name='llamas', value=None)
-                insert_route(path="/api/llamas/", node_id=llamas_id, weight=1)
+                insert_route(path='/api/llamas/', node_id=llamas_id, weight=1)
                 insert_selectsql(name='insert_llama.sql', node_id=llamas_id)
 
                 llama_1 = {
-                        'name': 'Rocky',
+                        'llama_name': 'Rocky',
                         'location': 'unknown',
                         'description': 'first llama'
                         }
@@ -547,17 +548,21 @@ class PostMethod(ChillTestCase):
                 self.app.logger.debug(rv.data)
 
                 llama_2 = {
-                        'name': 'Nocky',
+                        'llama_name': 'Nocky',
                         'location': 'unknown',
                         'description': 'second llama'
                         }
                 rv = c.post('/api/llamas/', data=llama_2)
 
                 select_llama = insert_node(name='llamas', value=None)
-                insert_route(path="/api/llamas/name/<name>", node_id=select_llama, weight=1)
+                insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)
                 insert_selectsql(name='select_llama.sql', node_id=select_llama)
-                rv = c.get('/api/llamas/name/Rocky', follow_redirects=True)
+                rv = c.get('/api/llamas/name/Rocky/', follow_redirects=True)
                 self.app.logger.debug(rv.data)
+
+                cursor = db.cursor()
+                cursor.execute("""select * from Llama;""")
+                self.app.logger.debug(normalize(cursor, cursor.description))
 
 
 def suite():
