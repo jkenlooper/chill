@@ -1,4 +1,4 @@
-"""Chill
+"""Chill - Database driven web application framework in Flask
 
 Usage: chill run --config <file>
        chill serve --config <file>

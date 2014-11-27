@@ -5,7 +5,7 @@ from chill.app import db
 def init_db():
     with current_app.app_context():
         #db = get_db()
-        with current_app.open_resource('schema.sql', mode='r') as f:
+        with current_app.open_resource(os.path.join('selectsql', 'schema.sql'), mode='r') as f:
             db.cursor().executescript(f.read())
         db.commit()
 
@@ -21,13 +21,15 @@ def normalize(l, description):
 
 def fetch_sql_string(file_name):
     # TODO: optimize reading this into memory or get it elsewhere.
-    with current_app.open_resource(file_name, mode='r') as f:
+    with current_app.open_resource(os.path.join('selectsql', file_name), mode='r') as f:
         return f.read()
 
 def fetch_selectsql_string(file_name):
     # TODO: optimize reading this into memory or get it elsewhere.
-    folder = current_app.config.get('SELECTSQL_FOLDER', '')
-    file_path = os.path.join(os.path.abspath('.'), folder, file_name) 
+    #folder = current_app.config.get('SELECTSQL_FOLDER', '')
+    #file_path = os.path.join(os.path.abspath('.'), folder, file_name) 
+    folder = current_app.config.get('SELECTSQL_FOLDER')
+    file_path = os.path.join(folder, file_name) 
     if os.path.isfile(file_path):
         with open(file_path, 'r') as f:
             return f.read()

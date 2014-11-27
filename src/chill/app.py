@@ -26,11 +26,18 @@ def make_app(config=None, **kw):
     app = Flask('chill', static_url_path=os.path.abspath('.'), static_folder='static', template_folder='templates')
 
     if config:
-        app.config.from_pyfile(config)
+        config_file = config if config[0] == os.sep else os.path.join(os.getcwd(), config)
+        app.config.from_pyfile(config_file)
     app.config.update(kw)
 
+    template_folder = app.config.get('TEMPLATE_FOLDER', app.template_folder)
+    app.config['TEMPLATE_FOLDER'] = template_folder if template_folder[0] == os.sep else os.path.join(os.getcwd(), template_folder)
+
+    selectsql_folder = app.config.get('SELECTSQL_FOLDER', 'selectsql')
+    app.config['SELECTSQL_FOLDER'] = selectsql_folder if selectsql_folder[0] == os.sep else os.path.join(os.getcwd(), selectsql_folder)
+
     # Set the jinja2 template folder eith fallback for app.template_folder
-    app.jinja_env.loader = FileSystemLoader( app.config.get('TEMPLATE_FOLDER', app.template_folder) )
+    app.jinja_env.loader = FileSystemLoader( app.config.get('TEMPLATE_FOLDER') )
 
     @app.teardown_appcontext
     def teardown_db(exception):
