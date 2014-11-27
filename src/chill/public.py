@@ -62,7 +62,7 @@ class PageView(MethodView):
     
     When a node is retrieved (get) it renders that nodes value. (See `render_node`.)
     """
-    def _node_from_uri(self, uri):
+    def _node_from_uri(self, uri, method="GET"):
         # check if page exists in data_path
 
         # a//b == a/b/ == a/./b == a/foo/../b
@@ -81,7 +81,7 @@ class PageView(MethodView):
 
         c = db.cursor()
         try:
-            c.execute(select_node_from_route, {'uri':uri})
+            c.execute(select_node_from_route, {'uri':uri, 'method':method})
         except sqlite3.DatabaseError as err:
             current_app.logger.error("DatabaseError: %s", err)
 
@@ -94,7 +94,7 @@ class PageView(MethodView):
             current_app.logger.debug('rule: "%s"' % rule or '')
             if rule:
                 try:
-                    c.execute(select_node_from_route, {'uri':rule})
+                    c.execute(select_node_from_route, {'uri':rule, 'method':method})
                     result = c.fetchall()
                 except sqlite3.DatabaseError as err:
                     current_app.logger.error("DatabaseError: %s", err)
@@ -118,6 +118,7 @@ class PageView(MethodView):
         values = rule_kw
         values.update( request.form.to_dict(flat=True) )
         values.update( request.args.to_dict(flat=True) )
+        values['method'] = request.method
 
         current_app.logger.debug("get kw: %s", values)
         rendered = render_node(node['id'], **values)
@@ -133,28 +134,40 @@ class PageView(MethodView):
 
 
     def post(self, uri=''):
-        "Modify"
         
-        (node, rule_kw) = self._node_from_uri(uri)
-        current_app.logger.debug(node)
-        current_app.logger.debug(rule_kw)
-        current_app.logger.debug(request.form)
-        current_app.logger.debug(request.args)
-        # render node...
+        # get node...
+        (node, rule_kw) = self._node_from_uri(uri, method=request.method)
+
         rule_kw.update( node )
         values = rule_kw
         values.update( request.form.to_dict(flat=True) )
         values.update( request.args.to_dict(flat=True) )
-        current_app.logger.debug(values)
-        sql = _selectsql(node.get('id'), **values)
+        values['method'] = request.method
+
+        # Execute the sql query with the data
+        _selectsql(node.get('id'), **values)
         db.commit()
+
         response = make_response('ok', 201)
         return response
 
     def put(self, uri=''):
-        "Modify"
         
-        (node, rule_kw) = self._node_from_uri(uri)
+        # get node...
+        (node, rule_kw) = self._node_from_uri(uri, method=request.method)
+
+        rule_kw.update( node )
+        values = rule_kw
+        values.update( request.form.to_dict(flat=True) )
+        values.update( request.args.to_dict(flat=True) )
+        values['method'] = request.method
+
+        # Execute the sql query with the data
+        _selectsql(node.get('id'), **values)
+        db.commit()
+
+        response = make_response('ok', 201)
+        return response
 
     def patch(self, uri=''):
         "Modify"

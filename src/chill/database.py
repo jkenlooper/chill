@@ -66,11 +66,13 @@ def insert_route(**kw):
     `path`
     `node_id`
     `weight`
+    `method`
     """
     binding = {
             'path': None,
             'node_id': None,
-            'weight': None
+            'weight': None,
+            'method': "GET"
             }
     binding.update(kw)
     with current_app.app_context():

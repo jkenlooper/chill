@@ -1,1 +1,2 @@
-insert into Route (path, node_id, weight) values (:path, :node_id, :weight)
+insert into Route (path, node_id, weight, method) 
+  values (:path, :node_id, :weight, :method)

@@ -535,7 +535,7 @@ class PostMethod(ChillTestCase):
                 db.commit()
 
                 llamas_id = insert_node(name='llamas', value=None)
-                insert_route(path='/api/llamas/', node_id=llamas_id, weight=1)
+                insert_route(path='/api/llamas/', node_id=llamas_id, weight=1, method="POST")
                 insert_selectsql(name='insert_llama.sql', node_id=llamas_id)
 
                 llama_1 = {
@@ -553,16 +553,73 @@ class PostMethod(ChillTestCase):
                         'description': 'second llama'
                         }
                 rv = c.post('/api/llamas/', data=llama_2)
+                assert 201 == rv.status_code
 
                 select_llama = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)
                 insert_selectsql(name='select_llama.sql', node_id=select_llama)
-                rv = c.get('/api/llamas/name/Rocky/', follow_redirects=True)
-                self.app.logger.debug(rv.data)
 
+                rv = c.get('/api/llamas/name/Rocky/', follow_redirects=True)
+                rv_json = json.loads(rv.data)
+                assert set(llama_1.keys()) == set(rv_json.keys())
+                assert set(llama_1.values()) == set(rv_json.values())
+
+                rv = c.get('/api/llamas/name/Nocky/', follow_redirects=True)
+                rv_json = json.loads(rv.data)
+                assert set(llama_2.keys()) == set(rv_json.keys())
+                assert set(llama_2.values()) == set(rv_json.values())
+
+class PutMethod(ChillTestCase):
+    def test_a(self):
+        """
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'insert_llama.sql'), 'w')
+        f.write("""
+          insert into Llama (llama_name, location, description) values (:llama_name, :location, :description);
+          """)
+        f.close()
+        f = open(os.path.join(self.tmp_template_dir, 'select_llama.sql'), 'w')
+        f.write("""
+          select * from Llama
+          where llama_name = :llama_name;
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
                 cursor = db.cursor()
-                cursor.execute("""select * from Llama;""")
-                self.app.logger.debug(normalize(cursor, cursor.description))
+                cursor.execute("""
+                create table Llama (
+                  llama_name varchar(255),
+                  location varchar(255),
+                  description text
+                  );
+                """)
+                db.commit()
+
+                llamas_id = insert_node(name='llamas', value=None)
+                #insert_route(path='/api/llamas/', node_id=llamas_id, weight=1)
+                insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="PUT")
+                insert_selectsql(name='insert_llama.sql', node_id=llamas_id)
+
+                llama_1 = {
+                        'llama_name': 'Socky',
+                        'location': 'unknown',
+                        'description': 'first llama'
+                        }
+                rv = c.put('/api/llamas/name/Socky/', data=llama_1)
+                assert 201 == rv.status_code
+
+                select_llama = insert_node(name='llamas', value=None)
+                insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)
+                insert_selectsql(name='select_llama.sql', node_id=select_llama)
+
+                rv = c.get('/api/llamas/name/Socky/', follow_redirects=True)
+                self.app.logger.debug(rv.data)
+                rv_json = json.loads(rv.data)
+                assert set(llama_1.keys()) == set(rv_json.keys())
+                assert set(llama_1.values()) == set(rv_json.values())
 
 
 def suite():
