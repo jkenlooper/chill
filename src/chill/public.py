@@ -107,9 +107,7 @@ class PageView(MethodView):
         return (None, rule_kw)
 
     def get(self, uri=''):
-        """
-        view a page
-        """
+        "For sql queries that start with 'SELECT ...'"
         (node, rule_kw) = self._node_from_uri(uri)
 
         if node == None:
@@ -134,6 +132,7 @@ class PageView(MethodView):
 
 
     def post(self, uri=''):
+        "For sql queries that start with 'INSERT ...'"
         
         # get node...
         (node, rule_kw) = self._node_from_uri(uri, method=request.method)
@@ -152,6 +151,7 @@ class PageView(MethodView):
         return response
 
     def put(self, uri=''):
+        "For sql queries that start with 'INSERT ...' or 'UPDATE ...'"
         
         # get node...
         (node, rule_kw) = self._node_from_uri(uri, method=request.method)
@@ -170,14 +170,42 @@ class PageView(MethodView):
         return response
 
     def patch(self, uri=''):
-        "Modify"
+        "For sql queries that start with 'UPDATE ...'"
         
-        (node, rule_kw) = self._node_from_uri(uri)
+        # get node...
+        (node, rule_kw) = self._node_from_uri(uri, method=request.method)
+
+        rule_kw.update( node )
+        values = rule_kw
+        values.update( request.form.to_dict(flat=True) )
+        values.update( request.args.to_dict(flat=True) )
+        values['method'] = request.method
+
+        # Execute the sql query with the data
+        _selectsql(node.get('id'), **values)
+        db.commit()
+
+        response = make_response('ok', 201)
+        return response
 
     def delete(self, uri=''):
-        "Modify"
+        "For sql queries that start with 'DELETE from ...'"
         
-        (node, rule_kw) = self._node_from_uri(uri)
+        # get node...
+        (node, rule_kw) = self._node_from_uri(uri, method=request.method)
+
+        rule_kw.update( node )
+        values = rule_kw
+        values.update( request.form.to_dict(flat=True) )
+        values.update( request.args.to_dict(flat=True) )
+        values['method'] = request.method
+
+        # Execute the sql query with the data
+        _selectsql(node.get('id'), **values)
+        db.commit()
+
+        response = make_response('ok', 204)
+        return response
 
 
 

@@ -545,7 +545,6 @@ class PostMethod(ChillTestCase):
                         }
                 rv = c.post('/api/llamas/', data=llama_1)
                 assert 201 == rv.status_code
-                self.app.logger.debug(rv.data)
 
                 llama_2 = {
                         'llama_name': 'Nocky',
@@ -599,7 +598,6 @@ class PutMethod(ChillTestCase):
                 db.commit()
 
                 llamas_id = insert_node(name='llamas', value=None)
-                #insert_route(path='/api/llamas/', node_id=llamas_id, weight=1)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="PUT")
                 insert_selectsql(name='insert_llama.sql', node_id=llamas_id)
 
@@ -616,11 +614,115 @@ class PutMethod(ChillTestCase):
                 insert_selectsql(name='select_llama.sql', node_id=select_llama)
 
                 rv = c.get('/api/llamas/name/Socky/', follow_redirects=True)
-                self.app.logger.debug(rv.data)
                 rv_json = json.loads(rv.data)
                 assert set(llama_1.keys()) == set(rv_json.keys())
                 assert set(llama_1.values()) == set(rv_json.values())
 
+class PatchMethod(ChillTestCase):
+    def test_a(self):
+        """
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'update_llama.sql'), 'w')
+        f.write("""
+          update Llama set location = :location, description = :description where llama_name = :llama_name;
+          """)
+        f.close()
+        f = open(os.path.join(self.tmp_template_dir, 'select_llama.sql'), 'w')
+        f.write("""
+          select * from Llama
+          where llama_name = :llama_name;
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+                cursor = db.cursor()
+                cursor.execute("""
+                create table Llama (
+                  llama_name varchar(255),
+                  location varchar(255),
+                  description text
+                  );
+                """)
+                db.commit()
+
+                cursor.execute("""
+                  insert into Llama (llama_name) values ('Pocky');
+                """)
+                db.commit()
+
+                llamas_id = insert_node(name='llamas', value=None)
+                insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="PATCH")
+                insert_selectsql(name='update_llama.sql', node_id=llamas_id)
+
+                llama_1 = {
+                        'llama_name': 'Pocky',
+                        'location': 'unknown',
+                        'description': 'first llama'
+                        }
+                rv = c.patch('/api/llamas/name/Pocky/', data=llama_1)
+                assert 201 == rv.status_code
+
+                select_llama = insert_node(name='llamas', value=None)
+                insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)
+                insert_selectsql(name='select_llama.sql', node_id=select_llama)
+
+                rv = c.get('/api/llamas/name/Pocky/', follow_redirects=True)
+                rv_json = json.loads(rv.data)
+                assert set(llama_1.keys()) == set(rv_json.keys())
+                assert set(llama_1.values()) == set(rv_json.values())
+
+class DeleteMethod(ChillTestCase):
+    def test_a(self):
+        """
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'delete_llama.sql'), 'w')
+        f.write("""
+          Delete from Llama where llama_name = :llama_name;
+          """)
+        f.close()
+        f = open(os.path.join(self.tmp_template_dir, 'select_llama.sql'), 'w')
+        f.write("""
+          select * from Llama
+          where llama_name = :llama_name;
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+                cursor = db.cursor()
+                cursor.execute("""
+                create table Llama (
+                  llama_name varchar(255),
+                  location varchar(255),
+                  description text
+                  );
+                """)
+                db.commit()
+
+                cursor.execute("""
+                  insert into Llama (llama_name, location, description) values ('Docky', 'somewhere', 'damaged');
+                """)
+                db.commit()
+
+                select_llama = insert_node(name='llamas', value=None)
+                insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)
+                insert_selectsql(name='select_llama.sql', node_id=select_llama)
+
+                llamas_id = insert_node(name='llamas', value=None)
+                insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="DELETE")
+                insert_selectsql(name='delete_llama.sql', node_id=llamas_id)
+
+                rv = c.get('/api/llamas/name/Docky/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                rv = c.delete('/api/llamas/name/Docky/')
+                assert 204 == rv.status_code
+
+                rv = c.get('/api/llamas/name/Docky/', follow_redirects=True)
+                assert 404 == rv.status_code
 
 def suite():
     suite = unittest.TestSuite()

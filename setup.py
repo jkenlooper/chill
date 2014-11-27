@@ -15,7 +15,7 @@ setup(
     version=version,
     author='Jake Hickenlooper',
     author_email='jake@weboftomorrow.com',
-    description="Simple Frozen website management",
+    description="Database driven web application framework in Flask",
     long_description=read('README.rst'),
     url='https://github.com/jkenlooper/chill',
     classifiers=[
@@ -33,8 +33,6 @@ setup(
         ],
     package_dir={'': 'src'},
     packages=find_packages('src'),
-    include_package_data=True,
-    package_data={name:['chill/data/*','chill/themes/*']},
     zip_safe=False,
     test_suite="chill.tests",
     install_requires=[
@@ -43,9 +41,6 @@ setup(
         'Flask',
         'Jinja2',
         'Frozen-Flask',
-        #'pytable',
-        #'SQLAlchemy',
-        #'Flask-SQLAlchemy',
         'pysqlite',
         'PyYAML',
         'gevent',
