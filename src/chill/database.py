@@ -2,11 +2,24 @@ import os
 from flask import current_app
 from chill.app import db
 
+CHILL_CREATE_TABLE_FILES = (
+        'create_node_node.sql',
+        'create_node.sql',
+        'create_route.sql',
+        'create_selectsql.sql',
+        'create_selectsql_node.sql',
+        'create_template.sql',
+        'create_template_node.sql'
+        )
+
 def init_db():
     with current_app.app_context():
         #db = get_db()
-        with current_app.open_resource(os.path.join('selectsql', 'schema.sql'), mode='r') as f:
-            db.cursor().executescript(f.read())
+        c = db.cursor()
+
+        for filename in CHILL_CREATE_TABLE_FILES:
+            c.execute(fetch_selectsql_string(filename))
+
         db.commit()
 
 #TODO: change the 'normalize' name...
@@ -19,7 +32,7 @@ def normalize(l, description):
             d.append(dict(zip(col_names, row)))
     return (d, col_names)
 
-def fetch_sql_string(file_name):
+def _fetch_sql_string(file_name):
     # TODO: optimize reading this into memory or get it elsewhere.
     with current_app.open_resource(os.path.join('selectsql', file_name), mode='r') as f:
         return f.read()
@@ -35,13 +48,13 @@ def fetch_selectsql_string(file_name):
             return f.read()
     else:
         # fallback on one that's in app resources
-        return fetch_sql_string(file_name)
+        return _fetch_sql_string(file_name)
 
 def insert_node(**kw):
     with current_app.app_context():
         c = db.cursor()
-        c.execute(fetch_sql_string('insert_node.sql'), kw)
-        node_id = c.execute(fetch_sql_string('select_max_id_node.sql')).fetchone()[0]
+        c.execute(fetch_selectsql_string('insert_node.sql'), kw)
+        node_id = c.execute(fetch_selectsql_string('select_max_id_node.sql')).fetchone()[0]
         db.commit()
         return node_id
 
@@ -49,7 +62,7 @@ def insert_node_node(**kw):
     """ Link a node to another node. """
     with current_app.app_context():
         c = db.cursor()
-        c.execute(fetch_sql_string('insert_node_node.sql'), kw)
+        c.execute(fetch_selectsql_string('insert_node_node.sql'), kw)
         db.commit()
 
 def path_for_node(id):
@@ -79,7 +92,7 @@ def insert_route(**kw):
     binding.update(kw)
     with current_app.app_context():
         c = db.cursor()
-        c.execute(fetch_sql_string('insert_route.sql'), binding)
+        c.execute(fetch_selectsql_string('insert_route.sql'), binding)
         db.commit()
 
 def add_template_for_node(name, node_id):
@@ -108,12 +121,12 @@ def insert_selectsql(**kw):
     """
     with current_app.app_context():
         c = db.cursor()
-        c.execute(fetch_sql_string('insert_selectsql.sql'), kw)
-        result = c.execute(fetch_sql_string('select_selectsql_where_name.sql'), kw).fetchall()
+        c.execute(fetch_selectsql_string('insert_selectsql.sql'), kw)
+        result = c.execute(fetch_selectsql_string('select_selectsql_where_name.sql'), kw).fetchall()
         (result, col_names) = normalize(result, c.description)
         if result:
             kw['selectsql_id'] = result[0].get('id')
-            c.execute(fetch_sql_string('insert_selectsql_node.sql'), kw)
+            c.execute(fetch_selectsql_string('insert_selectsql_node.sql'), kw)
         db.commit()
 
 

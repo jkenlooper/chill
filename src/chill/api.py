@@ -2,7 +2,7 @@ import sqlite3
 from flask import current_app, render_template
 
 from chill.app import db
-from database import fetch_sql_string, fetch_selectsql_string, normalize
+from database import fetch_selectsql_string, normalize
 
 def _short_circuit(value=None):
     """
@@ -53,7 +53,7 @@ def _selectsql(_node_id, value=None, **kw):
     "Look up value by using SelectSQL table"
     c = db.cursor()
     try:
-        result = c.execute(fetch_sql_string('select_selectsql_from_node.sql'), kw).fetchall()
+        result = c.execute(fetch_selectsql_string('select_selectsql_from_node.sql'), kw).fetchall()
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         return value
@@ -75,7 +75,7 @@ def _selectsql(_node_id, value=None, **kw):
 def _link(node_id):
     "Add the value for a linked node"
     c = db.cursor()
-    linked_value = c.execute(fetch_sql_string('select_link_node_from_node.sql'), {'node_id': node_id}).fetchall()
+    linked_value = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': node_id}).fetchall()
     if linked_value:
         if len(linked_value) > 1:
             list = []
@@ -106,7 +106,7 @@ def _add_value(value, new_value):
 def _template(node_id, value=None):
     "Check if a template is assigned to it and render that with the value"
     c = db.cursor()
-    select_template_from_node = fetch_sql_string('select_template_from_node.sql')
+    select_template_from_node = fetch_selectsql_string('select_template_from_node.sql')
     try:
         c.execute(select_template_from_node, {'node_id':node_id})
         template_result = c.fetchone()

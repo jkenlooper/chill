@@ -10,7 +10,6 @@ from chill.database import ( init_db,
         insert_node_node,
         insert_route,
         insert_selectsql,
-        fetch_sql_string,
         fetch_selectsql_string,
         add_template_for_node )
 
@@ -202,8 +201,8 @@ class SQL(ChillTestCase):
         with self.app.app_context():
             init_db()
             c = db.cursor()
-            c.execute(fetch_sql_string('insert_node.sql'), {'name': 'a', 'value':'apple'})
-            a = c.execute(fetch_sql_string('select_max_id_node.sql')).fetchone()[0]
+            c.execute(fetch_selectsql_string('insert_node.sql'), {'name': 'a', 'value':'apple'})
+            a = c.execute(fetch_selectsql_string('select_max_id_node.sql')).fetchone()[0]
             db.commit()
 
             result = c.execute('select * from Node where id = :id;', {'id':a}).fetchall()
@@ -232,14 +231,14 @@ class SQL(ChillTestCase):
             insert_node_node(node_id=b_id, target_node_id=c_id)
 
             c = db.cursor()
-            result = c.execute(fetch_sql_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
+            result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
             (result, col_names) = normalize(result, c.description)
             result = [x.get('node_id', None) for x in result]
             assert c_id in result
             assert d_id in result
             assert a_id not in result
 
-            result = c.execute(fetch_sql_string('select_link_node_from_node.sql'), {'node_id': b_id}).fetchall()
+            result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': b_id}).fetchall()
             (result, col_names) = normalize(result, c.description)
             result = [x.get('node_id', None) for x in result]
             assert c_id in result
@@ -260,7 +259,7 @@ class SQL(ChillTestCase):
             add_template_for_node('template_c.html', c)
 
             c = db.cursor()
-            result = c.execute(fetch_sql_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
+            result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
             (result, col_names) = normalize(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
@@ -268,7 +267,7 @@ class SQL(ChillTestCase):
 
             # another node that uses the same template
             c = db.cursor()
-            result = c.execute(fetch_sql_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
+            result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
             (result, col_names) = normalize(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
@@ -278,7 +277,7 @@ class SQL(ChillTestCase):
             add_template_for_node('template_over_a.html', a)
 
             c = db.cursor()
-            result = c.execute(fetch_sql_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
+            result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
             (result, col_names) = normalize(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
@@ -286,7 +285,7 @@ class SQL(ChillTestCase):
 
             # this one still uses the other template
             c = db.cursor()
-            result = c.execute(fetch_sql_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
+            result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
             (result, col_names) = normalize(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1

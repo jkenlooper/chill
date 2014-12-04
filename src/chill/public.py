@@ -9,7 +9,7 @@ from flask import abort, redirect, Blueprint, current_app, render_template, json
 from flask.views import MethodView
 
 from chill.app import db
-from database import fetch_sql_string, fetch_selectsql_string, normalize
+from database import fetch_selectsql_string, normalize
 from api import render_node, _selectsql
 
 encoder = json.JSONEncoder(indent=2, sort_keys=True)
@@ -77,7 +77,7 @@ class PageView(MethodView):
         current_app.logger.debug('uri: "%s"' % uri)
 
         rule_kw = {}
-        select_node_from_route = fetch_sql_string('select_node_from_route.sql')
+        select_node_from_route = fetch_selectsql_string('select_node_from_route.sql')
 
         c = db.cursor()
         try:
