@@ -5,7 +5,7 @@ import json
 
 from chill.app import make_app, db
 from chill.database import ( init_db,
-        normalize,
+        rowify,
         insert_node,
         insert_node_node,
         insert_route,
@@ -206,7 +206,7 @@ class SQL(ChillTestCase):
             db.commit()
 
             result = c.execute('select * from Node where id = :id;', {'id':a}).fetchall()
-            (result, col_names) = normalize(result, c.description)
+            (result, col_names) = rowify(result, c.description)
             assert len(result) == 1
             r = result.pop()
             assert a == r.get('id')
@@ -232,14 +232,14 @@ class SQL(ChillTestCase):
 
             c = db.cursor()
             result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
-            (result, col_names) = normalize(result, c.description)
+            (result, col_names) = rowify(result, c.description)
             result = [x.get('node_id', None) for x in result]
             assert c_id in result
             assert d_id in result
             assert a_id not in result
 
             result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': b_id}).fetchall()
-            (result, col_names) = normalize(result, c.description)
+            (result, col_names) = rowify(result, c.description)
             result = [x.get('node_id', None) for x in result]
             assert c_id in result
             assert d_id not in result
@@ -260,7 +260,7 @@ class SQL(ChillTestCase):
 
             c = db.cursor()
             result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
-            (result, col_names) = normalize(result, c.description)
+            (result, col_names) = rowify(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
             assert result[0] == 'template_a.html'
@@ -268,7 +268,7 @@ class SQL(ChillTestCase):
             # another node that uses the same template
             c = db.cursor()
             result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
-            (result, col_names) = normalize(result, c.description)
+            (result, col_names) = rowify(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
             assert result[0] == 'template_a.html'
@@ -278,7 +278,7 @@ class SQL(ChillTestCase):
 
             c = db.cursor()
             result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
-            (result, col_names) = normalize(result, c.description)
+            (result, col_names) = rowify(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
             assert result[0] == 'template_over_a.html'
@@ -286,7 +286,7 @@ class SQL(ChillTestCase):
             # this one still uses the other template
             c = db.cursor()
             result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
-            (result, col_names) = normalize(result, c.description)
+            (result, col_names) = rowify(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
             assert result[0] == 'template_a.html'

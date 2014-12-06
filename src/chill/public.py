@@ -9,7 +9,7 @@ from flask import abort, redirect, Blueprint, current_app, render_template, json
 from flask.views import MethodView
 
 from chill.app import db
-from database import fetch_selectsql_string, normalize
+from database import fetch_selectsql_string, rowify
 from api import render_node, _selectsql
 
 encoder = json.JSONEncoder(indent=2, sort_keys=True)
@@ -33,7 +33,7 @@ def check_map(uri, url_root):
         return (None, None)
     result = c.fetchall()
     if result:
-        (routes, col_names) = normalize(result, c.description)
+        (routes, col_names) = rowify(result, c.description)
         current_app.logger.debug( [x['rule'] for x in routes] )
         rules = map( lambda r: Rule(r['rule'], endpoint='dynamic'), routes )
         d_map = Map( rules )
@@ -100,7 +100,7 @@ class PageView(MethodView):
                     current_app.logger.error("DatabaseError: %s", err)
 
         if result:
-            (result, col_names) = normalize(result, c.description)
+            (result, col_names) = rowify(result, c.description)
 
             # Only one result for a getting a node from a unique path.
             return (result[0], rule_kw)

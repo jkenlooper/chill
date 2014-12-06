@@ -2,7 +2,7 @@ import sqlite3
 from flask import current_app, render_template
 
 from chill.app import db
-from database import fetch_selectsql_string, normalize
+from database import fetch_selectsql_string, rowify
 
 def _short_circuit(value=None):
     """
@@ -57,7 +57,7 @@ def _selectsql(_node_id, value=None, **kw):
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         return value
-    (selectsql_result, selectsql_col_names) = normalize(result, c.description)
+    (selectsql_result, selectsql_col_names) = rowify(result, c.description)
     current_app.logger.debug("selectsql: %s", selectsql_result)
     if selectsql_result:
         values = []
@@ -65,7 +65,7 @@ def _selectsql(_node_id, value=None, **kw):
             if selectsql_name:
                 try:
                     result = c.execute(fetch_selectsql_string(selectsql_name), kw).fetchall()
-                    values.append( normalize(result, c.description) )
+                    values.append( rowify(result, c.description) )
                 except sqlite3.DatabaseError as err:
                     current_app.logger.error("DatabaseError (%s) %s: %s", selectsql_name, kw, err)
         value = values

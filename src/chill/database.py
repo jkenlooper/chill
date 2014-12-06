@@ -23,7 +23,7 @@ def init_db():
         db.commit()
 
 #TODO: change the 'normalize' name...
-def normalize(l, description):
+def rowify(l, description):
     d = []
     col_names = []
     if l != None and description != None:
@@ -65,17 +65,6 @@ def insert_node_node(**kw):
         c.execute(fetch_selectsql_string('insert_node_node.sql'), kw)
         db.commit()
 
-def path_for_node(id):
-    with current_app.app_context():
-        return '/'.join([x[0] for x in db.execute("""
-        SELECT parent.name
-        FROM Node as n,
-                Node AS parent
-                WHERE n.left BETWEEN parent.left AND parent.right
-                        AND n.id = :id
-                        ORDER BY n.left;
-        """, {'id':id}).fetchall()])
-
 def insert_route(**kw):
     """
     `path`
@@ -98,18 +87,15 @@ def insert_route(**kw):
 def add_template_for_node(name, node_id):
     with current_app.app_context():
         c = db.cursor()
-        c.execute("""
-          insert or ignore into Template (name) values (:name)
-          """, {'name':name, 'node_id':node_id})
-        c.execute("""
-          select t.id, t.name from Template as t where t.name is :name;
-          """, {'name':name, 'node_id':node_id})
+        c.execute(fetch_selectsql_string('insert_template.sql'),
+                {'name':name, 'node_id':node_id})
+        c.execute(fetch_selectsql_string('select_template.sql'),
+                {'name':name, 'node_id':node_id})
         result = c.fetchone()
         if result:
             template_id = result[0]
-            c.execute("""
-              insert or replace into Template_Node (template_id, node_id) values (:template_id, :node_id);
-              """, {'template_id':template_id, 'node_id':node_id})
+            c.execute(fetch_selectsql_string('insert_template_node.sql'),
+                    {'template_id':template_id, 'node_id':node_id})
         db.commit()
 
 
@@ -123,7 +109,7 @@ def insert_selectsql(**kw):
         c = db.cursor()
         c.execute(fetch_selectsql_string('insert_selectsql.sql'), kw)
         result = c.execute(fetch_selectsql_string('select_selectsql_where_name.sql'), kw).fetchall()
-        (result, col_names) = normalize(result, c.description)
+        (result, col_names) = rowify(result, c.description)
         if result:
             kw['selectsql_id'] = result[0].get('id')
             c.execute(fetch_selectsql_string('insert_selectsql_node.sql'), kw)
