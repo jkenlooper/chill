@@ -86,23 +86,6 @@ def _link(node_id):
             linked_value = render_node(linked_value[0][0]) #TODO
     return linked_value
 
-def _add_value(value, new_value):
-    if value == None:
-        # subsitute the value from the linked node for this one
-        value = new_value
-    elif isinstance(value, (tuple, list)):
-        # Multiple values have been set via other means already so append or extend it.
-        if isinstance(new_value, (tuple, list)):
-            value.extend(new_value)
-        else:
-            value.append(new_value)
-    else:
-        current_app.logger.warning('Replacing value with new value.')
-        value = new_value
-        # TODO: currently, this won't happen?
-        # One value has been set, but now need to convert to list with the linked value
-    return value
-
 def _template(node_id, value=None):
     "Check if a template is assigned to it and render that with the value"
     c = db.cursor()
@@ -113,8 +96,10 @@ def _template(node_id, value=None):
         if template_result and template_result[1]:
             template = template_result[1]
 
-            # TODO: render the template with value
-            return render_template(template, value=value)
+            if isinstance(value, dict):
+                return render_template(template, **value)
+            else:
+                return render_template(template, value=value)
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
@@ -141,7 +126,6 @@ def render_node(_node_id, value=None, **kw):
                     values.append( result )
 
             value = values
-        #value = _add_value(value, _link(_node_id))
 
     value = _short_circuit(value)
     value = _template(_node_id, value)

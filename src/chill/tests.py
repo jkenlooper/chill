@@ -469,6 +469,7 @@ class Template(ChillTestCase):
           """)
         f.close()
 
+
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
@@ -503,6 +504,39 @@ class Template(ChillTestCase):
                 assert 'apple' in rv.data
                 assert 'template_b' in rv.data
 
+    def test_dict(self):
+        """
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'llama.html'), 'w')
+        f.write("""
+          <!doctype html>
+          <html><head><title>llama</title></head>
+          <body>
+          <h1>template for llama_name</h1>
+          {{ llama_name }}
+          </body>
+          </html>
+          """)
+        f.close()
+        f = open(os.path.join(self.tmp_template_dir, 'select_llama.sql'), 'w')
+        f.write("""
+          select :llama_name as llama_name;
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                a = insert_node(name='a', value=None)
+                insert_route(path='/a/<llama_name>/', node_id=a)
+                insert_selectsql(name='select_llama.sql', node_id=a)
+                add_template_for_node('llama.html', a)
+
+                rv = c.get('/a/chuck/', follow_redirects=True)
+                assert 'chuck' in rv.data
+                rv = c.get('/a/chase/', follow_redirects=True)
+                assert 'chase' in rv.data
 
 class PostMethod(ChillTestCase):
     def test_a(self):
