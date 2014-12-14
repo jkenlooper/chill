@@ -245,6 +245,25 @@ class SQL(ChillTestCase):
             assert d_id not in result
             assert a_id not in result
 
+    def test_value(self):
+        """
+        """
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                a_id = insert_node(name='a', value=None)
+                insert_route(path='/', node_id=a_id)
+                insert_selectsql(name='select_link_node_from_node.sql', node_id=a_id)
+
+                content = insert_node(name='content', value='apple')
+                insert_node_node(node_id=a_id, target_node_id=content)
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+                #self.app.logger.debug('test: %s', rv.data)
+                assert 'apple' in rv.data
+
     def test_template(self):
         with self.app.app_context():
             init_db()

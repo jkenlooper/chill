@@ -32,7 +32,7 @@ def _short_circuit(value=None):
                 return value[0]
     else:
         # Only checking first item and assumin all others are same type
-        current_app.logger.debug( value )
+        #current_app.logger.debug( value )
         if isinstance(value[0], dict):
             if set(value[0].keys()) == set(value[1].keys()):
                 return value
@@ -58,7 +58,9 @@ def _selectsql(_node_id, value=None, **kw):
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         return value
     (selectsql_result, selectsql_col_names) = rowify(result, c.description)
-    current_app.logger.debug("selectsql: %s", selectsql_result)
+    #current_app.logger.debug("selectsql kw: %s", kw)
+    #current_app.logger.debug("selectsql value: %s", value)
+    #current_app.logger.debug("selectsql: %s", selectsql_result)
     if selectsql_result:
         values = []
         for selectsql_name in [x.get('name', None) for x in selectsql_result]:
@@ -69,7 +71,7 @@ def _selectsql(_node_id, value=None, **kw):
                 except sqlite3.DatabaseError as err:
                     current_app.logger.error("DatabaseError (%s) %s: %s", selectsql_name, kw, err)
         value = values
-    current_app.logger.debug("value: %s", value)
+    #current_app.logger.debug("value: %s", value)
     return value
 
 def _link(node_id):
@@ -112,11 +114,11 @@ def render_node(_node_id, value=None, **kw):
         if results and results[0]:
             values = []
             for (result, cols) in results:
-                if set(cols) == set(['node_id', 'name']):
+                if set(cols) == set(['node_id', 'name', 'value']):
                     for subresult in result:
                         #if subresult.get('name') == kw.get('name'):
                             # This is a link node
-                        current_app.logger.debug("sub: %s", subresult)
+                        #current_app.logger.debug("sub: %s", subresult)
                         values.append( {subresult.get('name'): render_node( subresult.get('node_id'), **subresult )} )
                 #elif 'node_id' and 'name' in cols:
                 #    for subresult in result:
