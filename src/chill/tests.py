@@ -20,8 +20,8 @@ class ChillTestCase(unittest.TestCase):
         self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
         self.app = make_app(CHILL_DATABASE_URI=self.tmp_db.name,
-                TEMPLATE_FOLDER=self.tmp_template_dir,
-                SELECTSQL_FOLDER=self.tmp_template_dir,
+                THEME_TEMPLATE_FOLDER=self.tmp_template_dir,
+                THEME_SQL_FOLDER=self.tmp_template_dir,
                 DEBUG=True)
 
     def tearDown(self):
@@ -263,6 +263,37 @@ class SQL(ChillTestCase):
                 assert 200 == rv.status_code
                 #self.app.logger.debug('test: %s', rv.data)
                 assert 'apple' in rv.data
+
+    def test_noderequest(self):
+        """
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'select_pagenames.sql'), 'w')
+        f.write("""
+          select 'yup' as test where :pagename in ('apple', 'pear', 'grapes');
+          """)
+        f.close()
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                page = insert_node(name='page', value=None)
+                insert_selectsql(name='select_link_node_from_node.sql', node_id=page)
+                insert_route(path='/page/<pagename>/', node_id=page)
+
+                pagenames = insert_node(name='pagenames', value=None)
+                insert_node_node(node_id=page, target_node_id=pagenames)
+                insert_selectsql(name='select_link_node_from_node.sql', node_id=pagenames)
+                insert_selectsql(name='select_pagenames.sql', node_id=pagenames)
+
+                rv = c.get('/page/cucumber/', follow_redirects=True)
+                assert 200 == rv.status_code
+                self.app.logger.debug('test: %s', rv.data)
+                assert 'yup' not in rv.data
+
+                rv = c.get('/page/pear/', follow_redirects=True)
+                assert 200 == rv.status_code
+                self.app.logger.debug('test: %s', rv.data)
+                assert 'yup' in rv.data
 
     def test_template(self):
         with self.app.app_context():

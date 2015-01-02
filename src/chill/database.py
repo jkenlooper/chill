@@ -39,9 +39,9 @@ def _fetch_sql_string(file_name):
 
 def fetch_selectsql_string(file_name):
     # TODO: optimize reading this into memory or get it elsewhere.
-    #folder = current_app.config.get('SELECTSQL_FOLDER', '')
+    #folder = current_app.config.get('THEME_SQL_FOLDER', '')
     #file_path = os.path.join(os.path.abspath('.'), folder, file_name) 
-    folder = current_app.config.get('SELECTSQL_FOLDER')
+    folder = current_app.config.get('THEME_SQL_FOLDER')
     file_path = os.path.join(folder, file_name) 
     if os.path.isfile(file_path):
         with open(file_path, 'r') as f:

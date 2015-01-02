@@ -5,7 +5,7 @@ import sqlite3
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import HTTPException
 
-from flask import abort, redirect, Blueprint, current_app, render_template, json, request, make_response
+from flask import abort, redirect, Blueprint, current_app, render_template, json, request, make_response, app
 from flask.views import MethodView
 
 from chill.app import db
@@ -24,31 +24,28 @@ def check_map(uri, url_root):
     # TODO: Building the Map each time this is called seems like it could be more effiecent.
     c = db.cursor()
     try:
-        c.execute("""
-        select path as rule, weight, node_id from Route where rule like '%<%>%'
-        order by weight desc;
-        """)
+        c.execute(fetch_selectsql_string('select_route_where_dynamic.sql'))
     except sqlite3.OperationalError as err:
         current_app.logger.error("OperationalError: %s", err)
         return (None, None)
     result = c.fetchall()
     if result:
         (routes, col_names) = rowify(result, c.description)
-        current_app.logger.debug( [x['rule'] for x in routes] )
+        #current_app.logger.debug( [x['rule'] for x in routes] )
         rules = map( lambda r: Rule(r['rule'], endpoint='dynamic'), routes )
         d_map = Map( rules )
         map_adapter = d_map.bind(url_root)
-        current_app.logger.debug(uri)
+        #current_app.logger.debug(uri)
         try:
             (rule, rule_kw) = map_adapter.match(path_info=uri, return_rule=True)
-            current_app.logger.debug(rule)
+            #current_app.logger.debug(rule)
             return (str(rule), rule_kw)
         except HTTPException:
             pass
     return (None, {})
 
 # The page blueprint has no static files or templates read from disk.
-page = Blueprint('public', __name__, static_folder=None, template_folder=None)
+#page = Blueprint('public', __name__, static_folder=os.path.join( os.getcwd(), current_app.config.get('CHILL_STATIC_DIR', 'static') ), template_folder=None)
 
 #page.record(set_map)
 #map_adapter = map.bind('example.com')
@@ -74,7 +71,7 @@ class PageView(MethodView):
         if not uri.endswith('/'):
             uri = ''.join((uri, '/'))
 
-        current_app.logger.debug('uri: "%s"' % uri)
+        #current_app.logger.debug('uri: "%s"' % uri)
 
         rule_kw = {}
         select_node_from_route = fetch_selectsql_string('select_node_from_route.sql')
@@ -86,12 +83,12 @@ class PageView(MethodView):
             current_app.logger.error("DatabaseError: %s", err)
 
         result = c.fetchall()
-        current_app.logger.debug('result: "%s"' % result)
+        #current_app.logger.debug('result: "%s"' % result)
         if not result or len(result) == 0:
             # See if the uri matches any dynamic rules
             (rule, rule_kw) = check_map(uri, request.url_root)
-            current_app.logger.debug(rule)
-            current_app.logger.debug('rule: "%s"' % rule or '')
+            #current_app.logger.debug(rule)
+            #current_app.logger.debug('rule: "%s"' % rule or '')
             if rule:
                 try:
                     c.execute(select_node_from_route, {'uri':rule, 'method':method})
@@ -117,10 +114,14 @@ class PageView(MethodView):
         values.update( request.form.to_dict(flat=True) )
         values.update( request.args.to_dict(flat=True) )
         values['method'] = request.method
+        noderequest = values.copy()
+        noderequest.pop('node_id')
+        noderequest.pop('name')
+        noderequest.pop('value')
 
-        current_app.logger.debug("get kw: %s", values)
-        rendered = render_node(node['id'], **values)
-        current_app.logger.debug("rendered: %s", rendered)
+        #current_app.logger.debug("get kw: %s", values)
+        rendered = render_node(node['id'], noderequest=noderequest, **values)
+        #current_app.logger.debug("rendered: %s", rendered)
         if rendered:
             if not isinstance(rendered, (str, unicode, int, float)):
                 # return a json string
@@ -206,10 +207,3 @@ class PageView(MethodView):
 
         response = make_response('ok', 204)
         return response
-
-
-
-page.add_url_rule('/', view_func=PageView.as_view('page'))
-page.add_url_rule('/index.html', view_func=PageView.as_view('index'))
-page.add_url_rule('/<path:uri>/', view_func=PageView.as_view('page_uri'))
-page.add_url_rule('/<path:uri>/index.html', view_func=PageView.as_view('uri_index'))
