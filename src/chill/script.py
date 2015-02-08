@@ -129,7 +129,8 @@ def freeze(config, debug=False, urls_file=None):
     def send_media_file():
         media_folder = app.config['MEDIA_FOLDER']
         media_path = app.config.get('MEDIA_PATH', '/media/')
-        if os.path.isdir( media_folder ) and media_path[0] == '/':
+        freeze_all_files = app.config.get('MEDIA_FREEZE_ALL', False)
+        if freeze_all_files and os.path.isdir( media_folder ) and media_path[0] == '/':
             for (dirpath, dirnames, filenames) in os.walk(media_folder, topdown=True):
                 start = len(os.path.commonprefix((media_folder, dirpath)))
                 relative_path = dirpath[start+1:]

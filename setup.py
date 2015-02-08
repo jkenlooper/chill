@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 import os
 
 name = "chill"
-version = "0.2.0"
+version = "0.2.0-mustached-rival.1"
 
 def read(*rnames):
     return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
@@ -33,6 +33,7 @@ setup(
         ],
     package_dir={'': 'src'},
     packages=find_packages('src'),
+    package_data={'chill': ['selectsql/*.sql']},
     zip_safe=False,
     test_suite="chill.tests",
     install_requires=[
