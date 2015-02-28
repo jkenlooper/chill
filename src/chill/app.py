@@ -58,15 +58,15 @@ def make_app(config=None, **kw):
     app.config.update(kw)
 
     # TODO: fix conflict with page_uri
-    #root_folder = app.config.get('ROOT_FOLDER', None)
-    #if root_folder:
-    #    if root_folder[0] != os.sep:
-    #        root_folder = os.path.join(os.getcwd(), root_folder)
+    root_folder = app.config.get('ROOT_FOLDER', None)
+    if root_folder:
+        if root_folder[0] != os.sep:
+            root_folder = os.path.join(os.getcwd(), root_folder)
 
-    #    app.config['ROOT_FOLDER'] = root_folder
-    #    #root_path = '/' # See no need to have this be different
-    #    if os.path.isdir( root_folder ):
-    #        app.add_url_rule('/<path:filename>', view_func=app.send_root_file)
+        app.config['ROOT_FOLDER'] = root_folder
+        #root_path = '/' # See no need to have this be different
+        if os.path.isdir( root_folder ):
+            app.add_url_rule('/<path:filename>', view_func=app.send_root_file)
 
     media_folder = app.config.get('MEDIA_FOLDER', None)
     if media_folder:
@@ -139,6 +139,6 @@ def make_app(config=None, **kw):
     page.add_url_rule('/index.html', view_func=PageView.as_view('index'))
     page.add_url_rule('/<path:uri>/', view_func=PageView.as_view('page_uri'))
     page.add_url_rule('/<path:uri>/index.html', view_func=PageView.as_view('uri_index'))
-    app.register_blueprint(page)
+    app.register_blueprint(page, url_prefix=app.config.get('PUBLIC_URL_PREFIX', ''))
 
     return app

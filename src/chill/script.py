@@ -113,17 +113,17 @@ def freeze(config, debug=False, urls_file=None):
 
 
     # TODO: fix conflict with page_uri
-    #@freezer.register_generator
-    #def send_root_file():
-    #    root_folder = app.config.get('ROOT_FOLDER', None)
-    #    if root_folder and os.path.isdir( root_folder ):
-    #        for (dirpath, dirnames, filenames) in os.walk(root_folder, topdown=True):
-    #            start = len(os.path.commonprefix((root_folder, dirpath)))
-    #            relative_path = dirpath[start+1:]
-    #            for filename in filenames:
-    #                yield ('send_root_file', {
-    #                        'filename': os.path.join(relative_path, filename)
-    #                        })
+    @freezer.register_generator
+    def send_root_file():
+        root_folder = app.config.get('ROOT_FOLDER', None)
+        if root_folder and os.path.isdir( root_folder ):
+            for (dirpath, dirnames, filenames) in os.walk(root_folder, topdown=True):
+                start = len(os.path.commonprefix((root_folder, dirpath)))
+                relative_path = dirpath[start+1:]
+                for filename in filenames:
+                    yield ('send_root_file', {
+                            'filename': os.path.join(relative_path, filename)
+                            })
 
     @freezer.register_generator
     def send_media_file():
