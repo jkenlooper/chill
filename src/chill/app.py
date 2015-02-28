@@ -116,6 +116,13 @@ def make_app(config=None, **kw):
             media_path=media_path
         )
 
+    @app.context_processor
+    def inject_config():
+        """
+        Inject the config into the templates.
+        """
+        return dict(config=dict(app.config))
+
 
     # register any blueprints here
     #app.logger.warning("Not registering resource blueprint")
