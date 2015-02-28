@@ -140,7 +140,7 @@ def make_app(config=None, **kw):
         app.config['THEME_STATIC_FOLDER'] = theme_static_folder
         theme_static_path = app.config.get('THEME_STATIC_PATH', '/theme/')
         if os.path.isdir( theme_static_folder ) and theme_static_path[0] == '/':
-            page.add_url_rule('%s<path:filename>' % theme_static_path, view_func=app.send_theme_file)
+            app.add_url_rule('%s<path:filename>' % theme_static_path, view_func=app.send_theme_file)
 
     page.add_url_rule('/', view_func=PageView.as_view('page'))
     page.add_url_rule('/index.html', view_func=PageView.as_view('index'))

@@ -78,12 +78,12 @@ def freeze(config, debug=False, urls_file=None):
     #        for dirname in dirnames:
     #            yield ('page.index_page', {'uri': os.path.join(relative_path, dirname)})
     
-    @freezer.register_generator
-    def page_uri():
-        # uri_index will be used so just avoid showing a warning
-        return [
-                ('public.page_uri', {'uri': ''}),
-                ]
+    #@freezer.register_generator
+    #def page_uri():
+    #    # uri_index will be used so just avoid showing a warning
+    #    return [
+    #            ('public.page_uri', {'uri': ''}),
+    #            ]
     @freezer.register_generator
     def uri_index():
         def cleanup_url(url):
@@ -92,7 +92,10 @@ def freeze(config, debug=False, urls_file=None):
                 if url.endswith('/index.html'):
                     return url
                 elif url.endswith('/'):
-                    return ('public.uri_index', {'uri': url.strip('/')})
+                    url = url.strip('/')
+                    if len(url) == 0:
+                        return ('public.index', {})
+                    return ('public.uri_index', {'uri': url})
 
         c = db.cursor()
         try:
@@ -112,7 +115,6 @@ def freeze(config, debug=False, urls_file=None):
         return urls
 
 
-    # TODO: fix conflict with page_uri
     @freezer.register_generator
     def send_root_file():
         root_folder = app.config.get('ROOT_FOLDER', None)
@@ -148,7 +150,7 @@ def freeze(config, debug=False, urls_file=None):
                 start = len(os.path.commonprefix((theme_static_folder, dirpath)))
                 relative_path = dirpath[start+1:]
                 for filename in filenames:
-                    yield ('public.send_theme_file', {
+                    yield ('send_theme_file', {
                             'filename': os.path.join(relative_path, filename)
                             })
 
