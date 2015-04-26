@@ -4,31 +4,92 @@ Cascading, Highly Irrelevant, Lost Llamas
 
 *Or, just chill.*
 
-This is yet another static website generator.  What's different is that it uses
-a simple way of managing the content for the website. All page content is in a
-data directory with each page represented as the directory name.  All the page
-content is either a separate file or is in a yaml file.  A page accesses it's
-data by first looking for it in it's own directory and then all of it's parent
-directories in order.  So, setting a file called `sitetitle.txt` in the top
-level will be used by all pages in the site unless those pages also have a file
-with that name in their directory.
+(Oh, that makes little sense. Let me try to be more descriptive.)
 
-Templates are also used for a page in a similiar cascading manner.  Each page
-can override any part of a template by just including it in it's own directory.
-Any sub pages of that page directory will also use that template.
 
-To get up and running quickly checkout this boilerplate code:
-https://github.com/jkenlooper/chill-boilerplate
+Database driven web application framework in Flask
+--------------------------------------------------
 
-Mustache Templates
-------------------
+This involves creating custom SQL queries to pull your data from your database
+into your jinja2 HTML templates for your website.  Chill creates a static
+version of the website or can run as a Flask app. Their are a few tables that
+are specific to Chill in order to handle page routes and what SQL query should
+be used and such.
 
-Chill uses mustache templates as they are language agnostic, logicless, and
-pretty simple to use.  This is important as chill was designed to be simple and
-as future-proof as possible when it comes to the actual website *guts*.  All
-chill does is load up the mustache template or templates for a page and render
-it with the data it finds.  This functionality could easily be improved on or
-replaced with any other software without need to modify any of the *guts*.
+Quickstart
+----------
+
+Run the `chill init` script in an empty directory and it will create a minimal
+starting point for using Chill. The site.cfg created will have comments on each
+configuration value.  The `chill run --config site.cfg` will run the app in the
+foreground at the 'http://localhost:5000/' url.
+
+To add a page involves a few steps.  This is done by editing the tables in the
+relational database.  Chill provides some helpers to make this easier. For
+example::
+
+    >>> from chill.database import insert_node
+    >>> from chill.app import make_app, db
+    >>> app = make_app(config='site.cfg', DEBUG=True)
+    >>> with app.app_context():
+    ...     testnode = insert_node(name='testnode', value='just testing')
+    ...     db.commit()
+    ...
+    >>>
+
+Will do the same as the following SQL::
+
+    sqlite> insert into Node (name, value) values ('testnode', 'just testing');
+
+
+The builtin SQL tables that Chill uses are the following::
+
+    sqlite> .table
+    Node            Route           SelectSQL_Node  Template_Node
+    Node_Node       SelectSQL       Template
+
+
+The minimum to show a templated page requires doing the following::
+
+    echo "<html><head><title>Example</title></head><body><p> {{ message }} </p>" > templates/hello.html
+
+    sqlite3 -header -column db
+
+    sqlite> insert into Node (name, value) values ('message', 'Hello, World!');
+    sqlite> select last_insert_rowid();
+    last_insert_rowid()
+    -------------------
+    6
+    sqlite> insert into Node (name, value) values ('hellopage', null);
+    sqlite> select last_insert_rowid();
+    last_insert_rowid()
+    -------------------
+    7
+    sqlite> insert or replace into Node_Node (node_id, target_node_id) values (7, 6);
+    sqlite> insert or ignore into SelectSQL (name) values ('select_link_node_from_node.sql');
+    sqlite> select * from SelectSQL where name is 'select_link_node_from_node.sql' limit 1;
+    id          name
+    ----------  ------------------------------
+    1           select_link_node_from_node.sql
+    sqlite> insert or replace into SelectSQL_Node (selectsql_id, node_id) values (1, 7);
+    sqlite> insert or ignore into Template (name) values ('hello.html');
+    sqlite> select t.id, t.name from Template as t where t.name is 'hello.html';
+    id          name
+    ----------  ----------
+    2           hello.html
+    sqlite> insert or replace into Template_Node (template_id, node_id) values (2, 7);
+    sqlite> insert into Route (path, node_id, weight, method) values ('/hello/', 7, null, 'GET');
+    sqlite> .quit
+
+    chill run --config site.cfg &
+
+    curl localhost:5000/hello/
+    <html><head><title>Example</title></head><body><p> Hello, World! </p>
+
+
+Which simply creates a node with the "Hello, World!" message and makes it
+available to the /hello/ route using the 'hello.html' template.
+
 
 Overview of Resource Directories
 --------------------------------

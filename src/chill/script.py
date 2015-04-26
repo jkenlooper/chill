@@ -3,6 +3,7 @@
 Usage: chill run --config <file>
        chill serve --config <file>
        chill freeze --config <file> [--urls <file>]
+       chill init
 
 Options:
   -h --help         Show this screen.
@@ -18,11 +19,86 @@ from flask_frozen import Freezer
 
 from chill.app import make_app, db
 from database import fetch_selectsql_string
+from chill.database import (
+        init_db,
+        insert_node,
+        insert_node_node,
+        insert_route,
+        insert_selectsql,
+        add_template_for_node,
+        )
+
+SITECFG = """
+# The site.cfg file is used to configure a flask app.  Refer to the flask
+# documentation for other configurations.  The below are used specifically by
+# Chill.
+
+#HOST = '127.0.0.1'
+#PORT = 5000
+
+CHILL_DATABASE_URI = "db"
+
+# If using the ROOT_FOLDER then you will need to set the PUBLIC_URL_PREFIX to
+# something other than '/'.
+#PUBLIC_URL_PREFIX = "/"
+
+# If setting the ROOT_FOLDER:
+#PUBLIC_URL_PREFIX = "/site"
+
+# The ROOT_FOLDER is used to send static files from the '/' route.  This will
+# conflict with the default value for PUBLIC_URL_PREFIX. Any file or directory
+# within the ROOT_FOLDER will be accessible from '/'.  The default is not
+# having anything set.
+#ROOT_FOLDER = "root"
+
+# The media folder is used to send static files that are not related to the
+# 'theme' of a site.  This usually includes images and videos that are better
+# served from the file system instead of the database. The default is not
+# having this set to anything.
+#MEDIA_FOLDER = "media"
+
+# The media path is where the files in the media folder will be accessible.  In
+# templates you can use the custom variable: 'media_path' which will have this
+# value.
+#MEDIA_PATH = "/media/"
+
+# The theme is where all the front end resources like css, js, graphics and
+# such that make up the theme of a website. The THEME_STATIC_FOLDER is where
+# these files are located and by default nothing is set here.
+#THEME_STATIC_FOLDER = "static"
+
+# Set a THEME_STATIC_PATH for routing the theme static files with.  It's useful
+# to set a version number within this path to easily do cache-busting.  In your
+# templates you can use the custom variable: 'theme_static_path' which will
+# have this value.
+#THEME_STATIC_PATH = "/theme/v0.0.1/"
+
+# Where the jinja2 templates for the site are located.  Will default to the app
+# template_folder if not set.
+THEME_TEMPLATE_FOLDER = "templates"
+
+# Where all the custom SQL queries and such are located.  Chill uses a few
+# built-in ones and they can be overridden by adding a file with the same name
+# in here. To do much of anything with Chill you will need to add some custom
+# SQL queries and such to load data into your templates.
+#THEME_SQL_FOLDER = "selectsql"
+
+# Helpful to have this set to True if you want to fix stuff.
+#DEBUG=True
+
+# For creating a stand-alone static website that you can upload without
+# requiring an app to run it. This will use Frozen-Flask.
+# The path to the static/frozen website will be put.
+#FREEZER_DESTINATION = "/home/something/path/to/frozen"
+"""
 
 def main():
     ""
     args = docopt(__doc__)
     # parse args and pass to run, server, etc.
+    if args['init']:
+        init()
+
     if args['run']:
         run(args['--config'])
 
@@ -34,6 +110,58 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+def init():
+    "Create a new site.cfg and add the minimum to show a simple page."
+
+    if not os.path.exists('site.cfg'):
+        print "Creating a default site.cfg"
+        f = open('site.cfg', 'w')
+        f.write(SITECFG)
+        f.close()
+
+    try:
+        os.mkdir('selectsql')
+    except OSError:
+        pass
+
+    try:
+        os.mkdir('templates')
+    except OSError:
+        pass
+
+    htmlfile = os.path.join('templates', 'homepage.html')
+    if not os.path.exists(htmlfile):
+        f = open(htmlfile, 'w')
+        f.write("""
+<!doctype html>
+<html>
+    <head>
+        <title>Chill</title>
+    </head>
+    <body>
+        <p>{{ homepage_content }}</p>
+    </body>
+</html>
+        """)
+        f.close()
+
+    app = make_app(config='site.cfg', DEBUG=True)
+
+    with app.app_context():
+        print "initializing database"
+        init_db()
+
+        homepage = insert_node(name='homepage', value=None)
+        insert_route(path='/', node_id=homepage)
+        insert_selectsql(name='select_link_node_from_node.sql', node_id=homepage)
+
+        add_template_for_node('homepage.html', homepage)
+
+        homepage_content = insert_node(name='homepage_content', value="Cascading, Highly Irrelevant, Lost Llamas")
+        insert_node_node(node_id=homepage, target_node_id=homepage_content)
+
+        db.commit()
 
 # bin/run
 def run(config, debug=False):
@@ -77,7 +205,7 @@ def freeze(config, debug=False, urls_file=None):
     #        relative_path = dirpath[start+1:]
     #        for dirname in dirnames:
     #            yield ('page.index_page', {'uri': os.path.join(relative_path, dirname)})
-    
+
     #@freezer.register_generator
     #def page_uri():
     #    # uri_index will be used so just avoid showing a warning
