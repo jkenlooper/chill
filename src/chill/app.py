@@ -4,6 +4,7 @@ from werkzeug.local import LocalProxy
 from flask import Flask, g, current_app, Blueprint
 from flask.helpers import send_from_directory
 from jinja2 import FileSystemLoader
+from cache import cache
 import sqlite3
 
 
@@ -47,6 +48,28 @@ def get_db():
 
 db = LocalProxy(get_db)
 
+def multiple_directory_files_loader(*args):
+    """
+    Loads all the files in each directory as values in a dict with the key
+    being the relative file path of the directory.  Updates the value if
+    subsequent file paths are the same.
+    """
+    d = dict()
+
+    def load_files(folder):
+        for (dirpath, dirnames, filenames) in os.walk(folder):
+            for f in filenames:
+                filepath = os.path.join(dirpath, f)
+                with open( filepath, 'r' ) as f:
+                    key = filepath[len(os.path.commonprefix([root, filepath]))+1:]
+                    d[ key ] = f.read()
+            for foldername in dirnames:
+                load_files(os.path.join(dirpath, foldername))
+
+    for root in args:
+        load_files(root)
+    return d
+
 def make_app(config=None, **kw):
     "factory to create the app"
 
@@ -56,6 +79,8 @@ def make_app(config=None, **kw):
         config_file = config if config[0] == os.sep else os.path.join(os.getcwd(), config)
         app.config.from_pyfile(config_file)
     app.config.update(kw)
+
+    cache.init_app(app)
 
     # TODO: fix conflict with page_uri
     root_folder = app.config.get('ROOT_FOLDER', None)
@@ -84,6 +109,10 @@ def make_app(config=None, **kw):
 
     selectsql_folder = app.config.get('THEME_SQL_FOLDER', 'selectsql')
     app.config['THEME_SQL_FOLDER'] = selectsql_folder if selectsql_folder[0] == os.sep else os.path.join(os.getcwd(), selectsql_folder)
+
+    chill_selectsql_folder = os.path.join( os.path.dirname(__file__), 'selectsql' )
+    user_selectsql_folder = app.config.get('THEME_SQL_FOLDER')
+    app.selectsql = multiple_directory_files_loader(chill_selectsql_folder, user_selectsql_folder)
 
     # Set the jinja2 template folder eith fallback for app.template_folder
     app.jinja_env.loader = FileSystemLoader( app.config.get('THEME_TEMPLATE_FOLDER') )

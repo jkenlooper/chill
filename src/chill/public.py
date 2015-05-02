@@ -11,6 +11,7 @@ from flask.views import MethodView
 from chill.app import db
 from database import fetch_selectsql_string, rowify
 from api import render_node, _selectsql
+from cache import cache
 
 encoder = json.JSONEncoder(indent=2, sort_keys=True)
 
@@ -55,8 +56,8 @@ class PageView(MethodView):
     Handles access to a uri.
     The uri is first matched directly with a route to get a node. If that
     fails, it will load up the custom map and check the uri with any matching
-    routes.  
-    
+    routes.
+
     When a node is retrieved (get) it renders that nodes value. (See `render_node`.)
     """
     def _node_from_uri(self, uri, method="GET"):
@@ -103,6 +104,7 @@ class PageView(MethodView):
             return (result[0], rule_kw)
         return (None, rule_kw)
 
+    @cache.cached()
     def get(self, uri=''):
         "For sql queries that start with 'SELECT ...'"
         (node, rule_kw) = self._node_from_uri(uri)
@@ -134,7 +136,7 @@ class PageView(MethodView):
 
     def post(self, uri=''):
         "For sql queries that start with 'INSERT ...'"
-        
+
         # get node...
         (node, rule_kw) = self._node_from_uri(uri, method=request.method)
 
@@ -153,7 +155,7 @@ class PageView(MethodView):
 
     def put(self, uri=''):
         "For sql queries that start with 'INSERT ...' or 'UPDATE ...'"
-        
+
         # get node...
         (node, rule_kw) = self._node_from_uri(uri, method=request.method)
 
@@ -172,7 +174,7 @@ class PageView(MethodView):
 
     def patch(self, uri=''):
         "For sql queries that start with 'UPDATE ...'"
-        
+
         # get node...
         (node, rule_kw) = self._node_from_uri(uri, method=request.method)
 
@@ -191,7 +193,7 @@ class PageView(MethodView):
 
     def delete(self, uri=''):
         "For sql queries that start with 'DELETE from ...'"
-        
+
         # get node...
         (node, rule_kw) = self._node_from_uri(uri, method=request.method)
 

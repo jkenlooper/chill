@@ -91,6 +91,10 @@ Which simply creates a node with the "Hello, World!" message and makes it
 available to the /hello/ route using the 'hello.html' template.
 
 
+
+*The below documentation no longer applies.*
+
+
 Overview of Resource Directories
 --------------------------------
 

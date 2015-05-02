@@ -38,6 +38,7 @@ setup(
         'docutils',
         'Flask',
         'Jinja2',
+        'Flask-Cache',
         'Frozen-Flask',
         'pysqlite',
         'PyYAML',

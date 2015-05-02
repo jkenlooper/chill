@@ -1,6 +1,7 @@
 import os
-from flask import current_app
+from flask import current_app, g
 from chill.app import db
+from cache import cache
 
 CHILL_CREATE_TABLE_FILES = (
         'create_node_node.sql',
@@ -22,7 +23,6 @@ def init_db():
 
         db.commit()
 
-#TODO: change the 'normalize' name...
 def rowify(l, description):
     d = []
     col_names = []
@@ -33,12 +33,15 @@ def rowify(l, description):
     return (d, col_names)
 
 def _fetch_sql_string(file_name):
-    # TODO: optimize reading this into memory or get it elsewhere.
     with current_app.open_resource(os.path.join('selectsql', file_name), mode='r') as f:
         return f.read()
 
 def fetch_selectsql_string(file_name):
-    # TODO: optimize reading this into memory or get it elsewhere.
+    content = current_app.selectsql.get(file_name, None)
+    if content != None:
+        return content
+    current_app.logger.warn( "selectsql file: '%s' not available. Checking file system..." % file_name )
+
     #folder = current_app.config.get('THEME_SQL_FOLDER', '')
     #file_path = os.path.join(os.path.abspath('.'), folder, file_name)
     folder = current_app.config.get('THEME_SQL_FOLDER')
