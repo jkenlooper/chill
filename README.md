@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jkenlooper/chill.svg?branch=mustached-rival)](https://travis-ci.org/jkenlooper/chill)
+
 # Cascading, Highly Irrelevant, Lost Llamas
 
 *Or, just chill.*
