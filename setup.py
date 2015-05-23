@@ -13,7 +13,7 @@ setup(
     author='Jake Hickenlooper',
     author_email='jake@weboftomorrow.com',
     description="Database driven web application framework in Flask",
-    long_description=read('README.rst'),
+    long_description=read('README.md'),
     url='https://github.com/jkenlooper/chill',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
