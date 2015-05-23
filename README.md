@@ -22,6 +22,8 @@ foreground at the 'http://localhost:5000/' url. Notice that the script also
 creates a sqlite database in that directory.  This database is what the script
 uses to display the pages in a site.
 
+## Create a single page example
+
 One way to manage the content for the website is to create a python script that
 uses some of the helper functions from chill.database.  One of them is the
 `insert_node` function which simply inserts a name and value to the `Node`
