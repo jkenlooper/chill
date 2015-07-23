@@ -44,6 +44,7 @@ setup(
         'PyYAML',
         'gevent',
         'docopt',
+        'pyselect',
       ],
     entry_points={
         'console_scripts': [
