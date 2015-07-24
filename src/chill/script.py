@@ -13,12 +13,10 @@ Options:
 
 """
 import os
-from glob import glob
 
 import sqlite3
 from docopt import docopt
 from flask_frozen import Freezer
-from pyselect import select
 
 from chill.app import make_app, db
 from database import fetch_selectsql_string
@@ -30,6 +28,7 @@ from chill.database import (
         insert_selectsql,
         add_template_for_node,
         )
+from chill.operate import operate_menu
 
 SITECFG = """
 # The site.cfg file is used to configure a flask app.  Refer to the flask
@@ -171,116 +170,12 @@ def init():
 
 def operate(config):
     "Run in operate mode."
-    def node_input():
-        """
-        Get a valid node id from the user.
-
-        Return -1 if invalid
-        """
-        try:
-            node = int(raw_input("Node id: "))
-        except ValueError:
-            node = -1
-            print 'invalid node id: %s' % node
-        return node
-
-    def mode_insert():
-        selection = True
-        database_functions = [
-                'insert_node',
-                'insert_selectsql',
-                'insert_node_node',
-                'insert_route',
-                'add_template_for_node',
-                ]
-        while selection:
-            choices = database_functions + [
-                'help',
-                ]
-            selection = select(choices)
-            if selection == 'insert_node':
-                name = raw_input("Node name: ")
-                value = raw_input("Node value: ")
-                node = insert_node(name=name, value=value or None)
-                print "name: %s \nid: %s" % (name, node)
-            elif selection == 'insert_selectsql':
-                choices = set(
-                        map(os.path.basename,
-                            glob(os.path.join(os.path.dirname(__file__), 'selectsql', '*'))
-                            )
-                        )
-                folder = app.config.get('THEME_SQL_FOLDER')
-                choices.update(
-                        set(map(os.path.basename,
-                            glob(os.path.join(folder, '*'))
-                            )
-                        ))
-                choices = list(choices)
-                choices.sort()
-                print "Pick a sql file:"
-                sqlfile = select(choices)
-                if sqlfile:
-                    node = node_input()
-                    if node >= 0:
-                        insert_selectsql(name=sqlfile, node_id=node)
-                        print "adding %s to node id: %s" % (sqlfile, node)
-
-            elif selection == 'insert_node_node':
-                pass
-            elif selection == 'insert_route':
-                path = raw_input('path: ')
-                weight = raw_input('weight: ')
-                method = raw_input('method: ') or 'GET'
-                node = node_input()
-                if node >= 0:
-                    insert_route(path=path, node_id=node, weight=weight, method=method)
-            elif selection == 'add_template_for_node':
-                folder = app.config.get('THEME_TEMPLATE_FOLDER')
-                choices = map(os.path.basename,
-                            glob(os.path.join(folder, '*'))
-                            )
-                choices.sort()
-                print "Pick a template file:"
-                templatefile = select(choices)
-                if templatefile:
-                    node = node_input()
-                    if node >= 0:
-                        add_template_for_node(name=templatefile, node_id=node)
-                        print "adding %s to node id: %s" % (templatefile, node)
-            elif selection == 'help':
-                print "------"
-                for f in database_functions:
-                    print "\n** %s **" % f
-                    print globals().get(f).__doc__
-                print "------"
-            else:
-                pass
-
-            db.commit()
-
 
     app = make_app(config=config, DEBUG=True)
 
-    print 'operate'
+    print "Operate Mode"
     with app.app_context():
-        selection = True
-        while selection:
-
-            selection = select([
-                'insert',
-                'update',
-                'select',
-                'delete',
-                ])
-            if selection == 'insert':
-                mode_insert()
-            elif selection == 'insert_selectsql':
-                pass
-            else:
-                print 'done'
-
-            db.commit()
-
+        operate_menu()
 
 # bin/run
 def run(config, debug=False):

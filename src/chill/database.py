@@ -54,6 +54,7 @@ def fetch_selectsql_string(file_name):
         return _fetch_sql_string(file_name)
 
 def insert_node(**kw):
+    "Insert a node with a name and optional value. Return the node id."
     with current_app.app_context():
         c = db.cursor()
         c.execute(fetch_selectsql_string('insert_node.sql'), kw)
@@ -62,7 +63,7 @@ def insert_node(**kw):
         return node_id
 
 def insert_node_node(**kw):
-    """ Link a node to another node. """
+    """ Link a node to another node. node_id -> target_node_id"""
     with current_app.app_context():
         c = db.cursor()
         c.execute(fetch_selectsql_string('insert_node_node.sql'), kw)
@@ -70,10 +71,10 @@ def insert_node_node(**kw):
 
 def insert_route(**kw):
     """
-    `path`
+    `path` - '/', '/some/other/path/', '/test/<int:index>/'
     `node_id`
-    `weight`
-    `method`
+    `weight` - How this path is selected before other similar paths
+    `method` - 'GET' is default.
     """
     binding = {
             'path': None,
@@ -88,6 +89,7 @@ def insert_route(**kw):
         db.commit()
 
 def add_template_for_node(name, node_id):
+    "Set the template to use to display the node"
     with current_app.app_context():
         c = db.cursor()
         c.execute(fetch_selectsql_string('insert_template.sql'),
