@@ -88,6 +88,12 @@ THEME_TEMPLATE_FOLDER = "templates"
 # Helpful to have this set to True if you want to fix stuff.
 #DEBUG=True
 
+# Caching with Flask-Cache
+CACHE_NO_NULL_WARNING = True
+CACHE_TYPE = "null"
+#CACHE_TYPE = "simple"
+#CACHE_TYPE = "filesystem"
+
 # For creating a stand-alone static website that you can upload without
 # requiring an app to run it. This will use Frozen-Flask.
 # The path to the static/frozen website will be put.
