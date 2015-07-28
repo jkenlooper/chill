@@ -1,17 +1,26 @@
 """Chill - Database driven web application framework in Flask
 
-Usage: chill run --config <file>
-       chill operate --config <file>
-       chill serve --config <file>
-       chill freeze --config <file> [--urls <file>]
+Usage: chill run [--config <file>]
+       chill serve [--config <file>]
+       chill freeze [--config <file>] [--urls <file>]
+       chill operate [--config <file>]
        chill init
+       chill --help
 
 Options:
   -h --help         Show this screen.
-  --config <file>   Set config file.
+  --config <file>   Set config file. [default: ./site.cfg]
   --urls <file>     A txt file with a url to freeze on each line
 
+Subcommands:
+    run     - Start the web server in the foreground. Don't use for production.
+    serve   - Starts a daemon web server with Gevent.
+    freeze  - Freeze the application by creating a static version of it.
+    operate - Interface to do simple operations on the database.
+    init    - Initialize the current directory with base starting files and database.
+
 """
+
 import os
 
 import sqlite3
@@ -123,7 +132,7 @@ if __name__ == '__main__':
     main()
 
 def init():
-    "Create a new site.cfg and add the minimum to show a simple page."
+    "Initialize the current directory with base starting files and database."
 
     if not os.path.exists('site.cfg'):
         print "Creating a default site.cfg"
@@ -175,7 +184,7 @@ def init():
         db.commit()
 
 def operate(config):
-    "Run in operate mode."
+    "Interface to do simple operations on the database."
 
     app = make_app(config=config)
 
