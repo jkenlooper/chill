@@ -171,16 +171,16 @@ def init():
 def operate(config):
     "Run in operate mode."
 
-    app = make_app(config=config, DEBUG=True)
+    app = make_app(config=config)
 
     print "Operate Mode"
     with app.app_context():
         operate_menu()
 
 # bin/run
-def run(config, debug=False):
-    "Run app in foreground. don't use for production"
-    app = make_app(config=config, debug=debug)
+def run(config):
+    "Start the web server in the foreground. Don't use for production."
+    app = make_app(config=config)
 
     app.run(
             host=app.config.get("HOST", '127.0.0.1'),
@@ -189,11 +189,11 @@ def run(config, debug=False):
             )
 
 # bin/serve
-def serve(config, debug=False):
+def serve(config):
     "Serve the app with Gevent"
     from gevent.wsgi import WSGIServer
 
-    app = make_app(config=config, debug=debug)
+    app = make_app(config=config)
 
     host = app.config.get("HOST", '127.0.0.1')
     port = app.config.get("PORT", 5000)
@@ -202,12 +202,12 @@ def serve(config, debug=False):
 
 
 # bin/freeze
-def freeze(config, debug=False, urls_file=None):
+def freeze(config, urls_file=None):
     """Freeze the application by creating a static version of it."""
     if urls_file:
-        app = make_app(config=config, debug=debug, URLS_FILE=urls_file)
+        app = make_app(config=config, URLS_FILE=urls_file)
     else:
-        app = make_app(config=config, debug=debug)
+        app = make_app(config=config)
     app.logger.debug('freezing app to directory: %s' % app.config['FREEZER_DESTINATION'])
     freezer = Freezer(app)
 
