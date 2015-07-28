@@ -38,6 +38,44 @@ def node_input():
         print 'invalid node id: %s' % node
     return node
 
+def mode_collection():
+    "Create a collection of items with common attributes"
+
+    print globals()['mode_collection'].__doc__
+    collection_name = raw_input("Collection name: ")
+    item_attr_list = []
+    if collection_name:
+        collection_node_id = insert_node(name=collection_name, value=None)
+        insert_selectsql(name='select_link_node_from_node.sql', node_id=collection_node_id)
+        item_attr = True
+        while item_attr:
+            item_attr = raw_input("Add a collection item attribute name: ")
+            if item_attr:
+                item_attr_list.append(item_attr)
+
+    # if no collection name then exit
+    selection = collection_name
+
+    while selection:
+        selection = select([
+            'Add item',
+            ])
+        if selection == 'Add item':
+            # create item
+            item_node_id = insert_node(name='{0}-item'.format(collection_name), value=None)
+            insert_selectsql(name='select_link_node_from_node.sql', node_id=item_node_id)
+            insert_node_node(node_id=collection_node_id, target_node_id=item_node_id)
+            for item_attr_name in item_attr_list:
+                value = raw_input("Enter item attribute value for '{0}': ".format(item_attr_name))
+                item_attr_node_id = insert_node(name=item_attr_name, value=value)
+                insert_node_node(node_id=item_node_id, target_node_id=item_attr_node_id)
+
+    if collection_node_id:
+        print "Added collection name '{0}' with node id: {1}".format(collection_name, collection_node_id)
+
+    db.commit()
+
+
 def mode_insert():
     "Select a function to perform"
 
@@ -135,6 +173,7 @@ def operate_menu():
             'update',
             'select',
             'delete',
+            'Create collection',
             'help',
             ])
         if selection == 'insert':
@@ -145,6 +184,15 @@ def operate_menu():
             print 'not implemented yet'
         elif selection == 'delete':
             print 'not implemented yet'
+        elif selection == 'Create collection':
+            # show menu of common collection structures
+            # nav menu
+            #   name:
+            #       -
+            #           title:
+            #           href:
+            #
+            mode_collection()
         elif selection == 'help':
             print "------"
             print __doc__
