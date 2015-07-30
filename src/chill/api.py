@@ -109,6 +109,7 @@ def _template(node_id, value=None):
     return value
 
 def render_node(_node_id, value=None, noderequest={}, **kw):
+    "Recursively render a node's value"
     if value == None:
         kw.update( noderequest )
         results = _selectsql(_node_id, **kw)

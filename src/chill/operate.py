@@ -12,10 +12,14 @@ of content it would be wise to write a script to handle these things.
 """
 import os
 from glob import glob
+import re
 
+from yaml import safe_dump
+import sqlite3
 from flask import current_app
 from pyselect import select
 from chill.app import db
+from api import render_node
 from chill.database import (
         init_db,
         insert_node,
@@ -23,6 +27,8 @@ from chill.database import (
         insert_route,
         insert_selectsql,
         add_template_for_node,
+        fetch_selectsql_string,
+        rowify,
         )
 
 def node_input():
@@ -37,6 +43,23 @@ def node_input():
         node = -1
         print 'invalid node id: %s' % node
     return node
+
+def choose_selectsql_file():
+    print "Choose from the available selectsql files:"
+    choices = set(
+            map(os.path.basename,
+                glob(os.path.join(os.path.dirname(__file__), 'selectsql', '*'))
+                )
+            )
+    folder = current_app.config.get('THEME_SQL_FOLDER')
+    choices.update(
+            set(map(os.path.basename,
+                glob(os.path.join(folder, '*'))
+                )
+            ))
+    choices = list(choices)
+    choices.sort()
+    return select(choices)
 
 def mode_collection():
     "Create a collection of items with common attributes"
@@ -103,21 +126,7 @@ def mode_insert():
             print "name: %s \nid: %s" % (name, node)
 
         elif selection == 'insert_selectsql':
-            print "Choose from the available selectsql files:"
-            choices = set(
-                    map(os.path.basename,
-                        glob(os.path.join(os.path.dirname(__file__), 'selectsql', '*'))
-                        )
-                    )
-            folder = current_app.config.get('THEME_SQL_FOLDER')
-            choices.update(
-                    set(map(os.path.basename,
-                        glob(os.path.join(folder, '*'))
-                        )
-                    ))
-            choices = list(choices)
-            choices.sort()
-            sqlfile = select(choices)
+            sqlfile = choose_selectsql_file()
             if sqlfile:
                 node = node_input()
                 if node >= 0:
@@ -173,6 +182,8 @@ def operate_menu():
             'update',
             'select',
             'delete',
+            'execute',
+            'render_node',
             'Create collection',
             'help',
             ])
@@ -184,6 +195,51 @@ def operate_menu():
             print 'not implemented yet'
         elif selection == 'delete':
             print 'not implemented yet'
+        elif selection == 'execute':
+            print "View the sql file and show a fill in the blanks interface with raw_input"
+            sqlfile = choose_selectsql_file()
+            sql_named_placeholders_re = re.compile(r":(\w+)")
+            sql = fetch_selectsql_string(sqlfile)
+            placeholders = set(sql_named_placeholders_re.findall(sql))
+            print sql
+            data = {}
+            for placeholder in placeholders:
+                value = raw_input(placeholder + ': ')
+                data[placeholder] = value
+
+            c = db.cursor()
+            try:
+                c.execute(sql, data)
+            except sqlite3.DatabaseError as err:
+                current_app.logger.error("DatabaseError: %s", err)
+
+            result = c.fetchall()
+            if result:
+                (result, col_names) = rowify(result, c.description)
+                kw = result[0]
+
+                if 'node_id' in kw:
+                    value = render_node(kw['node_id'], **kw)
+                    print safe_dump(value, default_flow_style=False)
+
+        elif selection == 'render_node':
+            print globals()['render_node'].__doc__
+            node_id = node_input()
+
+            c = db.cursor()
+            try:
+                c.execute(fetch_selectsql_string('select_node_from_id.sql'), {'node_id':node_id})
+            except sqlite3.DatabaseError as err:
+                current_app.logger.error("DatabaseError: %s", err)
+
+            result = c.fetchall()
+            if result:
+                (result, col_names) = rowify(result, c.description)
+                kw = result[0]
+
+                value = render_node(node_id, **kw)
+                print safe_dump(value, default_flow_style=False)
+
         elif selection == 'Create collection':
             # show menu of common collection structures
             # nav menu
