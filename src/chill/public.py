@@ -209,3 +209,4 @@ class PageView(MethodView):
 
         response = make_response('ok', 204)
         return response
+

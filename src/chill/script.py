@@ -68,6 +68,13 @@ CHILL_DATABASE_URI = "db"
 # having this set to anything.
 #MEDIA_FOLDER = "media"
 
+# The document folder is an optional way of storing content outside of the
+# database.  It is used with the custom filter 'readfile' which can read the
+# file from the document folder into the template.  If it is a Markdown file
+# you can also use another filter to parse the markdown into HTML with the
+# 'markdown' filter.
+# DOCUMENT_FOLDER = "documents"
+
 # The media path is where the files in the media folder will be accessible.  In
 # templates you can use the custom variable: 'media_path' which will have this
 # value.

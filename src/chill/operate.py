@@ -185,6 +185,7 @@ def operate_menu():
             'execute',
             'render_node',
             'Create collection',
+            'Add document for node',
             'help',
             ])
         if selection == 'insert':
@@ -251,6 +252,24 @@ def operate_menu():
             #           href:
             #
             mode_collection()
+        elif selection == 'Add document for node':
+            folder = current_app.config.get('DOCUMENT_FOLDER')
+            if not folder:
+                print "No DOCUMENT_FOLDER configured for the application."
+            else:
+                choices = map(os.path.basename,
+                            glob(os.path.join(folder, '*'))
+                            )
+                choices.sort()
+                if len(choices) == 0:
+                    print "No files found in DOCUMENT_FOLDER."
+                else:
+                    filename = select(choices)
+                    if filename:
+                        defaultname = os.path.splitext(filename)[0]
+                        nodename = raw_input("Enter name for node [{0}]: ".format(defaultname)) or defaultname
+                        node = insert_node(name=nodename, value=filename)
+                        print "Added document '%s' to node '%s' with id: %s" % (filename, nodename, node)
         elif selection == 'help':
             print "------"
             print __doc__

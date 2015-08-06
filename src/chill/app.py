@@ -103,6 +103,11 @@ def make_app(config=None, **kw):
         if os.path.isdir( media_folder ) and media_path[0] == '/':
             app.add_url_rule('%s<path:filename>' % media_path, view_func=app.send_media_file)
 
+    document_folder = app.config.get('DOCUMENT_FOLDER', None)
+    if document_folder:
+        if document_folder[0] != os.sep:
+            document_folder = os.path.join(os.getcwd(), document_folder)
+        app.config['DOCUMENT_FOLDER'] = document_folder
 
     template_folder = app.config.get('THEME_TEMPLATE_FOLDER', app.template_folder)
     app.config['THEME_TEMPLATE_FOLDER'] = template_folder if template_folder[0] == os.sep else os.path.join(os.getcwd(), template_folder)
@@ -151,6 +156,26 @@ def make_app(config=None, **kw):
         Inject the config into the templates.
         """
         return dict(config=dict(app.config))
+
+
+
+    @app.template_filter('readfile')
+    def readfile(filename):
+        "A template filter to read files from the DOCUMENT_FOLDER"
+        document_folder = app.config.get('DOCUMENT_FOLDER')
+        if document_folder:
+            # Restrict access to just the DOCUMENT_FOLDER.
+            filepath = os.path.normpath(os.path.join(document_folder, filename))
+            if os.path.commonprefix([document_folder, filepath]) != document_folder:
+                app.logger.warn("The filepath: '{0}' is outside of the DOCUMENT_FOLDER".format(filepath))
+                return filename
+
+            f = open(os.path.join(document_folder, filename), 'r')
+            content = f.read()
+            return content
+
+        app.logger.warn("jinja2 filter 'readfile' can't find file: '{0}'".format(filename))
+        return filename
 
 
     # register any blueprints here

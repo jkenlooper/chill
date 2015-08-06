@@ -22,6 +22,7 @@ class ChillTestCase(unittest.TestCase):
         self.app = make_app(CHILL_DATABASE_URI=self.tmp_db.name,
                 THEME_TEMPLATE_FOLDER=self.tmp_template_dir,
                 THEME_SQL_FOLDER=self.tmp_template_dir,
+                DOCUMENT_FOLDER=self.tmp_template_dir,
                 DEBUG=True)
 
     def tearDown(self):
@@ -215,7 +216,7 @@ class SQL(ChillTestCase):
 
     def test_link(self):
         """
-        Link to any node 
+        Link to any node
         """
         with self.app.app_context():
             init_db()
@@ -440,8 +441,8 @@ class SelectSQL(ChillTestCase):
                 cursor = db.cursor()
                 cursor.execute("""
                 create table PromoAttr (
-                  node_id integer, 
-                  abc integer, 
+                  node_id integer,
+                  abc integer,
                   title varchar(255),
                   description text
                   );
@@ -587,6 +588,39 @@ class Template(ChillTestCase):
                 assert 'chuck' in rv.data
                 rv = c.get('/a/chase/', follow_redirects=True)
                 assert 'chase' in rv.data
+
+class Documents(ChillTestCase):
+    def test_reading_in_a_document(self):
+        """
+        The custom 'readfile' jinja2 filter reads the file from the DOCUMENT_FOLDER.
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'imasimplefile.txt'), 'w')
+        f.write("""
+          Hello, this is just a file.
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'template.html'), 'w')
+        f.write("""
+          <h1>template</h1>
+          {{ simplefilename }}
+          <br>
+          {{ simplefilename|readfile }}
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+                a = insert_node(name='simplefilename', value='imasimplefile.txt')
+                apage = insert_node(name='apage', value=None)
+                insert_node_node(node_id=apage, target_node_id=a)
+                insert_selectsql(name='select_link_node_from_node.sql', node_id=apage)
+                insert_route(path='/a/', node_id=apage)
+                add_template_for_node('template.html', apage)
+
+                rv = c.get('/a/', follow_redirects=True)
+                assert 'Hello' in rv.data
 
 class PostMethod(ChillTestCase):
     def test_a(self):
