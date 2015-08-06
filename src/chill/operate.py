@@ -221,6 +221,8 @@ def operate_menu():
                 if 'node_id' in kw:
                     value = render_node(kw['node_id'], **kw)
                     print safe_dump(value, default_flow_style=False)
+                else:
+                    print safe_dump(result, default_flow_style=False)
 
         elif selection == 'render_node':
             print globals()['render_node'].__doc__
