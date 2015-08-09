@@ -40,6 +40,7 @@ setup(
         'Jinja2',
         'Flask-Cache',
         'Frozen-Flask',
+        'Flask-Markdown',
         'pysqlite',
         'PyYAML',
         'gevent',

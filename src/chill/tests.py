@@ -622,6 +622,92 @@ class Documents(ChillTestCase):
                 rv = c.get('/a/', follow_redirects=True)
                 assert 'Hello' in rv.data
 
+    def test_markdown_document(self):
+        """
+        Use 'readfile' and 'markdown' filter together.
+        """
+        md = """
+Heading
+=======
+
+Sub-heading
+-----------
+
+### Another deeper heading
+
+Paragraphs are separated
+by a blank line.
+
+Leave 2 spaces at the end of a line to do a
+line break
+
+Text attributes *italic*, **bold**,
+onospace
+A [link](http://example.com).
+
+Shopping list:
+
+  * apples
+  * oranges
+  * pears
+
+Numbered list:
+
+  1. apples
+  2. oranges
+  3. pears
+
+The rain---not the reign---in
+Spain.
+        """
+        html = """<h1>Heading</h1>
+<h2>Sub-heading</h2>
+<h3>Another deeper heading</h3>
+<p>Paragraphs are separated
+by a blank line.</p>
+<p>Leave 2 spaces at the end of a line to do a
+line break</p>
+<p>Text attributes <em>italic</em>, <strong>bold</strong>,
+onospace
+A <a href="http://example.com">link</a>.</p>
+<p>Shopping list:</p>
+<ul>
+<li>apples</li>
+<li>oranges</li>
+<li>pears</li>
+</ul>
+<p>Numbered list:</p>
+<ol>
+<li>apples</li>
+<li>oranges</li>
+<li>pears</li>
+</ol>
+<p>The rain---not the reign---in
+Spain.</p>"""
+        f = open(os.path.join(self.tmp_template_dir, 'imasimplefile.md'), 'w')
+        f.write(md)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'template.html'), 'w')
+        f.write("""
+          {{ simplefilename|readfile|markdown }}
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+                a = insert_node(name='simplefilename', value='imasimplefile.md')
+                apage = insert_node(name='apage', value=None)
+                insert_node_node(node_id=apage, target_node_id=a)
+                insert_selectsql(name='select_link_node_from_node.sql', node_id=apage)
+                insert_route(path='/a/', node_id=apage)
+                add_template_for_node('template.html', apage)
+
+                rv = c.get('/a/', follow_redirects=True)
+                assert html in rv.data
+
+
 class PostMethod(ChillTestCase):
     def test_a(self):
         """

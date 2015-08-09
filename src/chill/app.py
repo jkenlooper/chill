@@ -3,6 +3,7 @@ import os
 from werkzeug.local import LocalProxy
 from flask import Flask, g, current_app, Blueprint
 from flask.helpers import send_from_directory
+from flaskext.markdown import Markdown
 from jinja2 import FileSystemLoader
 from cache import cache
 import sqlite3
@@ -158,6 +159,8 @@ def make_app(config=None, **kw):
         return dict(config=dict(app.config))
 
 
+    # Add the markdown filter for the templates
+    md = Markdown(app)
 
     @app.template_filter('readfile')
     def readfile(filename):
