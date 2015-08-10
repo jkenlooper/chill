@@ -236,7 +236,7 @@ def operate_menu():
                 (result, col_names) = rowify(result, c.description)
                 kw = result[0]
 
-                value = render_node(node_id, **kw)
+                value = render_node(node_id, noderequest={'_no_template':True}, **kw)
                 print safe_dump(value, default_flow_style=False)
 
         elif selection == 'Create collection':

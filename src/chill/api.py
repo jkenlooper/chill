@@ -121,7 +121,13 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
                         #if subresult.get('name') == kw.get('name'):
                             # This is a link node
                         #current_app.logger.debug("sub: %s", subresult)
-                        values.append( {subresult.get('name'): render_node( subresult.get('node_id'), noderequest=noderequest, **subresult )} )
+                        name = subresult.get('name')
+                        if noderequest.get('_no_template'):
+                            # For debugging or just simply viewing with the
+                            # operate script we append the node_id to the name
+                            # of each. This doesn't work with templates.
+                            name = "{0} - {1}".format(name, subresult.get('node_id'))
+                        values.append( {name: render_node( subresult.get('node_id'), noderequest=noderequest, **subresult )} )
                 #elif 'node_id' and 'name' in cols:
                 #    for subresult in result:
                 #        current_app.logger.debug("sub2: %s", subresult)
@@ -132,6 +138,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
             value = values
 
     value = _short_circuit(value)
-    value = _template(_node_id, value)
+    if not noderequest.get('_no_template'):
+        value = _template(_node_id, value)
 
     return value
