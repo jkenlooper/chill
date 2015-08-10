@@ -99,16 +99,17 @@ def mode_collection():
     db.commit()
 
 
-def mode_insert():
-    "Select a function to perform"
+def mode_database_functions():
+    "Select a function to perform from chill.database"
 
-    print globals()['mode_insert'].__doc__
+    print globals()['mode_database_functions'].__doc__
     selection = True
     database_functions = [
+            'init_db',
             'insert_node',
-            'insert_selectsql',
             'insert_node_node',
             'insert_route',
+            'insert_selectsql',
             'add_template_for_node',
             ]
     while selection:
@@ -119,7 +120,11 @@ def mode_insert():
 
         if selection:
             print globals().get(selection).__doc__
-        if selection == 'insert_node':
+        if selection == 'init_db':
+            confirm = raw_input("Initialize new database y/n? [n] ")
+            if confirm == 'y':
+                init_db()
+        elif selection == 'insert_node':
             name = raw_input("Node name: ")
             value = raw_input("Node value: ")
             node = insert_node(name=name, value=value or None)
@@ -178,25 +183,16 @@ def operate_menu():
 
         print globals()['operate_menu'].__doc__
         selection = select([
-            'insert',
-            'update',
-            'select',
-            'delete',
-            'execute',
+            'chill.database functions',
+            'execute sql file',
             'render_node',
             'Create collection',
             'Add document for node',
             'help',
             ])
-        if selection == 'insert':
-            mode_insert()
-        elif selection == 'update':
-            print 'not implemented yet'
-        elif selection == 'select':
-            print 'not implemented yet'
-        elif selection == 'delete':
-            print 'not implemented yet'
-        elif selection == 'execute':
+        if selection == 'chill.database functions':
+            mode_database_functions()
+        elif selection == 'execute sql file':
             print "View the sql file and show a fill in the blanks interface with raw_input"
             sqlfile = choose_selectsql_file()
             sql_named_placeholders_re = re.compile(r":(\w+)")
@@ -244,13 +240,6 @@ def operate_menu():
                 print safe_dump(value, default_flow_style=False)
 
         elif selection == 'Create collection':
-            # show menu of common collection structures
-            # nav menu
-            #   name:
-            #       -
-            #           title:
-            #           href:
-            #
             mode_collection()
         elif selection == 'Add document for node':
             folder = current_app.config.get('DOCUMENT_FOLDER')

@@ -14,6 +14,16 @@ CHILL_CREATE_TABLE_FILES = (
         )
 
 def init_db():
+    """Initialize a new database with the default tables for chill.
+    Creates the following tables:
+    Node
+    Node_Node
+    Route
+    SelectSQL
+    SelectSQL_Node
+    Template
+    Template_Node
+    """
     with current_app.app_context():
         #db = get_db()
         c = db.cursor()
