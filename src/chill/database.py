@@ -75,9 +75,11 @@ def insert_node(**kw):
 def insert_node_node(**kw):
     """ Link a node to another node. node_id -> target_node_id"""
     with current_app.app_context():
+        insert_selectsql(name='select_link_node_from_node.sql', node_id=kw.get('node_id'))
         c = db.cursor()
         c.execute(fetch_selectsql_string('insert_node_node.sql'), kw)
         db.commit()
+
 
 def insert_route(**kw):
     """

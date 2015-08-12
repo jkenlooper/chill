@@ -255,7 +255,6 @@ class SQL(ChillTestCase):
 
                 a_id = insert_node(name='a', value=None)
                 insert_route(path='/', node_id=a_id)
-                insert_selectsql(name='select_link_node_from_node.sql', node_id=a_id)
 
                 content = insert_node(name='content', value='apple')
                 insert_node_node(node_id=a_id, target_node_id=content)
@@ -278,12 +277,10 @@ class SQL(ChillTestCase):
                 init_db()
 
                 page = insert_node(name='page', value=None)
-                insert_selectsql(name='select_link_node_from_node.sql', node_id=page)
                 insert_route(path='/page/<pagename>/', node_id=page)
 
                 pagenames = insert_node(name='pagenames', value=None)
                 insert_node_node(node_id=page, target_node_id=pagenames)
-                insert_selectsql(name='select_link_node_from_node.sql', node_id=pagenames)
                 insert_selectsql(name='select_pagenames.sql', node_id=pagenames)
 
                 rv = c.get('/page/cucumber/', follow_redirects=True)
@@ -452,7 +449,6 @@ class SelectSQL(ChillTestCase):
 
                 page_id = insert_node(name='page1', value=None)
                 insert_route(path='/page1/', node_id=page_id)
-                insert_selectsql(name='select_link_node_from_node.sql', node_id=page_id)
 
                 pageattr_id = insert_node(name='pageattr', value=None)
                 insert_node_node(node_id=page_id, target_node_id=pageattr_id)
@@ -615,7 +611,6 @@ class Documents(ChillTestCase):
                 a = insert_node(name='simplefilename', value='imasimplefile.txt')
                 apage = insert_node(name='apage', value=None)
                 insert_node_node(node_id=apage, target_node_id=a)
-                insert_selectsql(name='select_link_node_from_node.sql', node_id=apage)
                 insert_route(path='/a/', node_id=apage)
                 add_template_for_node('template.html', apage)
 
@@ -700,7 +695,6 @@ Spain.</p>"""
                 a = insert_node(name='simplefilename', value='imasimplefile.md')
                 apage = insert_node(name='apage', value=None)
                 insert_node_node(node_id=apage, target_node_id=a)
-                insert_selectsql(name='select_link_node_from_node.sql', node_id=apage)
                 insert_route(path='/a/', node_id=apage)
                 add_template_for_node('template.html', apage)
 
