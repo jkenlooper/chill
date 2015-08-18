@@ -2,6 +2,7 @@ import os
 from flask import current_app, g
 from chill.app import db
 from cache import cache
+from PIL import Image
 
 CHILL_CREATE_TABLE_FILES = (
         'create_node_node.sql',
@@ -12,6 +13,15 @@ CHILL_CREATE_TABLE_FILES = (
         'create_template.sql',
         'create_template_node.sql'
         )
+
+CHILL_CREATE_PICTURE_TABLE_FILES = (
+    'create_picture.sql',
+    'create_image.sql',
+    'create_srcset.sql',
+    'create_staticfile.sql',
+    'create_node_picture.sql'
+    )
+
 
 def init_db():
     """Initialize a new database with the default tables for chill.
@@ -132,4 +142,90 @@ def insert_selectsql(**kw):
             c.execute(fetch_selectsql_string('insert_selectsql_node.sql'), kw)
         db.commit()
 
+def init_picture_tables():
+    """Create optional picture and staticfile database tables:
+    Picture
+    Image
+    Srcset
+    StaticFile
+    Node_Picture
+    """
+    with current_app.app_context():
+        c = db.cursor()
 
+        for filename in CHILL_CREATE_PICTURE_TABLE_FILES:
+            c.execute(fetch_selectsql_string(filename))
+
+        db.commit()
+
+def add_picture_for_node(node_id, filepath, **kw):
+    """
+    Add a picture for a node id. This adds to the Image, StaticFile, Picture, ... tables.
+    The `filepath` must be an image file within the media folder.
+    width and height are deduced from the image.
+    Other attributes that should be associated with the picture can be passed in:
+    title
+    description
+    author
+    (and others, some have not been implemented)
+    """
+
+    with current_app.app_context():
+        c = db.cursor()
+
+
+        # media folder needs to be set
+        media_folder = current_app.config.get('MEDIA_FOLDER')
+        if not media_folder:
+            current_app.logger.warn('No MEDIA_FOLDER set in config.')
+            return False
+
+        # filepath needs to exist
+        media_filepath = os.path.join(media_folder, filepath)
+        if not os.path.exists(media_filepath):
+            current_app.logger.warn('filepath not exists: {0}'.format(media_filepath))
+            return False
+
+        # file needs to be an image
+        try:
+            img = Image.open(media_filepath)
+        except IOError as err:
+            current_app.logger.warn(err)
+            return False
+
+
+        (width, height) = img.size
+
+
+        c.execute(fetch_selectsql_string("insert_staticfile.sql"), {
+            'path':filepath
+            })
+        staticfile = c.lastrowid
+
+        c.execute(fetch_selectsql_string("insert_image.sql"),{
+            'width': width,
+            'height': height,
+            'staticfile': staticfile
+            })
+        image = c.lastrowid
+
+        c.execute(fetch_selectsql_string("insert_picture.sql"),{
+            'picturename': filepath,
+            'title': kw.get('title', None),
+            'description': '',
+            'author': '',
+            'created': '',
+            'image': image
+            })
+        picture = c.lastrowid
+
+        c.execute(fetch_selectsql_string("insert_node_picture.sql"),{
+            'node_id': node_id,
+            'picture': picture
+            })
+
+        db.commit()
+
+        insert_selectsql(name='select_picture_for_node.sql', node_id=node_id)
+
+        db.commit()

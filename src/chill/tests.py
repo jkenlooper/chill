@@ -3,8 +3,12 @@ import tempfile
 import os
 import json
 
+from PIL import Image
+
 from chill.app import make_app, db
 from chill.database import ( init_db,
+        init_picture_tables,
+        add_picture_for_node,
         rowify,
         insert_node,
         insert_node_node,
@@ -22,6 +26,7 @@ class ChillTestCase(unittest.TestCase):
         self.app = make_app(CHILL_DATABASE_URI=self.tmp_db.name,
                 THEME_TEMPLATE_FOLDER=self.tmp_template_dir,
                 THEME_SQL_FOLDER=self.tmp_template_dir,
+                MEDIA_FOLDER=self.tmp_template_dir,
                 DOCUMENT_FOLDER=self.tmp_template_dir,
                 DEBUG=True)
 
@@ -700,6 +705,83 @@ Spain.</p>"""
 
                 rv = c.get('/a/', follow_redirects=True)
                 assert html in rv.data
+
+class Picture(ChillTestCase):
+    def test_add(self):
+        "Add a picture to the database"
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+                init_picture_tables()
+
+                a = insert_node(name="apicture", value=None)
+
+                # Create a.jpg in tmp dir media_folder
+                ajpg = open(os.path.join(self.tmp_template_dir, 'a.jpg'), 'wb')
+                img = Image.new("RGB", (100,100))
+                img.save(fp=ajpg)
+
+                add_picture_for_node(node_id=a, filepath='a.jpg')
+
+                apage = insert_node(name="apage", value=None)
+                insert_node_node(node_id=apage, target_node_id=a)
+                insert_route(path='/', node_id=apage)
+
+                rv = c.get('/', follow_redirects=True)
+                rv_json = json.loads(rv.data)
+                assert 100 == rv_json['apicture']['width']
+
+    def test_simple_use_case(self):
+        "Add a picture and apply a template."
+
+        f = open(os.path.join(self.tmp_template_dir, 'simple.html'), 'w')
+        f.write("""
+          <!doctype html>
+          <html><head><title>test</title></head>
+          <body>
+          <div>
+          {{ cat|safe }}
+          </div>
+          </body>
+          </html>
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'img.html'), 'w')
+        f.write("""
+          <img src="{{ url_for('send_media_file', filename=path) }}"/>
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+                init_picture_tables()
+
+                # Create a blank jpg
+                catjpg = open(os.path.join(self.tmp_template_dir, 'cat.jpg'), 'wb')
+                img = Image.new("RGB", (300,200))
+                img.save(fp=catjpg)
+
+                # The 'cat' node is what will link the cat.jpg to.
+                cat = insert_node(name="cat", value=None)
+                add_picture_for_node(node_id=cat, filepath='cat.jpg')
+
+                # Set a img template around the 'cat'
+                add_template_for_node('img.html', cat)
+
+                # Setup a page to show the cat.jpg with the img template
+                page = insert_node(name='page', value=None)
+                insert_route(path='/cat/', node_id=page)
+                add_template_for_node('simple.html', page)
+
+                # Link the page with cat node
+                insert_node_node(node_id=page, target_node_id=cat)
+
+                rv = c.get('/cat/', follow_redirects=True)
+                assert '<title>test</title>' in rv.data
+                assert '<img src="/media/cat.jpg"/>' in rv.data
 
 
 class PostMethod(ChillTestCase):
