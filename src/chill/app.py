@@ -1,13 +1,14 @@
 import os
 
 from werkzeug.local import LocalProxy
-from flask import Flask, g, current_app, Blueprint
+from flask import Flask, g, current_app, Blueprint, Markup
 from flask.helpers import send_from_directory
 from flaskext.markdown import Markdown
 from jinja2 import FileSystemLoader
 from cache import cache
 import sqlite3
 
+import shortcodes
 
 #from chill.resource import resource
 #from chill.page import page
@@ -188,6 +189,16 @@ def make_app(config=None, **kw):
     from chill.public import PageView
     #app.logger.warning("Not registering page blueprint")
     page = Blueprint('public', __name__, static_folder=None, template_folder=None)
+
+    # TODO: The shortcode start and end is rather custom.  Make this
+    # configurable or no?
+    # The defualt from the shortcodes.py is '[%' and '%]'.
+    app.parser = shortcodes.Parser(start='[chill', end=']', esc='\\')
+
+    @app.template_filter('shortcodes')
+    def shortcodes_filter(content):
+        "Parse the rendered string for chill shortcodes"
+        return Markup(app.parser.parse(content))
 
     theme_static_folder = app.config.get('THEME_STATIC_FOLDER', None)
     if theme_static_folder:

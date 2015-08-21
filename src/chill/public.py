@@ -12,6 +12,7 @@ from chill.app import db
 from database import fetch_selectsql_string, rowify
 from api import render_node, _selectsql
 from cache import cache
+import shortcodes
 
 encoder = json.JSONEncoder(indent=2, sort_keys=True)
 
@@ -210,3 +211,40 @@ class PageView(MethodView):
         response = make_response('ok', 204)
         return response
 
+@shortcodes.register('route')
+def route_handler(context, content, pargs, kwargs):
+    """
+    Route shortcode works a lot like rendering a page based on the url or
+    route.  This allows inserting in rendered HTML within another page.
+
+    Activate it with the 'shortcodes' template filter. Within the content use
+    the chill route shortcode: "[chill route /path/to/something/]" where the
+    '[chill' and ']' are the shortcode starting and ending tags. And 'route' is
+    this route handler that takes one argument which is the url.
+    """
+    (node, rule_kw) = node_from_uri(pargs[0])
+
+    if node == None:
+        return "<!-- 404 '{0}' -->".format(pargs[0])
+
+    rule_kw.update( node )
+    values = rule_kw
+    values.update( request.form.to_dict(flat=True) )
+    values.update( request.args.to_dict(flat=True) )
+    values['method'] = request.method
+    noderequest = values.copy()
+    noderequest.pop('node_id')
+    noderequest.pop('name')
+    noderequest.pop('value')
+
+    rendered = render_node(node['id'], noderequest=noderequest, **values)
+
+    if rendered:
+        if not isinstance(rendered, (str, unicode, int, float)):
+            # return a json string
+            return encoder.encode(rendered)
+
+        return rendered
+
+    # Nothing to show, so nothing found
+    return "<!-- 404 '{0}' -->".format(pargs[0])

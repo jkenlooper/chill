@@ -783,6 +783,46 @@ class Picture(ChillTestCase):
                 assert '<title>test</title>' in rv.data
                 assert '<img src="/media/cat.jpg"/>' in rv.data
 
+class ShortcodeRoute(ChillTestCase):
+    def test_route(self):
+        "Expand the route shortcode"
+
+        f = open(os.path.join(self.tmp_template_dir, 'simple.html'), 'w')
+        f.write("""
+          <!doctype html>
+          <html><head><title>test</title></head>
+          <body>
+          <div>
+          {{ cat|shortcodes }}
+          </div>
+          </body>
+          </html>
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                page = insert_node(name='page', value=None)
+                insert_route(path='/', node_id=page)
+                add_template_for_node('simple.html', page)
+
+                catimg = insert_node(name='acat', value="<img alt='a picture of a cat'/>")
+                insert_route(path='/cat/picture/', node_id=catimg)
+
+                text = "something [chill route /cat/picture/ ] [blah blah[chill route /dog/pic] the end"
+                textnode = insert_node(name='cat', value=text)
+
+                insert_node_node(node_id=page, target_node_id=textnode)
+
+                rv = c.get('/', follow_redirects=True)
+                assert "something <img alt='a picture of a cat'/> [blah blah<!-- 404 '/dog/pic' --> the end" in rv.data
+                assert "[chill route /cat/picture/ ]" not in rv.data
+
+                rv = c.get('/cat/picture/', follow_redirects=True)
+                assert "<img alt='a picture of a cat'/>" in rv.data
+
 
 class PostMethod(ChillTestCase):
     def test_a(self):
