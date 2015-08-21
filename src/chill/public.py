@@ -45,6 +45,49 @@ def check_map(uri, url_root):
             pass
     return (None, {})
 
+def node_from_uri(uri, method="GET"):
+    # check if page exists in data_path
+
+    # a//b == a/b/ == a/./b == a/foo/../b
+    # '' == '.'
+    # Prepend the uri with '/' and normalize
+    uri = os.path.normpath(os.path.join('/', uri))
+
+    uri, ext = os.path.splitext(uri)
+    if not uri.endswith('/'):
+        uri = ''.join((uri, '/'))
+
+    #current_app.logger.debug('uri: "%s"' % uri)
+
+    rule_kw = {}
+    select_node_from_route = fetch_selectsql_string('select_node_from_route.sql')
+
+    c = db.cursor()
+    try:
+        c.execute(select_node_from_route, {'uri':uri, 'method':method})
+    except sqlite3.DatabaseError as err:
+        current_app.logger.error("DatabaseError: %s", err)
+
+    result = c.fetchall()
+    #current_app.logger.debug('result: "%s"' % result)
+    if not result or len(result) == 0:
+        # See if the uri matches any dynamic rules
+        (rule, rule_kw) = check_map(uri, request.url_root)
+        #current_app.logger.debug(rule)
+        #current_app.logger.debug('rule: "%s"' % rule or '')
+        if rule:
+            try:
+                c.execute(select_node_from_route, {'uri':rule, 'method':method})
+                result = c.fetchall()
+            except sqlite3.DatabaseError as err:
+                current_app.logger.error("DatabaseError: %s", err)
+
+    if result:
+        (result, col_names) = rowify(result, c.description)
+
+        # Only one result for a getting a node from a unique path.
+        return (result[0], rule_kw)
+    return (None, rule_kw)
 # The page blueprint has no static files or templates read from disk.
 #page = Blueprint('public', __name__, static_folder=os.path.join( os.getcwd(), current_app.config.get('CHILL_STATIC_DIR', 'static') ), template_folder=None)
 
@@ -60,54 +103,11 @@ class PageView(MethodView):
 
     When a node is retrieved (get) it renders that nodes value. (See `render_node`.)
     """
-    def _node_from_uri(self, uri, method="GET"):
-        # check if page exists in data_path
-
-        # a//b == a/b/ == a/./b == a/foo/../b
-        # '' == '.'
-        # Prepend the uri with '/' and normalize
-        uri = os.path.normpath(os.path.join('/', uri))
-
-        uri, ext = os.path.splitext(uri)
-        if not uri.endswith('/'):
-            uri = ''.join((uri, '/'))
-
-        #current_app.logger.debug('uri: "%s"' % uri)
-
-        rule_kw = {}
-        select_node_from_route = fetch_selectsql_string('select_node_from_route.sql')
-
-        c = db.cursor()
-        try:
-            c.execute(select_node_from_route, {'uri':uri, 'method':method})
-        except sqlite3.DatabaseError as err:
-            current_app.logger.error("DatabaseError: %s", err)
-
-        result = c.fetchall()
-        #current_app.logger.debug('result: "%s"' % result)
-        if not result or len(result) == 0:
-            # See if the uri matches any dynamic rules
-            (rule, rule_kw) = check_map(uri, request.url_root)
-            #current_app.logger.debug(rule)
-            #current_app.logger.debug('rule: "%s"' % rule or '')
-            if rule:
-                try:
-                    c.execute(select_node_from_route, {'uri':rule, 'method':method})
-                    result = c.fetchall()
-                except sqlite3.DatabaseError as err:
-                    current_app.logger.error("DatabaseError: %s", err)
-
-        if result:
-            (result, col_names) = rowify(result, c.description)
-
-            # Only one result for a getting a node from a unique path.
-            return (result[0], rule_kw)
-        return (None, rule_kw)
 
     @cache.cached()
     def get(self, uri=''):
         "For sql queries that start with 'SELECT ...'"
-        (node, rule_kw) = self._node_from_uri(uri)
+        (node, rule_kw) = node_from_uri(uri)
 
         if node == None:
             abort(404)
@@ -138,7 +138,7 @@ class PageView(MethodView):
         "For sql queries that start with 'INSERT ...'"
 
         # get node...
-        (node, rule_kw) = self._node_from_uri(uri, method=request.method)
+        (node, rule_kw) = node_from_uri(uri, method=request.method)
 
         rule_kw.update( node )
         values = rule_kw
@@ -157,7 +157,7 @@ class PageView(MethodView):
         "For sql queries that start with 'INSERT ...' or 'UPDATE ...'"
 
         # get node...
-        (node, rule_kw) = self._node_from_uri(uri, method=request.method)
+        (node, rule_kw) = node_from_uri(uri, method=request.method)
 
         rule_kw.update( node )
         values = rule_kw
@@ -176,7 +176,7 @@ class PageView(MethodView):
         "For sql queries that start with 'UPDATE ...'"
 
         # get node...
-        (node, rule_kw) = self._node_from_uri(uri, method=request.method)
+        (node, rule_kw) = node_from_uri(uri, method=request.method)
 
         rule_kw.update( node )
         values = rule_kw
@@ -195,7 +195,7 @@ class PageView(MethodView):
         "For sql queries that start with 'DELETE from ...'"
 
         # get node...
-        (node, rule_kw) = self._node_from_uri(uri, method=request.method)
+        (node, rule_kw) = node_from_uri(uri, method=request.method)
 
         rule_kw.update( node )
         values = rule_kw
