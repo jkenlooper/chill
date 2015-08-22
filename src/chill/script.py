@@ -44,9 +44,11 @@ SITECFG = """
 # documentation for other configurations.  The below are used specifically by
 # Chill.
 
+# Set the HOST to 0.0.0.0 for being an externally visible server.
 #HOST = '127.0.0.1'
 #PORT = 5000
 
+# The sqlite database file
 CHILL_DATABASE_URI = "db"
 
 # If using the ROOT_FOLDER then you will need to set the PUBLIC_URL_PREFIX to
@@ -62,22 +64,26 @@ CHILL_DATABASE_URI = "db"
 # having anything set.
 #ROOT_FOLDER = "root"
 
+# The document folder is an optional way of storing content outside of the
+# database.  It is used with the custom filter 'readfile' which can read the
+# file from the document folder into the template.  If it is a Markdown file
+# you can also use another filter to parse the markdown into HTML with the
+# 'markdown' filter. For example:
+# {{ 'llamas-are-cool.md'|readfile|markdown }}
+# DOCUMENT_FOLDER = "documents"
+
 # The media folder is used to send static files that are not related to the
 # 'theme' of a site.  This usually includes images and videos that are better
 # served from the file system instead of the database. The default is not
 # having this set to anything.
 #MEDIA_FOLDER = "media"
 
-# The document folder is an optional way of storing content outside of the
-# database.  It is used with the custom filter 'readfile' which can read the
-# file from the document folder into the template.  If it is a Markdown file
-# you can also use another filter to parse the markdown into HTML with the
-# 'markdown' filter.
-# DOCUMENT_FOLDER = "documents"
-
 # The media path is where the files in the media folder will be accessible.  In
 # templates you can use the custom variable: 'media_path' which will have this
 # value.
+# {{ media_path }}llama.jpg
+# or:
+# {{ url_for('send_media_file', filename='llama.jpg') }}
 #MEDIA_PATH = "/media/"
 
 # The theme is where all the front end resources like css, js, graphics and
@@ -87,8 +93,11 @@ CHILL_DATABASE_URI = "db"
 
 # Set a THEME_STATIC_PATH for routing the theme static files with.  It's useful
 # to set a version number within this path to easily do cache-busting.  In your
-# templates you can use the custom variable: 'theme_static_path' which will
-# have this value.
+# templates you can use the custom variable:
+# {{ theme_static_path }}llama.css
+# or:
+# {{ url_for('send_theme_file', filename='llama.css') }}
+# to get the url to a file in the theme static folder.
 #THEME_STATIC_PATH = "/theme/v0.0.1/"
 
 # Where the jinja2 templates for the site are located.  Will default to the app
