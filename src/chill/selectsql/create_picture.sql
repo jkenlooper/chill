@@ -1,9 +1,11 @@
+/* A picture can contain multiple 'views' of the original image used. It's
+ * based on the html5 'picture' element. */
+
 create table Picture (
   id integer primary key autoincrement,
   picturename varchar(64) unique not null,
   /* picturename:
-    For user use only like in shortcode:
-    [picture:crazy-cat] or for listing in
+    For user use only, or for listing in
     a management interface, could also be used for
     the shown filename.
     */
@@ -11,8 +13,10 @@ create table Picture (
     -- Hint for the template to use <picture> or <img[srcset]>.
   title text,
   description text,
-  author text,
+  author integer references Node (id),
   created text,
+    /* TODO: remove 'image' here and use a Picture_Image table instead so there
+     * can be multiple images linked to a picture. */
   image integer references Image (id) not null,
   /*
    * image is not null as its used as the src attribute in img tag. <picture>

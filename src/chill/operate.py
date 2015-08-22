@@ -30,6 +30,7 @@ from chill.database import (
         add_template_for_node,
         fetch_selectsql_string,
         add_picture_for_node,
+        link_picturename_for_node,
         rowify,
         )
 
@@ -92,6 +93,8 @@ def mode_collection():
             insert_node_node(node_id=collection_node_id, target_node_id=item_node_id)
             for item_attr_name in item_attr_list:
                 value = raw_input("Enter item attribute value for '{0}': ".format(item_attr_name))
+                # set value to none if it's an empty string
+                value = value if len(value) else None
                 item_attr_node_id = insert_node(name=item_attr_name, value=value)
                 insert_node_node(node_id=item_node_id, target_node_id=item_attr_node_id)
 
@@ -115,6 +118,7 @@ def mode_database_functions():
             'insert_selectsql',
             'add_template_for_node',
             'add_picture_for_node',
+            'link_picturename_for_node',
             ]
     while selection:
         choices = database_functions + [
@@ -188,6 +192,23 @@ def mode_database_functions():
                             print "no files found in media folder."
                     if filepath:
                         add_picture_for_node(node_id=node, filepath=filepath)
+
+        elif selection == 'link_picturename_for_node':
+            if current_app.config.get('MEDIA_FOLDER'):
+                node = node_input()
+
+                if node >= 0:
+                    filepath = raw_input("Enter the filepath/picturename in the media folder. Enter nothing to bring up a list.")
+                    if not filepath:
+                        filelist = glob(os.path.join(current_app.config.get('MEDIA_FOLDER'), '*'))
+                        if len(filelist) > 0:
+                            toplevel_files = map(os.path.basename, filelist)
+                            toplevel_files.sort()
+                            filepath = select(toplevel_files)
+                        else:
+                            print "no files found in media folder."
+                    if filepath:
+                        link_picturename_for_node(node_id=node, picturename=filepath)
 
         elif selection == 'help':
             print "------"

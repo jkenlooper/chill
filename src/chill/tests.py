@@ -9,6 +9,7 @@ from chill.app import make_app, db
 from chill.database import ( init_db,
         init_picture_tables,
         add_picture_for_node,
+        link_picturename_for_node,
         rowify,
         insert_node,
         insert_node_node,
@@ -782,6 +783,47 @@ class Picture(ChillTestCase):
                 rv = c.get('/cat/', follow_redirects=True)
                 assert '<title>test</title>' in rv.data
                 assert '<img src="/media/cat.jpg"/>' in rv.data
+
+    def test_add_and_link(self):
+        "Add a picture to the database and link it to two nodes"
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+                init_picture_tables()
+
+                apage = insert_node(name="apage", value=None)
+                insert_route(path='/', node_id=apage)
+
+                for f in ('apple 200 300', 'banana 500 100', 'carrot 100 30'):
+                    (name, width, height) = f.split(' ')
+                    width = int(width)
+                    height = int(height)
+                    node = insert_node(name=name, value=None)
+                    # Create a.jpg in tmp dir media_folder
+                    jpg = open(os.path.join(self.tmp_template_dir, '{0}.jpg'.format(name)), 'wb')
+                    img = Image.new("RGB", (width,height))
+                    img.save(fp=jpg)
+
+                    add_picture_for_node(node_id=node, filepath='{0}.jpg'.format(name))
+                    insert_node_node(node_id=apage, target_node_id=node)
+
+                # Make a 'pictures' node and add all the pictures to it.
+                pictures = insert_node(name='pictures', value=None)
+                for name in ('apple.jpg', 'banana.jpg', 'carrot.jpg'):
+                    link_picturename_for_node(node_id=pictures, picturename=name)
+                insert_node_node(node_id=apage, target_node_id=pictures)
+
+                rv = c.get('/', follow_redirects=True)
+                #self.app.logger.debug('test: %s', rv.data)
+                rv_json = json.loads(rv.data)
+
+                assert 200 == rv_json['apple']['width']
+                assert 500 == rv_json['banana']['width']
+                assert 100 == rv_json['banana']['height']
+                assert 30 == rv_json['carrot']['height']
+
+                assert 'apple.jpg' in [x['path'] for x in rv_json['pictures']]
 
 class ShortcodeRoute(ChillTestCase):
     def test_route(self):

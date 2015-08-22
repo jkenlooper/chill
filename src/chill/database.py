@@ -158,6 +158,7 @@ def init_picture_tables():
 
         db.commit()
 
+
 def add_picture_for_node(node_id, filepath, **kw):
     """
     Add a picture for a node id. This adds to the Image, StaticFile, Picture, ... tables.
@@ -218,6 +219,34 @@ def add_picture_for_node(node_id, filepath, **kw):
             'image': image
             })
         picture = c.lastrowid
+
+        c.execute(fetch_selectsql_string("insert_node_picture.sql"),{
+            'node_id': node_id,
+            'picture': picture
+            })
+
+        db.commit()
+
+        insert_selectsql(name='select_picture_for_node.sql', node_id=node_id)
+
+        db.commit()
+
+def link_picturename_for_node(node_id, picturename, **kw):
+    """
+    Link a picture for a node id.  Use this if the picture has already been added to the database.
+    """
+    with current_app.app_context():
+        c = db.cursor()
+
+        result = c.execute(fetch_selectsql_string("select_picture_by_name.sql"), {
+            'picturename':picturename
+            })
+        (result, col_names) = rowify(result, c.description)
+        if result:
+            picture = result[0].get('id')
+        else:
+            current_app.logger.warn('picture by name:"{0}" is not in database.'.format(filepath))
+            return False
 
         c.execute(fetch_selectsql_string("insert_node_picture.sql"),{
             'node_id': node_id,
