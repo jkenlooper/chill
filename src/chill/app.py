@@ -84,6 +84,14 @@ def make_app(config=None, **kw):
 
     cache.init_app(app)
 
+    # Set the freezer destination path to be absolute if needed.
+    freeze_folder = app.config.get('FREEZER_DESTINATION', None)
+    if freeze_folder:
+        if freeze_folder[0] != os.sep:
+            freeze_folder = os.path.join(os.getcwd(), freeze_folder)
+
+        app.config['FREEZER_DESTINATION'] = freeze_folder
+
     # TODO: fix conflict with page_uri
     root_folder = app.config.get('ROOT_FOLDER', None)
     if root_folder:
