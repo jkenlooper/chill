@@ -46,6 +46,10 @@ def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = connect_to_database()
+        # Enable foreign key support so 'on update' and 'on delete' actions
+        # will apply. This needs to be set for each db connection.
+        c = db.cursor()
+        c.execute('pragma foreign_keys = ON;')
     return db
 
 db = LocalProxy(get_db)

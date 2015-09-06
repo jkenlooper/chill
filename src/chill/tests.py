@@ -349,6 +349,82 @@ class SQL(ChillTestCase):
             assert result[0] == 'template_a.html'
 
 
+    def test_delete_one_node(self):
+        """
+        Delete a node
+        """
+        with self.app.app_context():
+            init_db()
+            c = db.cursor()
+            c.execute(fetch_selectsql_string('insert_node.sql'), {'name': 'a', 'value':'apple'})
+            a = c.lastrowid
+            db.commit()
+
+            result = c.execute(fetch_selectsql_string('select_node_from_id.sql'), {'node_id': a}).fetchall()
+            (result, col_names) = rowify(result, c.description)
+            assert len(result) == 1
+            r = result.pop()
+            assert a == r.get('node_id')
+            assert 'a' == r.get('name')
+            assert 'apple' == r.get('value')
+
+            # now delete
+            c = db.cursor()
+            c.execute(fetch_selectsql_string('delete_node_for_id.sql'), {'node_id': a})
+
+            result = c.execute(fetch_selectsql_string('select_node_from_id.sql'), {'node_id': a}).fetchall()
+            (result, col_names) = rowify(result, c.description)
+            assert len(result) == 0
+
+    def test_delete_node_with_link(self):
+        """
+        Delete a node also will delete from link
+        """
+        with self.app.app_context():
+            init_db()
+            a_id = insert_node(name='a', value=None)
+            b_id = insert_node(name='b', value=None)
+            c_id = insert_node(name='c', value="c")
+            d_id = insert_node(name='d', value="d")
+
+            # a -> c, b -> c
+            # a -> d
+            insert_node_node(node_id=a_id, target_node_id=c_id)
+            insert_node_node(node_id=a_id, target_node_id=d_id)
+            insert_node_node(node_id=b_id, target_node_id=c_id)
+
+            c = db.cursor()
+            result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
+            (result, col_names) = rowify(result, c.description)
+            result = [x.get('node_id', None) for x in result]
+            assert c_id in result
+            assert d_id in result
+            assert a_id not in result
+
+            result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': b_id}).fetchall()
+            (result, col_names) = rowify(result, c.description)
+            result = [x.get('node_id', None) for x in result]
+            assert c_id in result
+            assert d_id not in result
+            assert a_id not in result
+
+            # now delete (should use the 'on delete cascade' sql bit)
+            c = db.cursor()
+            c.execute(fetch_selectsql_string('delete_node_for_id.sql'), {'node_id': a_id})
+            db.commit()
+
+            result = c.execute(fetch_selectsql_string('select_node_from_id.sql'), {'node_id': a_id}).fetchall()
+            (result, col_names) = rowify(result, c.description)
+            assert len(result) == 0
+
+            c = db.cursor()
+            result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
+            (result, col_names) = rowify(result, c.description)
+            assert len(result) == 0
+
+            result = c.execute(fetch_selectsql_string('select_node_node_from_node_id.sql'), {'node_id': a_id}).fetchall()
+            (result, col_names) = rowify(result, c.description)
+            assert len(result) == 0
 
 class SelectSQL(ChillTestCase):
     def test_empty(self):

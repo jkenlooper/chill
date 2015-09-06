@@ -222,7 +222,7 @@ def add_picture_for_node(node_id, filepath, **kw):
             'picturename': filepath,
             'title': kw.get('title', None),
             'description': '',
-            'author': '',
+            'author': None,
             'created': '',
             'image': image
             })
