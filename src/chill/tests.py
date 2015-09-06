@@ -2,6 +2,7 @@ import unittest
 import tempfile
 import os
 import json
+import logging
 
 from PIL import Image
 
@@ -29,7 +30,9 @@ class ChillTestCase(unittest.TestCase):
                 THEME_SQL_FOLDER=self.tmp_template_dir,
                 MEDIA_FOLDER=self.tmp_template_dir,
                 DOCUMENT_FOLDER=self.tmp_template_dir,
+                CACHE_NO_NULL_WARNING=True,
                 DEBUG=True)
+        self.app.logger.setLevel(logging.CRITICAL)
 
     def tearDown(self):
         """Get rid of the database and templates after each test."""

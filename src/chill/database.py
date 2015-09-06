@@ -60,7 +60,7 @@ def fetch_selectsql_string(file_name):
     content = current_app.selectsql.get(file_name, None)
     if content != None:
         return content
-    current_app.logger.warn( "selectsql file: '%s' not available. Checking file system..." % file_name )
+    current_app.logger.info( "selectsql file: '%s' not available. Checking file system..." % file_name )
 
     #folder = current_app.config.get('THEME_SQL_FOLDER', '')
     #file_path = os.path.join(os.path.abspath('.'), folder, file_name)
@@ -83,7 +83,10 @@ def insert_node(**kw):
         return node_id
 
 def insert_node_node(**kw):
-    """ Link a node to another node. node_id -> target_node_id"""
+    """
+    Link a node to another node. node_id -> target_node_id.  Where `node_id` is
+    the parent and `target_node_id` is the child.
+    """
     with current_app.app_context():
         insert_selectsql(name='select_link_node_from_node.sql', node_id=kw.get('node_id'))
         c = db.cursor()
