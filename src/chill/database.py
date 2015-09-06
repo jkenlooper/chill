@@ -78,7 +78,7 @@ def insert_node(**kw):
     with current_app.app_context():
         c = db.cursor()
         c.execute(fetch_selectsql_string('insert_node.sql'), kw)
-        node_id = c.execute(fetch_selectsql_string('last_insert_rowid.sql')).fetchone()[0]
+        node_id = c.lastrowid
         db.commit()
         return node_id
 
