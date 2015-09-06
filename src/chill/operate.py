@@ -241,31 +241,35 @@ def operate_menu():
         elif selection == 'execute sql file':
             print "View the sql file and show a fill in the blanks interface with raw_input"
             sqlfile = choose_selectsql_file()
-            sql_named_placeholders_re = re.compile(r":(\w+)")
-            sql = fetch_selectsql_string(sqlfile)
-            placeholders = set(sql_named_placeholders_re.findall(sql))
-            print sql
-            data = {}
-            for placeholder in placeholders:
-                value = raw_input(placeholder + ': ')
-                data[placeholder] = value
+            if not sqlfile:
+                # return to the menu choices if not file picked
+                selection = True
+            else:
+                sql_named_placeholders_re = re.compile(r":(\w+)")
+                sql = fetch_selectsql_string(sqlfile)
+                placeholders = set(sql_named_placeholders_re.findall(sql))
+                print sql
+                data = {}
+                for placeholder in placeholders:
+                    value = raw_input(placeholder + ': ')
+                    data[placeholder] = value
 
-            c = db.cursor()
-            try:
-                c.execute(sql, data)
-            except sqlite3.DatabaseError as err:
-                current_app.logger.error("DatabaseError: %s", err)
+                c = db.cursor()
+                try:
+                    c.execute(sql, data)
+                except sqlite3.DatabaseError as err:
+                    current_app.logger.error("DatabaseError: %s", err)
 
-            result = c.fetchall()
-            if result:
-                (result, col_names) = rowify(result, c.description)
-                kw = result[0]
+                result = c.fetchall()
+                if result:
+                    (result, col_names) = rowify(result, c.description)
+                    kw = result[0]
 
-                if 'node_id' in kw:
-                    value = render_node(kw['node_id'], **kw)
-                    print safe_dump(value, default_flow_style=False)
-                else:
-                    print safe_dump(result, default_flow_style=False)
+                    if 'node_id' in kw:
+                        value = render_node(kw['node_id'], **kw)
+                        print safe_dump(value, default_flow_style=False)
+                    else:
+                        print safe_dump(result, default_flow_style=False)
 
         elif selection == 'render_node':
             print globals()['render_node'].__doc__
