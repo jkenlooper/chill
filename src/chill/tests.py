@@ -212,7 +212,7 @@ class SQL(ChillTestCase):
             init_db()
             c = db.cursor()
             c.execute(fetch_selectsql_string('insert_node.sql'), {'name': 'a', 'value':'apple'})
-            a = c.execute(fetch_selectsql_string('select_max_id_node.sql')).fetchone()[0]
+            a = c.lastrowid
             db.commit()
 
             result = c.execute('select * from Node where id = :id;', {'id':a}).fetchall()
