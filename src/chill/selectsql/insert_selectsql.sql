@@ -1,1 +1,1 @@
-insert or ignore into SelectSQL (name) values (:name);
+insert into SelectSQL (name) values (:name);

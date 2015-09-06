@@ -134,15 +134,20 @@ def insert_selectsql(**kw):
     Insert a selectsql name for a node_id.
     `name`
     `node_id`
+
+    Adds the name to the SelectSQL table if not already there. Sets the id and
+    node_id in the SelectSQL_Node table.
     """
     with current_app.app_context():
         c = db.cursor()
-        c.execute(fetch_selectsql_string('insert_selectsql.sql'), kw)
         result = c.execute(fetch_selectsql_string('select_selectsql_where_name.sql'), kw).fetchall()
         (result, col_names) = rowify(result, c.description)
         if result:
             kw['selectsql_id'] = result[0].get('id')
-            c.execute(fetch_selectsql_string('insert_selectsql_node.sql'), kw)
+        else:
+            c.execute(fetch_selectsql_string('insert_selectsql.sql'), kw)
+            kw['selectsql_id'] = c.lastrowid
+        c.execute(fetch_selectsql_string('insert_selectsql_node.sql'), kw)
         db.commit()
 
 def init_picture_tables():
