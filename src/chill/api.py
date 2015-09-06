@@ -31,8 +31,8 @@ def _short_circuit(value=None):
             else:
                 return value[0]
     else:
+        value = filter(None, value)
         # Only checking first item and assumin all others are same type
-        #current_app.logger.debug( value )
         if isinstance(value[0], dict):
             if set(value[0].keys()) == set(value[1].keys()):
                 return value
