@@ -186,8 +186,8 @@ def make_app(config=None, **kw):
                 app.logger.warn("The filepath: '{0}' is outside of the DOCUMENT_FOLDER".format(filepath))
                 return filename
 
-            f = open(os.path.join(document_folder, filename), 'r')
-            content = f.read()
+            with open(os.path.join(document_folder, filename), 'r') as f:
+                content = f.read().decode('utf-8')
             return content
 
         app.logger.warn("jinja2 filter 'readfile' can't find file: '{0}'".format(filename))
