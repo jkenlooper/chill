@@ -5,7 +5,10 @@ import sqlite3
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import HTTPException
 
-from flask import abort, redirect, Blueprint, current_app, render_template, json, request, make_response, app
+from flask import (
+        abort, redirect, Blueprint, current_app, render_template, json, request, make_response, app,
+        url_for
+        )
 from flask.views import MethodView
 
 from chill.app import db
@@ -248,3 +251,18 @@ def route_handler(context, content, pargs, kwargs):
 
     # Nothing to show, so nothing found
     return "<!-- 404 '{0}' -->".format(pargs[0])
+
+@shortcodes.register('page_uri')
+def page_uri_handler(context, content, pargs, kwargs):
+    """
+    Shortcode for getting the link to internal pages using the flask `url_for`
+    method.
+
+    Activate with 'shortcodes' template filter. Within the content use the
+    chill page_uri shortcode: "[chill page_uri idofapage]". The argument is the
+    'uri' for a page that chill uses.
+
+    Does not verify the link to see if it's valid.
+    """
+    uri = pargs[0]
+    return url_for('.page_uri', uri=uri)

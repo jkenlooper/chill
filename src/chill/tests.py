@@ -944,6 +944,48 @@ class ShortcodeRoute(ChillTestCase):
                 rv = c.get('/cat/picture/', follow_redirects=True)
                 assert "<img alt='a picture of a cat'/>" in rv.data
 
+class ShortcodePageURI(ChillTestCase):
+    def test_page_uri(self):
+        "Expand the page_uri shortcode"
+
+        f = open(os.path.join(self.tmp_template_dir, 'simple.html'), 'w')
+        f.write("""
+          <!doctype html>
+          <html><head><title>test</title></head>
+          <body>
+          <div>
+          {{ cat|shortcodes }}
+          </div>
+          </body>
+          </html>
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                page = insert_node(name='page', value=None)
+                insert_route(path='/', node_id=page)
+                add_template_for_node('simple.html', page)
+
+                catpage = insert_node(name='acat', value="a page for cat")
+                insert_route(path='/cat/', node_id=catpage)
+
+                text = "something link for cat page that does exist = '[chill page_uri cat ]' link for dog that does not exist = '[chill page_uri dog]'"
+                textnode = insert_node(name='cat', value=text)
+
+                insert_node_node(node_id=page, target_node_id=textnode)
+
+                rv = c.get('/', follow_redirects=True)
+                assert "something link for cat page that does exist = '/cat/' link for dog that does not exist = '/dog/'" in rv.data
+                assert "[chill page_uri cat ]" not in rv.data
+
+                rv = c.get('/cat/', follow_redirects=True)
+                assert "a page for cat" in rv.data
+
+                rv = c.get('/dog/', follow_redirects=True)
+                assert 404 == rv.status_code
 
 class PostMethod(ChillTestCase):
     def test_a(self):
