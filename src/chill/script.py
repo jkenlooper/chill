@@ -28,13 +28,13 @@ from docopt import docopt
 from flask_frozen import Freezer
 
 from chill.app import make_app, db
-from database import fetch_selectsql_string
+from database import fetch_query_string
 from chill.database import (
         init_db,
         insert_node,
         insert_node_node,
         insert_route,
-        insert_selectsql,
+        insert_query,
         add_template_for_node,
         )
 from chill.operate import operate_menu
@@ -190,7 +190,7 @@ def init():
 
         homepage = insert_node(name='homepage', value=None)
         insert_route(path='/', node_id=homepage)
-        insert_selectsql(name='select_link_node_from_node.sql', node_id=homepage)
+        insert_query(name='select_link_node_from_node.sql', node_id=homepage)
 
         add_template_for_node('homepage.html', homepage)
 
@@ -272,7 +272,7 @@ def freeze(config, urls_file=None):
 
         c = db.cursor()
         try:
-            result = c.execute(fetch_selectsql_string('select_paths_to_freeze.sql')).fetchall()
+            result = c.execute(fetch_query_string('select_paths_to_freeze.sql')).fetchall()
         except sqlite3.DatabaseError as err:
             app.logger.error("DatabaseError: %s", err)
             return []

@@ -2,7 +2,7 @@ import sqlite3
 from flask import current_app, render_template
 
 from chill.app import db
-from database import fetch_selectsql_string, rowify
+from database import fetch_query_string, rowify
 
 def _short_circuit(value=None):
     """
@@ -49,27 +49,27 @@ def _short_circuit(value=None):
 
 
 
-def _selectsql(_node_id, value=None, **kw):
+def _query(_node_id, value=None, **kw):
     "Look up value by using SelectSQL table"
     c = db.cursor()
     try:
-        result = c.execute(fetch_selectsql_string('select_query_from_node.sql'), kw).fetchall()
+        result = c.execute(fetch_query_string('select_query_from_node.sql'), kw).fetchall()
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         return value
-    (selectsql_result, selectsql_col_names) = rowify(result, c.description)
+    (query_result, query_col_names) = rowify(result, c.description)
     #current_app.logger.debug("queries kw: %s", kw)
     #current_app.logger.debug("queries value: %s", value)
-    #current_app.logger.debug("queries: %s", selectsql_result)
-    if selectsql_result:
+    #current_app.logger.debug("queries: %s", query_result)
+    if query_result:
         values = []
-        for selectsql_name in [x.get('name', None) for x in selectsql_result]:
-            if selectsql_name:
+        for query_name in [x.get('name', None) for x in query_result]:
+            if query_name:
                 try:
-                    result = c.execute(fetch_selectsql_string(selectsql_name), kw).fetchall()
+                    result = c.execute(fetch_query_string(query_name), kw).fetchall()
                     values.append( rowify(result, c.description) )
                 except sqlite3.DatabaseError as err:
-                    current_app.logger.error("DatabaseError (%s) %s: %s", selectsql_name, kw, err)
+                    current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
         value = values
     #current_app.logger.debug("value: %s", value)
     return value
@@ -77,7 +77,7 @@ def _selectsql(_node_id, value=None, **kw):
 def _link(node_id):
     "Add the value for a linked node"
     c = db.cursor()
-    linked_value = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': node_id}).fetchall()
+    linked_value = c.execute(fetch_query_string('select_link_node_from_node.sql'), {'node_id': node_id}).fetchall()
     if linked_value:
         if len(linked_value) > 1:
             list = []
@@ -91,7 +91,7 @@ def _link(node_id):
 def _template(node_id, value=None):
     "Check if a template is assigned to it and render that with the value"
     c = db.cursor()
-    select_template_from_node = fetch_selectsql_string('select_template_from_node.sql')
+    select_template_from_node = fetch_query_string('select_template_from_node.sql')
     try:
         c.execute(select_template_from_node, {'node_id':node_id})
         template_result = c.fetchone()
@@ -112,7 +112,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
     "Recursively render a node's value"
     if value == None:
         kw.update( noderequest )
-        results = _selectsql(_node_id, **kw)
+        results = _query(_node_id, **kw)
         if results and results[0]:
             values = []
             for (result, cols) in results:

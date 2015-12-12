@@ -126,12 +126,12 @@ def make_app(config=None, **kw):
     template_folder = app.config.get('THEME_TEMPLATE_FOLDER', app.template_folder)
     app.config['THEME_TEMPLATE_FOLDER'] = template_folder if template_folder[0] == os.sep else os.path.join(os.getcwd(), template_folder)
 
-    selectsql_folder = app.config.get('THEME_SQL_FOLDER', 'queries')
-    app.config['THEME_SQL_FOLDER'] = selectsql_folder if selectsql_folder[0] == os.sep else os.path.join(os.getcwd(), selectsql_folder)
+    queries_folder = app.config.get('THEME_SQL_FOLDER', 'queries')
+    app.config['THEME_SQL_FOLDER'] = queries_folder if queries_folder[0] == os.sep else os.path.join(os.getcwd(), queries_folder)
 
-    chill_selectsql_folder = os.path.join( os.path.dirname(__file__), 'queries' )
-    user_selectsql_folder = app.config.get('THEME_SQL_FOLDER')
-    app.queries = multiple_directory_files_loader(chill_selectsql_folder, user_selectsql_folder)
+    chill_queries_folder = os.path.join( os.path.dirname(__file__), 'queries' )
+    user_queries_folder = app.config.get('THEME_SQL_FOLDER')
+    app.queries = multiple_directory_files_loader(chill_queries_folder, user_queries_folder)
 
     # Set the jinja2 template folder eith fallback for app.template_folder
     app.jinja_env.loader = FileSystemLoader( app.config.get('THEME_TEMPLATE_FOLDER') )

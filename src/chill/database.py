@@ -37,7 +37,7 @@ def init_db():
         c = db.cursor()
 
         for filename in CHILL_CREATE_TABLE_FILES:
-            c.execute(fetch_selectsql_string(filename))
+            c.execute(fetch_query_string(filename))
 
         db.commit()
 
@@ -54,7 +54,7 @@ def _fetch_sql_string(file_name):
     with current_app.open_resource(os.path.join('queries', file_name), mode='r') as f:
         return f.read()
 
-def fetch_selectsql_string(file_name):
+def fetch_query_string(file_name):
     content = current_app.queries.get(file_name, None)
     if content != None:
         return content
@@ -75,7 +75,7 @@ def insert_node(**kw):
     "Insert a node with a name and optional value. Return the node id."
     with current_app.app_context():
         c = db.cursor()
-        c.execute(fetch_selectsql_string('insert_node.sql'), kw)
+        c.execute(fetch_query_string('insert_node.sql'), kw)
         node_id = c.lastrowid
         db.commit()
         return node_id
@@ -86,9 +86,9 @@ def insert_node_node(**kw):
     the parent and `target_node_id` is the child.
     """
     with current_app.app_context():
-        insert_selectsql(name='select_link_node_from_node.sql', node_id=kw.get('node_id'))
+        insert_query(name='select_link_node_from_node.sql', node_id=kw.get('node_id'))
         c = db.cursor()
-        c.execute(fetch_selectsql_string('insert_node_node.sql'), kw)
+        c.execute(fetch_query_string('insert_node_node.sql'), kw)
         db.commit()
 
 
@@ -108,26 +108,26 @@ def insert_route(**kw):
     binding.update(kw)
     with current_app.app_context():
         c = db.cursor()
-        c.execute(fetch_selectsql_string('insert_route.sql'), binding)
+        c.execute(fetch_query_string('insert_route.sql'), binding)
         db.commit()
 
 def add_template_for_node(name, node_id):
     "Set the template to use to display the node"
     with current_app.app_context():
         c = db.cursor()
-        c.execute(fetch_selectsql_string('insert_template.sql'),
+        c.execute(fetch_query_string('insert_template.sql'),
                 {'name':name, 'node_id':node_id})
-        c.execute(fetch_selectsql_string('select_template.sql'),
+        c.execute(fetch_query_string('select_template.sql'),
                 {'name':name, 'node_id':node_id})
         result = c.fetchone()
         if result:
             template_id = result[0]
-            c.execute(fetch_selectsql_string('update_template_node.sql'),
+            c.execute(fetch_query_string('update_template_node.sql'),
                     {'template':template_id, 'node_id':node_id})
         db.commit()
 
 
-def insert_selectsql(**kw):
+def insert_query(**kw):
     """
     Insert a query name for a node_id.
     `name`
@@ -138,14 +138,14 @@ def insert_selectsql(**kw):
     """
     with current_app.app_context():
         c = db.cursor()
-        result = c.execute(fetch_selectsql_string('select_query_where_name.sql'), kw).fetchall()
+        result = c.execute(fetch_query_string('select_query_where_name.sql'), kw).fetchall()
         (result, col_names) = rowify(result, c.description)
         if result:
             kw['selectsql_id'] = result[0].get('id')
         else:
-            c.execute(fetch_selectsql_string('insert_query.sql'), kw)
+            c.execute(fetch_query_string('insert_query.sql'), kw)
             kw['selectsql_id'] = c.lastrowid
-        c.execute(fetch_selectsql_string('insert_query_node.sql'), kw)
+        c.execute(fetch_query_string('insert_query_node.sql'), kw)
         db.commit()
 
 def init_picture_tables():
@@ -160,7 +160,7 @@ def init_picture_tables():
         c = db.cursor()
 
         for filename in CHILL_CREATE_PICTURE_TABLE_FILES:
-            c.execute(fetch_selectsql_string(filename))
+            c.execute(fetch_query_string(filename))
 
         db.commit()
 
@@ -204,19 +204,19 @@ def add_picture_for_node(node_id, filepath, **kw):
         (width, height) = img.size
 
 
-        c.execute(fetch_selectsql_string("insert_staticfile.sql"), {
+        c.execute(fetch_query_string("insert_staticfile.sql"), {
             'path':filepath
             })
         staticfile = c.lastrowid
 
-        c.execute(fetch_selectsql_string("insert_image.sql"),{
+        c.execute(fetch_query_string("insert_image.sql"),{
             'width': width,
             'height': height,
             'staticfile': staticfile
             })
         image = c.lastrowid
 
-        c.execute(fetch_selectsql_string("insert_picture.sql"),{
+        c.execute(fetch_query_string("insert_picture.sql"),{
             'picturename': filepath,
             'title': kw.get('title', None),
             'description': '',
@@ -226,14 +226,14 @@ def add_picture_for_node(node_id, filepath, **kw):
             })
         picture = c.lastrowid
 
-        c.execute(fetch_selectsql_string("insert_node_picture.sql"),{
+        c.execute(fetch_query_string("insert_node_picture.sql"),{
             'node_id': node_id,
             'picture': picture
             })
 
         db.commit()
 
-        insert_selectsql(name='select_picture_for_node.sql', node_id=node_id)
+        insert_query(name='select_picture_for_node.sql', node_id=node_id)
 
         db.commit()
 
@@ -244,7 +244,7 @@ def link_picturename_for_node(node_id, picturename, **kw):
     with current_app.app_context():
         c = db.cursor()
 
-        result = c.execute(fetch_selectsql_string("select_picture_by_name.sql"), {
+        result = c.execute(fetch_query_string("select_picture_by_name.sql"), {
             'picturename':picturename
             })
         (result, col_names) = rowify(result, c.description)
@@ -254,13 +254,13 @@ def link_picturename_for_node(node_id, picturename, **kw):
             current_app.logger.warn('picture by name:"{0}" is not in database.'.format(filepath))
             return False
 
-        c.execute(fetch_selectsql_string("insert_node_picture.sql"),{
+        c.execute(fetch_query_string("insert_node_picture.sql"),{
             'node_id': node_id,
             'picture': picture
             })
 
         db.commit()
 
-        insert_selectsql(name='select_picture_for_node.sql', node_id=node_id)
+        insert_query(name='select_picture_for_node.sql', node_id=node_id)
 
         db.commit()

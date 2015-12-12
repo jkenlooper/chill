@@ -12,8 +12,8 @@ from flask import (
 from flask.views import MethodView
 
 from chill.app import db
-from database import fetch_selectsql_string, rowify
-from api import render_node, _selectsql
+from database import fetch_query_string, rowify
+from api import render_node, _query
 from cache import cache
 import shortcodes
 
@@ -29,7 +29,7 @@ def check_map(uri, url_root):
     # TODO: Building the Map each time this is called seems like it could be more effiecent.
     c = db.cursor()
     try:
-        c.execute(fetch_selectsql_string('select_route_where_dynamic.sql'))
+        c.execute(fetch_query_string('select_route_where_dynamic.sql'))
     except sqlite3.OperationalError as err:
         current_app.logger.error("OperationalError: %s", err)
         return (None, None)
@@ -64,7 +64,7 @@ def node_from_uri(uri, method="GET"):
     #current_app.logger.debug('uri: "%s"' % uri)
 
     rule_kw = {}
-    select_node_from_route = fetch_selectsql_string('select_node_from_route.sql')
+    select_node_from_route = fetch_query_string('select_node_from_route.sql')
 
     c = db.cursor()
     try:
@@ -151,7 +151,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _selectsql(node.get('id'), **values)
+        _query(node.get('id'), **values)
         db.commit()
 
         response = make_response('ok', 201)
@@ -170,7 +170,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _selectsql(node.get('id'), **values)
+        _query(node.get('id'), **values)
         db.commit()
 
         response = make_response('ok', 201)
@@ -189,7 +189,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _selectsql(node.get('id'), **values)
+        _query(node.get('id'), **values)
         db.commit()
 
         response = make_response('ok', 201)
@@ -208,7 +208,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _selectsql(node.get('id'), **values)
+        _query(node.get('id'), **values)
         db.commit()
 
         response = make_response('ok', 204)

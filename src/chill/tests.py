@@ -15,8 +15,8 @@ from chill.database import ( init_db,
         insert_node,
         insert_node_node,
         insert_route,
-        insert_selectsql,
-        fetch_selectsql_string,
+        insert_query,
+        fetch_query_string,
         add_template_for_node )
 
 
@@ -211,7 +211,7 @@ class SQL(ChillTestCase):
         with self.app.app_context():
             init_db()
             c = db.cursor()
-            c.execute(fetch_selectsql_string('insert_node.sql'), {'name': 'a', 'value':'apple'})
+            c.execute(fetch_query_string('insert_node.sql'), {'name': 'a', 'value':'apple'})
             a = c.lastrowid
             db.commit()
 
@@ -241,14 +241,14 @@ class SQL(ChillTestCase):
             insert_node_node(node_id=b_id, target_node_id=c_id)
 
             c = db.cursor()
-            result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
+            result = c.execute(fetch_query_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
             (result, col_names) = rowify(result, c.description)
             result = [x.get('node_id', None) for x in result]
             assert c_id in result
             assert d_id in result
             assert a_id not in result
 
-            result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': b_id}).fetchall()
+            result = c.execute(fetch_query_string('select_link_node_from_node.sql'), {'node_id': b_id}).fetchall()
             (result, col_names) = rowify(result, c.description)
             result = [x.get('node_id', None) for x in result]
             assert c_id in result
@@ -290,7 +290,7 @@ class SQL(ChillTestCase):
 
                 pagenames = insert_node(name='pagenames', value=None)
                 insert_node_node(node_id=page, target_node_id=pagenames)
-                insert_selectsql(name='select_pagenames.sql', node_id=pagenames)
+                insert_query(name='select_pagenames.sql', node_id=pagenames)
 
                 rv = c.get('/page/cucumber/', follow_redirects=True)
                 assert 200 == rv.status_code
@@ -316,7 +316,7 @@ class SQL(ChillTestCase):
             add_template_for_node('template_c.html', c)
 
             c = db.cursor()
-            result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
+            result = c.execute(fetch_query_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
             (result, col_names) = rowify(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
@@ -324,7 +324,7 @@ class SQL(ChillTestCase):
 
             # another node that uses the same template
             c = db.cursor()
-            result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
+            result = c.execute(fetch_query_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
             (result, col_names) = rowify(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
@@ -334,7 +334,7 @@ class SQL(ChillTestCase):
             add_template_for_node('template_over_a.html', a)
 
             c = db.cursor()
-            result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
+            result = c.execute(fetch_query_string('select_template_from_node.sql'), {'node_id': a}).fetchall()
             (result, col_names) = rowify(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
@@ -342,7 +342,7 @@ class SQL(ChillTestCase):
 
             # this one still uses the other template
             c = db.cursor()
-            result = c.execute(fetch_selectsql_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
+            result = c.execute(fetch_query_string('select_template_from_node.sql'), {'node_id': aa}).fetchall()
             (result, col_names) = rowify(result, c.description)
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
@@ -356,11 +356,11 @@ class SQL(ChillTestCase):
         with self.app.app_context():
             init_db()
             c = db.cursor()
-            c.execute(fetch_selectsql_string('insert_node.sql'), {'name': 'a', 'value':'apple'})
+            c.execute(fetch_query_string('insert_node.sql'), {'name': 'a', 'value':'apple'})
             a = c.lastrowid
             db.commit()
 
-            result = c.execute(fetch_selectsql_string('select_node_from_id.sql'), {'node_id': a}).fetchall()
+            result = c.execute(fetch_query_string('select_node_from_id.sql'), {'node_id': a}).fetchall()
             (result, col_names) = rowify(result, c.description)
             assert len(result) == 1
             r = result.pop()
@@ -370,9 +370,9 @@ class SQL(ChillTestCase):
 
             # now delete
             c = db.cursor()
-            c.execute(fetch_selectsql_string('delete_node_for_id.sql'), {'node_id': a})
+            c.execute(fetch_query_string('delete_node_for_id.sql'), {'node_id': a})
 
-            result = c.execute(fetch_selectsql_string('select_node_from_id.sql'), {'node_id': a}).fetchall()
+            result = c.execute(fetch_query_string('select_node_from_id.sql'), {'node_id': a}).fetchall()
             (result, col_names) = rowify(result, c.description)
             assert len(result) == 0
 
@@ -394,14 +394,14 @@ class SQL(ChillTestCase):
             insert_node_node(node_id=b_id, target_node_id=c_id)
 
             c = db.cursor()
-            result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
+            result = c.execute(fetch_query_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
             (result, col_names) = rowify(result, c.description)
             result = [x.get('node_id', None) for x in result]
             assert c_id in result
             assert d_id in result
             assert a_id not in result
 
-            result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': b_id}).fetchall()
+            result = c.execute(fetch_query_string('select_link_node_from_node.sql'), {'node_id': b_id}).fetchall()
             (result, col_names) = rowify(result, c.description)
             result = [x.get('node_id', None) for x in result]
             assert c_id in result
@@ -410,19 +410,19 @@ class SQL(ChillTestCase):
 
             # now delete (should use the 'on delete cascade' sql bit)
             c = db.cursor()
-            c.execute(fetch_selectsql_string('delete_node_for_id.sql'), {'node_id': a_id})
+            c.execute(fetch_query_string('delete_node_for_id.sql'), {'node_id': a_id})
             db.commit()
 
-            result = c.execute(fetch_selectsql_string('select_node_from_id.sql'), {'node_id': a_id}).fetchall()
+            result = c.execute(fetch_query_string('select_node_from_id.sql'), {'node_id': a_id}).fetchall()
             (result, col_names) = rowify(result, c.description)
             assert len(result) == 0
 
             c = db.cursor()
-            result = c.execute(fetch_selectsql_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
+            result = c.execute(fetch_query_string('select_link_node_from_node.sql'), {'node_id': a_id}).fetchall()
             (result, col_names) = rowify(result, c.description)
             assert len(result) == 0
 
-            result = c.execute(fetch_selectsql_string('select_node_node_from_node_id.sql'), {'node_id': a_id}).fetchall()
+            result = c.execute(fetch_query_string('select_node_node_from_node_id.sql'), {'node_id': a_id}).fetchall()
             (result, col_names) = rowify(result, c.description)
             assert len(result) == 0
 
@@ -456,7 +456,7 @@ class SelectSQL(ChillTestCase):
                 init_db()
 
                 simple_id = insert_node(name='simple', value=None)
-                insert_selectsql(name='simple.sql', node_id=simple_id)
+                insert_query(name='simple.sql', node_id=simple_id)
 
                 insert_route(path="/simple/", node_id=simple_id)
 
@@ -537,26 +537,26 @@ class SelectSQL(ChillTestCase):
 
                 pageattr_id = insert_node(name='pageattr', value=None)
                 insert_node_node(node_id=page_id, target_node_id=pageattr_id)
-                insert_selectsql(name='select_pageattr.sql', node_id=pageattr_id)
+                insert_query(name='select_pageattr.sql', node_id=pageattr_id)
 
                 mainmenu_id = insert_node(name='mainmenu', value=None)
                 insert_node_node(node_id=page_id, target_node_id=mainmenu_id)
-                insert_selectsql(name='select_mainmenu.sql', node_id=mainmenu_id)
+                insert_query(name='select_mainmenu.sql', node_id=mainmenu_id)
                 # Add some other pages that will be shown in menu as just links
                 insert_node(name='page2', value=None)
                 insert_node(name='page3', value=None)
 
                 promos_id = insert_node(name='promos', value=None)
                 insert_node_node(node_id=page_id, target_node_id=promos_id)
-                insert_selectsql(name='select_promos.sql', node_id=promos_id)
+                insert_query(name='select_promos.sql', node_id=promos_id)
 
 
                 for a in range(0,100):
                     a_id = insert_node(name='promo', value=None)
-                    cursor.execute(fetch_selectsql_string('insert_promoattr.sql'), {'node_id':a_id, 'title':'promo %i' % a, 'description': 'a'*a})
+                    cursor.execute(fetch_query_string('insert_promoattr.sql'), {'node_id':a_id, 'title':'promo %i' % a, 'description': 'a'*a})
                     db.commit()
                     # wire the promo to it's attr
-                    insert_selectsql(name='select_promoattr.sql', node_id=a_id)
+                    insert_query(name='select_promoattr.sql', node_id=a_id)
 
                 rv = c.get('/page1', follow_redirects=True)
                 assert 200 == rv.status_code
@@ -662,7 +662,7 @@ class Template(ChillTestCase):
 
                 a = insert_node(name='a', value=None)
                 insert_route(path='/a/<llama_name>/', node_id=a)
-                insert_selectsql(name='select_llama.sql', node_id=a)
+                insert_query(name='select_llama.sql', node_id=a)
                 add_template_for_node('llama.html', a)
 
                 rv = c.get('/a/chuck/', follow_redirects=True)
@@ -1018,7 +1018,7 @@ class PostMethod(ChillTestCase):
 
                 llamas_id = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/', node_id=llamas_id, weight=1, method="POST")
-                insert_selectsql(name='insert_llama.sql', node_id=llamas_id)
+                insert_query(name='insert_llama.sql', node_id=llamas_id)
 
                 llama_1 = {
                         'llama_name': 'Rocky',
@@ -1038,7 +1038,7 @@ class PostMethod(ChillTestCase):
 
                 select_llama = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)
-                insert_selectsql(name='select_llama.sql', node_id=select_llama)
+                insert_query(name='select_llama.sql', node_id=select_llama)
 
                 rv = c.get('/api/llamas/name/Rocky/', follow_redirects=True)
                 rv_json = json.loads(rv.data)
@@ -1081,7 +1081,7 @@ class PutMethod(ChillTestCase):
 
                 llamas_id = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="PUT")
-                insert_selectsql(name='insert_llama.sql', node_id=llamas_id)
+                insert_query(name='insert_llama.sql', node_id=llamas_id)
 
                 llama_1 = {
                         'llama_name': 'Socky',
@@ -1093,7 +1093,7 @@ class PutMethod(ChillTestCase):
 
                 select_llama = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)
-                insert_selectsql(name='select_llama.sql', node_id=select_llama)
+                insert_query(name='select_llama.sql', node_id=select_llama)
 
                 rv = c.get('/api/llamas/name/Socky/', follow_redirects=True)
                 rv_json = json.loads(rv.data)
@@ -1136,7 +1136,7 @@ class PatchMethod(ChillTestCase):
 
                 llamas_id = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="PATCH")
-                insert_selectsql(name='update_llama.sql', node_id=llamas_id)
+                insert_query(name='update_llama.sql', node_id=llamas_id)
 
                 llama_1 = {
                         'llama_name': 'Pocky',
@@ -1148,7 +1148,7 @@ class PatchMethod(ChillTestCase):
 
                 select_llama = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)
-                insert_selectsql(name='select_llama.sql', node_id=select_llama)
+                insert_query(name='select_llama.sql', node_id=select_llama)
 
                 rv = c.get('/api/llamas/name/Pocky/', follow_redirects=True)
                 rv_json = json.loads(rv.data)
@@ -1191,11 +1191,11 @@ class DeleteMethod(ChillTestCase):
 
                 select_llama = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)
-                insert_selectsql(name='select_llama.sql', node_id=select_llama)
+                insert_query(name='select_llama.sql', node_id=select_llama)
 
                 llamas_id = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="DELETE")
-                insert_selectsql(name='delete_llama.sql', node_id=llamas_id)
+                insert_query(name='delete_llama.sql', node_id=llamas_id)
 
                 rv = c.get('/api/llamas/name/Docky/', follow_redirects=True)
                 assert 200 == rv.status_code

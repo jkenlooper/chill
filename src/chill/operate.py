@@ -26,9 +26,9 @@ from chill.database import (
         insert_node,
         insert_node_node,
         insert_route,
-        insert_selectsql,
+        insert_query,
         add_template_for_node,
-        fetch_selectsql_string,
+        fetch_query_string,
         add_picture_for_node,
         link_picturename_for_node,
         rowify,
@@ -47,7 +47,7 @@ def node_input():
         print 'invalid node id: %s' % node
     return node
 
-def choose_selectsql_file():
+def choose_query_file():
     print "Choose from the available query files:"
     choices = set(
             map(os.path.basename,
@@ -72,7 +72,7 @@ def mode_collection():
     item_attr_list = []
     if collection_name:
         collection_node_id = insert_node(name=collection_name, value=None)
-        insert_selectsql(name='select_link_node_from_node.sql', node_id=collection_node_id)
+        insert_query(name='select_link_node_from_node.sql', node_id=collection_node_id)
         item_attr = True
         while item_attr:
             item_attr = raw_input("Add a collection item attribute name: ")
@@ -89,7 +89,7 @@ def mode_collection():
         if selection == 'Add item':
             # create item
             item_node_id = insert_node(name='{0}-item'.format(collection_name), value=None)
-            insert_selectsql(name='select_link_node_from_node.sql', node_id=item_node_id)
+            insert_query(name='select_link_node_from_node.sql', node_id=item_node_id)
             insert_node_node(node_id=collection_node_id, target_node_id=item_node_id)
             for item_attr_name in item_attr_list:
                 value = raw_input("Enter item attribute value for '{0}': ".format(item_attr_name))
@@ -115,7 +115,7 @@ def mode_database_functions():
             'insert_node',
             'insert_node_node',
             'insert_route',
-            'insert_selectsql',
+            'insert_query',
             'add_template_for_node',
             'add_picture_for_node',
             'link_picturename_for_node',
@@ -142,12 +142,12 @@ def mode_database_functions():
             node = insert_node(name=name, value=value or None)
             print "name: %s \nid: %s" % (name, node)
 
-        elif selection == 'insert_selectsql':
-            sqlfile = choose_selectsql_file()
+        elif selection == 'insert_query':
+            sqlfile = choose_query_file()
             if sqlfile:
                 node = node_input()
                 if node >= 0:
-                    insert_selectsql(name=sqlfile, node_id=node)
+                    insert_query(name=sqlfile, node_id=node)
                     print "adding %s to node id: %s" % (sqlfile, node)
 
         elif selection == 'insert_node_node':
@@ -240,13 +240,13 @@ def operate_menu():
             mode_database_functions()
         elif selection == 'execute sql file':
             print "View the sql file and show a fill in the blanks interface with raw_input"
-            sqlfile = choose_selectsql_file()
+            sqlfile = choose_query_file()
             if not sqlfile:
                 # return to the menu choices if not file picked
                 selection = True
             else:
                 sql_named_placeholders_re = re.compile(r":(\w+)")
-                sql = fetch_selectsql_string(sqlfile)
+                sql = fetch_query_string(sqlfile)
                 placeholders = set(sql_named_placeholders_re.findall(sql))
                 print sql
                 data = {}
@@ -277,7 +277,7 @@ def operate_menu():
 
             c = db.cursor()
             try:
-                c.execute(fetch_selectsql_string('select_node_from_id.sql'), {'node_id':node_id})
+                c.execute(fetch_query_string('select_node_from_id.sql'), {'node_id':node_id})
             except sqlite3.DatabaseError as err:
                 current_app.logger.error("DatabaseError: %s", err)
 
