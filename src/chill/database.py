@@ -10,8 +10,7 @@ CHILL_CREATE_TABLE_FILES = (
         'create_route.sql',
         'create_selectsql.sql',
         'create_selectsql_node.sql',
-        'create_template.sql',
-        'create_template_node.sql'
+        'create_template.sql'
         )
 
 CHILL_CREATE_PICTURE_TABLE_FILES = (
@@ -32,7 +31,6 @@ def init_db():
     SelectSQL
     SelectSQL_Node
     Template
-    Template_Node
     """
     with current_app.app_context():
         #db = get_db()
@@ -124,8 +122,8 @@ def add_template_for_node(name, node_id):
         result = c.fetchone()
         if result:
             template_id = result[0]
-            c.execute(fetch_selectsql_string('insert_template_node.sql'),
-                    {'template_id':template_id, 'node_id':node_id})
+            c.execute(fetch_selectsql_string('update_template_node.sql'),
+                    {'template':template_id, 'node_id':node_id})
         db.commit()
 
 
