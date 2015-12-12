@@ -1,1 +1,1 @@
-insert or replace into SelectSQL_Node (selectsql_id, node_id) values (:selectsql_id, :node_id);
+insert or replace into Query_Node (query_id, node_id) values (:query_id, :node_id);

@@ -1,1 +1,1 @@
-insert into SelectSQL (name) values (:name);
+insert into Query (name) values (:name);

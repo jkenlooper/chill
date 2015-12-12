@@ -50,7 +50,7 @@ def _short_circuit(value=None):
 
 
 def _query(_node_id, value=None, **kw):
-    "Look up value by using SelectSQL table"
+    "Look up value by using Query table"
     c = db.cursor()
     try:
         result = c.execute(fetch_query_string('select_query_from_node.sql'), kw).fetchall()

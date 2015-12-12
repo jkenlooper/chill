@@ -28,8 +28,8 @@ def init_db():
     Node
     Node_Node
     Route
-    SelectSQL
-    SelectSQL_Node
+    Query
+    Query_Node
     Template
     """
     with current_app.app_context():
@@ -133,18 +133,18 @@ def insert_query(**kw):
     `name`
     `node_id`
 
-    Adds the name to the SelectSQL table if not already there. Sets the id and
-    node_id in the SelectSQL_Node table.
+    Adds the name to the Query table if not already there. Sets the id and
+    node_id in the Query_Node table.
     """
     with current_app.app_context():
         c = db.cursor()
         result = c.execute(fetch_query_string('select_query_where_name.sql'), kw).fetchall()
         (result, col_names) = rowify(result, c.description)
         if result:
-            kw['selectsql_id'] = result[0].get('id')
+            kw['query_id'] = result[0].get('id')
         else:
             c.execute(fetch_query_string('insert_query.sql'), kw)
-            kw['selectsql_id'] = c.lastrowid
+            kw['query_id'] = c.lastrowid
         c.execute(fetch_query_string('insert_query_node.sql'), kw)
         db.commit()
 

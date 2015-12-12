@@ -426,7 +426,7 @@ class SQL(ChillTestCase):
             (result, col_names) = rowify(result, c.description)
             assert len(result) == 0
 
-class SelectSQL(ChillTestCase):
+class Query(ChillTestCase):
     def test_empty(self):
         """
         """
@@ -438,7 +438,7 @@ class SelectSQL(ChillTestCase):
                 four_id = insert_node(name='empty', value=None)
                 insert_route(path='/empty/', node_id=four_id)
 
-                # When no value is set and no SelectSQL or Template is set
+                # When no value is set and no Query or Template is set
                 rv = c.get('/empty', follow_redirects=True)
                 assert 404 == rv.status_code
 
