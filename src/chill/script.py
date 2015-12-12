@@ -108,7 +108,7 @@ THEME_TEMPLATE_FOLDER = "templates"
 # built-in ones and they can be overridden by adding a file with the same name
 # in here. To do much of anything with Chill you will need to add some custom
 # SQL queries and such to load data into your templates.
-#THEME_SQL_FOLDER = "selectsql"
+#THEME_SQL_FOLDER = "queries"
 
 # Helpful to have this set to True if you want to fix stuff.
 #DEBUG=True
@@ -157,7 +157,7 @@ def init():
         f.close()
 
     try:
-        os.mkdir('selectsql')
+        os.mkdir('queries')
     except OSError:
         pass
 

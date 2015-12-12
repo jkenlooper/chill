@@ -8,8 +8,8 @@ CHILL_CREATE_TABLE_FILES = (
         'create_node_node.sql',
         'create_node.sql',
         'create_route.sql',
-        'create_selectsql.sql',
-        'create_selectsql_node.sql',
+        'create_query.sql',
+        'create_query_node.sql',
         'create_template.sql'
         )
 
@@ -51,14 +51,14 @@ def rowify(l, description):
     return (d, col_names)
 
 def _fetch_sql_string(file_name):
-    with current_app.open_resource(os.path.join('selectsql', file_name), mode='r') as f:
+    with current_app.open_resource(os.path.join('queries', file_name), mode='r') as f:
         return f.read()
 
 def fetch_selectsql_string(file_name):
-    content = current_app.selectsql.get(file_name, None)
+    content = current_app.queries.get(file_name, None)
     if content != None:
         return content
-    current_app.logger.info( "selectsql file: '%s' not available. Checking file system..." % file_name )
+    current_app.logger.info( "queries file: '%s' not available. Checking file system..." % file_name )
 
     #folder = current_app.config.get('THEME_SQL_FOLDER', '')
     #file_path = os.path.join(os.path.abspath('.'), folder, file_name)
@@ -129,7 +129,7 @@ def add_template_for_node(name, node_id):
 
 def insert_selectsql(**kw):
     """
-    Insert a selectsql name for a node_id.
+    Insert a query name for a node_id.
     `name`
     `node_id`
 
@@ -138,14 +138,14 @@ def insert_selectsql(**kw):
     """
     with current_app.app_context():
         c = db.cursor()
-        result = c.execute(fetch_selectsql_string('select_selectsql_where_name.sql'), kw).fetchall()
+        result = c.execute(fetch_selectsql_string('select_query_where_name.sql'), kw).fetchall()
         (result, col_names) = rowify(result, c.description)
         if result:
             kw['selectsql_id'] = result[0].get('id')
         else:
-            c.execute(fetch_selectsql_string('insert_selectsql.sql'), kw)
+            c.execute(fetch_selectsql_string('insert_query.sql'), kw)
             kw['selectsql_id'] = c.lastrowid
-        c.execute(fetch_selectsql_string('insert_selectsql_node.sql'), kw)
+        c.execute(fetch_selectsql_string('insert_query_node.sql'), kw)
         db.commit()
 
 def init_picture_tables():

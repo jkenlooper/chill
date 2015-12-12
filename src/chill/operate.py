@@ -48,10 +48,10 @@ def node_input():
     return node
 
 def choose_selectsql_file():
-    print "Choose from the available selectsql files:"
+    print "Choose from the available query files:"
     choices = set(
             map(os.path.basename,
-                glob(os.path.join(os.path.dirname(__file__), 'selectsql', '*'))
+                glob(os.path.join(os.path.dirname(__file__), 'queries', '*'))
                 )
             )
     folder = current_app.config.get('THEME_SQL_FOLDER')

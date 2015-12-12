@@ -53,14 +53,14 @@ def _selectsql(_node_id, value=None, **kw):
     "Look up value by using SelectSQL table"
     c = db.cursor()
     try:
-        result = c.execute(fetch_selectsql_string('select_selectsql_from_node.sql'), kw).fetchall()
+        result = c.execute(fetch_selectsql_string('select_query_from_node.sql'), kw).fetchall()
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         return value
     (selectsql_result, selectsql_col_names) = rowify(result, c.description)
-    #current_app.logger.debug("selectsql kw: %s", kw)
-    #current_app.logger.debug("selectsql value: %s", value)
-    #current_app.logger.debug("selectsql: %s", selectsql_result)
+    #current_app.logger.debug("queries kw: %s", kw)
+    #current_app.logger.debug("queries value: %s", value)
+    #current_app.logger.debug("queries: %s", selectsql_result)
     if selectsql_result:
         values = []
         for selectsql_name in [x.get('name', None) for x in selectsql_result]:

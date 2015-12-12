@@ -30,7 +30,7 @@ setup(
         ],
     package_dir={'': 'src'},
     packages=find_packages('src'),
-    package_data={'chill': ['selectsql/*.sql']},
+    package_data={'chill': ['queries/*.sql']},
     zip_safe=False,
     test_suite="chill.tests",
     install_requires=[

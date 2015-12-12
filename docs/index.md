@@ -9,7 +9,7 @@
 - Relational databases
 - nodes
 - routes
-- selectsql
+- queries
 - template nodes
 
 ## routes
@@ -18,7 +18,7 @@ more detail and examples
 ##nodes
 more detail and examples
 
-##selectsql
+##queries
 more detail and examples
 
 ##templates
