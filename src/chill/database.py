@@ -5,6 +5,7 @@ from cache import cache
 from PIL import Image
 
 CHILL_CREATE_TABLE_FILES = (
+        'create_chill.sql',
         'create_node_node.sql',
         'create_node.sql',
         'create_route.sql',
@@ -24,6 +25,7 @@ CHILL_CREATE_PICTURE_TABLE_FILES = (
 def init_db():
     """Initialize a new database with the default tables for chill.
     Creates the following tables:
+    Chill
     Node
     Node_Node
     Route

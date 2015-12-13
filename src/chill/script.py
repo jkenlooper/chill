@@ -5,6 +5,7 @@ Usage: chill run [--config <file>]
        chill freeze [--config <file>] [--urls <file>]
        chill operate [--config <file>]
        chill init
+       chill migrate [--config <file>]
        chill --help
 
 Options:
@@ -18,6 +19,7 @@ Subcommands:
     freeze  - Freeze the application by creating a static version of it.
     operate - Interface to do simple operations on the database.
     init    - Initialize the current directory with base starting files and database.
+    migrate - Perform a database migration from one version to the next.
 
 """
 
@@ -38,6 +40,7 @@ from chill.database import (
         add_template_for_node,
         )
 from chill.operate import operate_menu
+from chill.migrations import migrate1
 
 SITECFG = """
 # The site.cfg file is used to configure a flask app.  Refer to the flask
@@ -138,6 +141,9 @@ def main():
     if args['operate']:
         operate(args['--config'])
 
+    if args['migrate']:
+        migrate(args['--config'])
+
     if args['serve']:
         serve(args['--config'])
 
@@ -207,6 +213,14 @@ def operate(config):
     print "Operate Mode"
     with app.app_context():
         operate_menu()
+
+def migrate(config):
+    "Migrate the database from a previous version to a new one."
+
+    app = make_app(config=config)
+
+    with app.app_context():
+        migrate1()
 
 # bin/run
 def run(config):
