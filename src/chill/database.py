@@ -9,7 +9,6 @@ CHILL_CREATE_TABLE_FILES = (
         'create_node.sql',
         'create_route.sql',
         'create_query.sql',
-        'create_query_node.sql',
         'create_template.sql'
         )
 
@@ -29,7 +28,6 @@ def init_db():
     Node_Node
     Route
     Query
-    Query_Node
     Template
     """
     with current_app.app_context():
@@ -133,8 +131,8 @@ def insert_query(**kw):
     `name`
     `node_id`
 
-    Adds the name to the Query table if not already there. Sets the id and
-    node_id in the Query_Node table.
+    Adds the name to the Query table if not already there. Sets the query field
+    in Node table.
     """
     with current_app.app_context():
         c = db.cursor()

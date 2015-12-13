@@ -1,1 +1,1 @@
-insert or replace into Query_Node (query_id, node_id) values (:query_id, :node_id);
+update Node set query = :query_id where id is :node_id;
