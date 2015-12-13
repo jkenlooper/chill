@@ -2,7 +2,7 @@
  * based on the html5 'picture' element. */
 
 create table Picture (
-  id integer primary key autoincrement,
+  id integer primary key,
   picturename varchar(64) unique not null,
   /* picturename:
     For user use only, or for listing in

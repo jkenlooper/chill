@@ -4,7 +4,7 @@
  * order these desc.
  */
 create table Route (
-    id integer primary key autoincrement,
+    id integer primary key,
     path text not null,
     node_id integer,
     weight integer default 0,

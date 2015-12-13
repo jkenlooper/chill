@@ -1,5 +1,5 @@
 create table Node (
-    id integer primary key autoincrement,
+    id integer primary key,
     name varchar(255),
     value text,
     template integer,

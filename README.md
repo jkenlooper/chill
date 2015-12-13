@@ -45,7 +45,7 @@ available at the '/' url and displays the content of another node.  It's
 basically what the `chill init` command does.
 
 When a node has no value assigned to it it can be used to find other nodes via
-the `insert_selectsql` function. This function takes the filename of the sql
+the `insert_query` function. This function takes the filename of the sql
 query you want to use which will then have its results put in for the value.
 
     homepage = insert_node(name='homepage', value=None)
@@ -56,12 +56,12 @@ it would simply show that value at the url.
     insert_route(path='/', node_id=homepage)
 
 Set the homepage node's value be whatever else is linked to it.  The
-`insert_selectsql` takes the filename of the sql query you want to use which
+`insert_query` takes the filename of the sql query you want to use which
 will then have its results put in for the value. By using the
 'select_link_node_from_node.sql' file (located in the chill package) it will
 find all the other node's that have been linked to it.
 
-    insert_selectsql(name='select_link_node_from_node.sql', node_id=homepage)
+    insert_query(name='select_link_node_from_node.sql', node_id=homepage)
 
 To make the homepage node use a template to display its value then use
 `add_template_for_node` and pass in the filename of the jinja2 template. By not

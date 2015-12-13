@@ -1,5 +1,5 @@
 create table Image (
-  id integer primary key autoincrement,
+  id integer primary key,
   width integer not null,
   height integer not null,
   srcset integer references Srcset (id),
