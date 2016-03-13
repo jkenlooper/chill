@@ -34,6 +34,8 @@ from chill.database import (
         rowify,
         )
 
+INVALID_NODE = -1
+
 def node_input():
     """
     Get a valid node id from the user.
@@ -43,9 +45,73 @@ def node_input():
     try:
         node = int(raw_input("Node id: "))
     except ValueError:
-        node = -1
+        node = INVALID_NODE
         print 'invalid node id: %s' % node
     return node
+
+def existing_node_input():
+    """
+    Get an existing node id by name or id.
+
+    Return -1 if invalid
+    """
+    input_from_user = raw_input("Existing node name or id: ")
+    node_id = INVALID_NODE
+    c = db.cursor()
+
+    if not input_from_user:
+        return node_id
+
+    # int or str?
+    try:
+        parsed_input = int(input_from_user)
+    except ValueError:
+        parsed_input = input_from_user
+
+    if isinstance(parsed_input, int):
+        c.execute(fetch_query_string('select_node_from_id.sql'),
+                {'node_id':parsed_input})
+        result = c.fetchall()
+        (result, col_names) = rowify(result, c.description)
+        current_app.logger.debug("result: %s", result)
+        if result:
+            node_id = int(result[0].get('node_id'))
+    else:
+        c.execute(fetch_query_string('select_node_from_name.sql'),
+                {'node_name':parsed_input})
+        result = c.fetchall()
+        (result, col_names) = rowify(result, c.description)
+        if result:
+            if len(result) == 1:
+                print 'Node id: {node_id}\nNode name: {name}'.format(**result[0])
+                print '-------------'
+                node_id = result[0].get('node_id')
+            else:
+                print 'Multiple nodes found with the name: {0}'.format(parsed_input)
+                for item in result:
+                    print '{node_id}: {name} = {value}'.format(**item)
+                node_selection = raw_input('Enter a node id from this list or enter "?" to render all or "?<node>" for a specific one.')
+                if node_selection:
+                    node_selection_match = re.match(r"\?(\d)*", node_selection)
+                    if node_selection_match:
+                        if node_selection_match.groups()[0]:
+                            value = render_node(int(node_selection_match.groups()[0]), noderequest={'_no_template':True}, **result[0])
+                            print safe_dump(value, default_flow_style=False)
+                        else:
+                            for item in result:
+                                value = render_node(item.get('node_id'), noderequest={'_no_template':True}, **item)
+                                print 'Node id: {0}'.format(item.get('node_id'))
+                                print safe_dump(value, default_flow_style=False)
+                                print '---'
+                        node_id = node_input()
+                    else:
+                        try:
+                            node_id = int(node_selection)
+                        except ValueError:
+                            node_id = INVALID_NODE
+                            print 'invalid node id: %s' % node
+
+    return node_id
 
 def choose_query_file():
     print "Choose from the available query files:"
@@ -145,15 +211,16 @@ def mode_database_functions():
         elif selection == 'insert_query':
             sqlfile = choose_query_file()
             if sqlfile:
-                node = node_input()
+                node = existing_node_input()
                 if node >= 0:
                     insert_query(name=sqlfile, node_id=node)
                     print "adding %s to node id: %s" % (sqlfile, node)
 
         elif selection == 'insert_node_node':
-            node = node_input()
+            print "Add parent node id"
+            node = existing_node_input()
             print "Add target node id"
-            target_node = node_input()
+            target_node = existing_node_input()
             if node >= 0 and target_node >= 0:
                 insert_node_node(node_id=node, target_node_id=target_node)
 
@@ -161,7 +228,7 @@ def mode_database_functions():
             path = raw_input('path: ')
             weight = raw_input('weight: ')
             method = raw_input('method: ') or 'GET'
-            node = node_input()
+            node = existing_node_input()
             if node >= 0:
                 insert_route(path=path, node_id=node, weight=weight, method=method)
         elif selection == 'add_template_for_node':
@@ -172,13 +239,13 @@ def mode_database_functions():
             choices.sort()
             templatefile = select(choices)
             if templatefile:
-                node = node_input()
+                node = existing_node_input()
                 if node >= 0:
                     add_template_for_node(name=templatefile, node_id=node)
                     print "adding %s to node id: %s" % (templatefile, node)
         elif selection == 'add_picture_for_node':
             if current_app.config.get('MEDIA_FOLDER'):
-                node = node_input()
+                node = existing_node_input()
 
                 if node >= 0:
                     filepath = raw_input("Enter the filepath in the media folder. Enter nothing to bring up a list.")
@@ -195,7 +262,7 @@ def mode_database_functions():
 
         elif selection == 'link_picturename_for_node':
             if current_app.config.get('MEDIA_FOLDER'):
-                node = node_input()
+                node = existing_node_input()
 
                 if node >= 0:
                     filepath = raw_input("Enter the filepath/picturename in the media folder. Enter nothing to bring up a list.")
@@ -273,7 +340,7 @@ def operate_menu():
 
         elif selection == 'render_node':
             print globals()['render_node'].__doc__
-            node_id = node_input()
+            node_id = existing_node_input()
 
             c = db.cursor()
             try:
