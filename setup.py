@@ -4,16 +4,19 @@ import os
 name = "chill"
 version = "0.2.0"
 
-def read(*rnames):
-    return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
-
 setup(
     name=name,
     version=version,
     author='Jake Hickenlooper',
     author_email='jake@weboftomorrow.com',
     description="Database driven web application framework in Flask",
-    long_description=read('README.md'),
+    long_description="""
+        This involves creating custom SQL queries to pull your data from your database
+        into your jinja2 HTML templates for your website.  Chill creates a static
+        version of the website or can run as a Flask app. Their are a few tables that
+        are specific to Chill in order to handle page routes and what SQL query should
+        be used and such.
+    """,
     url='https://github.com/jkenlooper/chill',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
