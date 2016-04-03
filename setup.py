@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import os
 
 name = "chill"
-version = "0.2.0"
+version = "0.2.1"
 
 setup(
     name=name,
