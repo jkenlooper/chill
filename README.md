@@ -24,19 +24,20 @@ foreground at the 'http://localhost:5000/' url. Notice that the script also
 creates a sqlite database in that directory.  This database is what the script
 uses to display the pages in a site.
 
-**Review the docs for more. (TODO: write the docs...)**  Until I have some
-better documentation I would recommend reading through the tests.py file within
-the chill package.  
+**Review the docs for more.** Some helpful guides and such are in the docs/
+folder.  They might even make some sense, but that is not a guarantee.  You can
+also read through the tests.py file within the chill package.
 
 
 ## Installing
 
-Install with `pip install chill`.  This will create a script called `chill`.
-Type `chill --help` for help on using it.  It will need a config file and such.
-I recommend creating an empty directory and running `chill init` within it.
-That will create a site.cfg config file and the bare minimum to show
-a homepage.  Run the `chill run --config site.cfg` and visit
-http://localhost:5000 with your browser.
+This latest version is not published so I recomend installing with pip in
+editable mode.  I install it by `pip install -e .` after cloning the
+repository.  This will create a script called `chill`.  Type `chill --help` for
+help on using it.  It will need a config file and such.  I recommend creating
+an empty directory and running `chill init` within it.  That will create
+a site.cfg config file and the bare minimum to show a homepage.  Run the `chill
+run --config site.cfg` and visit http://localhost:5000 with your browser.
 
 
 ## Static site generator
