@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import os
 
 name = "chill"
-version = "0.2.0-mustached-rival.1"
+version = "0.2.0"
 
 def read(*rnames):
     return open(os.path.join(os.path.dirname(__file__), *rnames)).read()
@@ -22,7 +22,7 @@ setup(
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
         'Natural Language :: English',
         'Operating System :: POSIX',
-        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
         'Topic :: Internet :: WWW/HTTP :: Site Management',
         'Topic :: Internet :: WWW/HTTP :: WSGI',
         'Topic :: Software Development :: Build Tools',
