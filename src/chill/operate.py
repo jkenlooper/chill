@@ -113,6 +113,26 @@ def existing_node_input():
 
     return node_id
 
+def fetch_value_for_node(node_id):
+    """
+    Wrap render_node for usage in operate scripts.  Returns without template
+    rendered.
+    """
+    value = None
+    c = db.cursor()
+    try:
+        c.execute(fetch_query_string('select_node_from_id.sql'), {'node_id':node_id})
+    except sqlite3.DatabaseError as err:
+        current_app.logger.error("DatabaseError: %s", err)
+
+    result = c.fetchall()
+    if result:
+        (result, col_names) = rowify(result, c.description)
+        kw = result[0]
+        value = render_node(node_id, noderequest={'_no_template':True}, **kw)
+
+    return value
+
 def choose_query_file():
     print "Choose from the available query files:"
     choices = set(
@@ -342,19 +362,8 @@ def operate_menu():
             print globals()['render_node'].__doc__
             node_id = existing_node_input()
 
-            c = db.cursor()
-            try:
-                c.execute(fetch_query_string('select_node_from_id.sql'), {'node_id':node_id})
-            except sqlite3.DatabaseError as err:
-                current_app.logger.error("DatabaseError: %s", err)
-
-            result = c.fetchall()
-            if result:
-                (result, col_names) = rowify(result, c.description)
-                kw = result[0]
-
-                value = render_node(node_id, noderequest={'_no_template':True}, **kw)
-                print safe_dump(value, default_flow_style=False)
+            value = fetch_value_for_node(node_id)
+            print safe_dump(value, default_flow_style=False)
 
         elif selection == 'Create collection':
             mode_collection()
