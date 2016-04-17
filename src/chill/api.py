@@ -126,7 +126,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
                             # For debugging or just simply viewing with the
                             # operate script we append the node_id to the name
                             # of each. This doesn't work with templates.
-                            name = "{0} - {1}".format(name, subresult.get('node_id'))
+                            name = "{0} ({1})".format(name, subresult.get('node_id'))
                         values.append( {name: render_node( subresult.get('node_id'), noderequest=noderequest, **subresult )} )
                 #elif 'node_id' and 'name' in cols:
                 #    for subresult in result:

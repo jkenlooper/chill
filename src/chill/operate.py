@@ -113,7 +113,7 @@ def existing_node_input():
 
     return node_id
 
-def fetch_value_for_node(node_id):
+def render_value_for_node(node_id):
     """
     Wrap render_node for usage in operate scripts.  Returns without template
     rendered.
@@ -150,12 +150,67 @@ def choose_query_file():
     choices.sort()
     return select(choices)
 
-def mode_collection():
-    "Create a collection of items with common attributes"
+def delete_node(node_id):
+    c = db.cursor()
+    c.execute(fetch_query_string('delete_node_for_id.sql'), {'node_id': node_id})
 
+def purge_collection(keys):
+    "Recursive purge of nodes with name and id"
+    for key in keys:
+        m = re.match(r'(.*) \((\d+)\)', key)
+        name = m.group(1)
+        node_id = m.group(2)
+        value = render_value_for_node(node_id)
+        print 'remove node with name:{0} and id:{1}'.format(name, node_id)
+
+        delete_node(node_id)
+        if isinstance(value, dict):
+            purge_collection(value.keys())
+        if isinstance(value, list):
+            print 'is list'
+            print value
+        #print safe_dump(value[key], default_flow_style=False)
+
+def mode_collection():
+    """
+    Manage an existing collection node.
+    """
     print globals()['mode_collection'].__doc__
+    collection_node_id = existing_node_input()
+    value = render_value_for_node(collection_node_id)
+    if not value:
+        return None
+    print "Collection length: {0}".format(len(value))
+    print safe_dump(value, default_flow_style=False)
+
+    selection = True
+    while selection:
+        selection = select([
+            'Add item',
+            'Add attribute',
+            'Remove item',
+            'Remove attribute',
+            'List items',
+            'List attributes',
+            'Purge collection'
+            ])
+        if selection == 'Purge collection':
+            print safe_dump(value, default_flow_style=False)
+            delete_node(collection_node_id)
+            purge_collection(value.keys())
+
+
+
+
+def mode_new_collection():
+    """
+    Create a new collection of items with common attributes.
+    """
+
+    print globals()['mode_new_collection'].__doc__
     collection_name = raw_input("Collection name: ")
     item_attr_list = []
+    collection_node_id = None
     if collection_name:
         collection_node_id = insert_node(name=collection_name, value=None)
         insert_query(name='select_link_node_from_node.sql', node_id=collection_node_id)
@@ -174,7 +229,7 @@ def mode_collection():
             ])
         if selection == 'Add item':
             # create item
-            item_node_id = insert_node(name='{0}-item'.format(collection_name), value=None)
+            item_node_id = insert_node(name='{0}_item'.format(collection_name), value=None)
             insert_query(name='select_link_node_from_node.sql', node_id=item_node_id)
             insert_node_node(node_id=collection_node_id, target_node_id=item_node_id)
             for item_attr_name in item_attr_list:
@@ -319,7 +374,8 @@ def operate_menu():
             'chill.database functions',
             'execute sql file',
             'render_node',
-            'Create collection',
+            'New collection',
+            'Manage collection',
             'Add document for node',
             'help',
             ])
@@ -362,10 +418,12 @@ def operate_menu():
             print globals()['render_node'].__doc__
             node_id = existing_node_input()
 
-            value = fetch_value_for_node(node_id)
+            value = render_value_for_node(node_id)
             print safe_dump(value, default_flow_style=False)
 
-        elif selection == 'Create collection':
+        elif selection == 'New collection':
+            mode_new_collection()
+        elif selection == 'Manage collection':
             mode_collection()
         elif selection == 'Add document for node':
             folder = current_app.config.get('DOCUMENT_FOLDER')
