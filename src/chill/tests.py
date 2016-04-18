@@ -14,6 +14,7 @@ from chill.database import ( init_db,
         rowify,
         insert_node,
         insert_node_node,
+        delete_node,
         insert_route,
         insert_query,
         fetch_query_string,
@@ -370,7 +371,7 @@ class SQL(ChillTestCase):
 
             # now delete
             c = db.cursor()
-            c.execute(fetch_query_string('delete_node_for_id.sql'), {'node_id': a})
+            delete_node(node_id=a)
 
             result = c.execute(fetch_query_string('select_node_from_id.sql'), {'node_id': a}).fetchall()
             (result, col_names) = rowify(result, c.description)

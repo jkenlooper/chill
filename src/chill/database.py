@@ -91,6 +91,24 @@ def insert_node_node(**kw):
         c.execute(fetch_query_string('insert_node_node.sql'), kw)
         db.commit()
 
+def delete_node(**kw):
+    """
+    Delete a node by id.
+    """
+    with current_app.app_context():
+        c = db.cursor()
+        c.execute(fetch_query_string('delete_node_for_id.sql'), kw)
+        db.commit()
+
+def select_node(**kw):
+    """
+    Select node by id.
+    """
+    with current_app.app_context():
+        c = db.cursor()
+        result = c.execute(fetch_query_string('select_node_from_id.sql'), kw).fetchall()
+        (result, col_names) = rowify(result, c.description)
+        return result
 
 def insert_route(**kw):
     """
