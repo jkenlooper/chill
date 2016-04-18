@@ -25,6 +25,7 @@ from chill.database import (
         init_picture_tables,
         insert_node,
         insert_node_node,
+        delete_node,
         insert_route,
         insert_query,
         add_template_for_node,
@@ -150,10 +151,6 @@ def choose_query_file():
     choices.sort()
     return select(choices)
 
-def delete_node(node_id):
-    c = db.cursor()
-    c.execute(fetch_query_string('delete_node_for_id.sql'), {'node_id': node_id})
-
 def purge_collection(keys):
     "Recursive purge of nodes with name and id"
     for key in keys:
@@ -163,13 +160,13 @@ def purge_collection(keys):
         value = render_value_for_node(node_id)
         print 'remove node with name:{0} and id:{1}'.format(name, node_id)
 
-        delete_node(node_id)
+        delete_node(node_id=node_id)
         if isinstance(value, dict):
             purge_collection(value.keys())
-        if isinstance(value, list):
-            print 'is list'
-            print value
-        #print safe_dump(value[key], default_flow_style=False)
+
+def list_items_in_collection(keys):
+    "List just the items in the collection."
+
 
 def mode_collection():
     """
@@ -183,6 +180,12 @@ def mode_collection():
     print "Collection length: {0}".format(len(value))
     print safe_dump(value, default_flow_style=False)
 
+    item_attr_list = []
+    if len(value):
+        for key in value[0].keys():
+            m = re.match(r'(.*) \((\d+)\)', key)
+            item_attr_list.append(m.group(1))
+
     selection = True
     while selection:
         selection = select([
@@ -190,17 +193,45 @@ def mode_collection():
             'Add attribute',
             'Remove item',
             'Remove attribute',
-            'List items',
-            'List attributes',
             'Purge collection'
             ])
         if selection == 'Purge collection':
             print safe_dump(value, default_flow_style=False)
-            delete_node(collection_node_id)
+            delete_node(node_id=collection_node_id)
+            purge_collection(value.keys())
+        elif selection == 'Remove item':
+            item_node_id = existing_node_input()
+            if item_node_id < 0:
+                return
+            value = render_value_for_node(item_node_id)
+            print safe_dump(value, default_flow_style=False)
+            delete_node(node_id=item_node_id)
             purge_collection(value.keys())
 
+        elif selection == 'Add item':
+            result = select_node(node_id=collection_node_id)
+            collection_name = result[0].get('name')
+
+            add_item_with_attributes_to_collection(
+                    collection_name=collection_name,
+                    collection_node_id=collection_node_id,
+                    item_attr_list=item_attr_list)
+        else:
+            pass
 
 
+
+
+def add_item_with_attributes_to_collection(collection_name, collection_node_id, item_attr_list):
+    item_node_id = insert_node(name='{0}_item'.format(collection_name), value=None)
+    insert_query(name='select_link_node_from_node.sql', node_id=item_node_id)
+    insert_node_node(node_id=collection_node_id, target_node_id=item_node_id)
+    for item_attr_name in item_attr_list:
+        value = raw_input("Enter item attribute value for '{0}': ".format(item_attr_name))
+        # set value to none if it's an empty string
+        value = value if len(value) else None
+        item_attr_node_id = insert_node(name=item_attr_name, value=value)
+        insert_node_node(node_id=item_node_id, target_node_id=item_attr_node_id)
 
 def mode_new_collection():
     """
@@ -229,15 +260,19 @@ def mode_new_collection():
             ])
         if selection == 'Add item':
             # create item
-            item_node_id = insert_node(name='{0}_item'.format(collection_name), value=None)
-            insert_query(name='select_link_node_from_node.sql', node_id=item_node_id)
-            insert_node_node(node_id=collection_node_id, target_node_id=item_node_id)
-            for item_attr_name in item_attr_list:
-                value = raw_input("Enter item attribute value for '{0}': ".format(item_attr_name))
-                # set value to none if it's an empty string
-                value = value if len(value) else None
-                item_attr_node_id = insert_node(name=item_attr_name, value=value)
-                insert_node_node(node_id=item_node_id, target_node_id=item_attr_node_id)
+            add_item_with_attributes_to_collection(
+                    collection_name=collection_name,
+                    collection_node_id=collection_node_id,
+                    item_attr_list=item_attr_list)
+#            item_node_id = insert_node(name='{0}_item'.format(collection_name), value=None)
+#            insert_query(name='select_link_node_from_node.sql', node_id=item_node_id)
+#            insert_node_node(node_id=collection_node_id, target_node_id=item_node_id)
+#            for item_attr_name in item_attr_list:
+#                value = raw_input("Enter item attribute value for '{0}': ".format(item_attr_name))
+#                # set value to none if it's an empty string
+#                value = value if len(value) else None
+#                item_attr_node_id = insert_node(name=item_attr_name, value=value)
+#                insert_node_node(node_id=item_node_id, target_node_id=item_attr_node_id)
 
     if collection_node_id:
         print "Added collection name '{0}' with node id: {1}".format(collection_name, collection_node_id)
@@ -255,6 +290,7 @@ def mode_database_functions():
             'init_picture_tables',
             'insert_node',
             'insert_node_node',
+            'delete_node',
             'insert_route',
             'insert_query',
             'add_template_for_node',
@@ -298,6 +334,11 @@ def mode_database_functions():
             target_node = existing_node_input()
             if node >= 0 and target_node >= 0:
                 insert_node_node(node_id=node, target_node_id=target_node)
+
+        elif selection == 'delete_node':
+            node = existing_node_input()
+            if node >= 0:
+                delete_node(node_id=node)
 
         elif selection == 'insert_route':
             path = raw_input('path: ')
