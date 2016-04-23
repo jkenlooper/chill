@@ -26,6 +26,7 @@ from chill.database import (
         insert_node,
         insert_node_node,
         delete_node,
+        select_node,
         insert_route,
         insert_query,
         add_template_for_node,
@@ -74,7 +75,6 @@ def existing_node_input():
                 {'node_id':parsed_input})
         result = c.fetchall()
         (result, col_names) = rowify(result, c.description)
-        current_app.logger.debug("result: %s", result)
         if result:
             node_id = int(result[0].get('node_id'))
     else:
@@ -182,31 +182,37 @@ def mode_collection():
 
     item_attr_list = []
     if len(value):
-        for key in value[0].keys():
+        for key in value.items()[0][1].keys():
             m = re.match(r'(.*) \((\d+)\)', key)
             item_attr_list.append(m.group(1))
 
     selection = True
     while selection:
         selection = select([
+            'View collection',
             'Add item',
             'Add attribute',
             'Remove item',
             'Remove attribute',
             'Purge collection'
             ])
-        if selection == 'Purge collection':
+        if selection == 'View collection':
             print safe_dump(value, default_flow_style=False)
-            delete_node(node_id=collection_node_id)
-            purge_collection(value.keys())
+        elif selection == 'Purge collection':
+            confirm = raw_input("Delete all {0} items and their {1} attributes from the collection? y/n\n".format(len(value.keys()), len(item_attr_list)))
+            if confirm == 'y':
+                delete_node(node_id=collection_node_id)
+                purge_collection(value.keys())
         elif selection == 'Remove item':
             item_node_id = existing_node_input()
             if item_node_id < 0:
                 return
             value = render_value_for_node(item_node_id)
             print safe_dump(value, default_flow_style=False)
-            delete_node(node_id=item_node_id)
-            purge_collection(value.keys())
+            confirm = raw_input("Delete this node and it's attributes? y/n\n").format(len(value.keys()), len(item_attr_list))
+            if confirm == 'y':
+                delete_node(node_id=item_node_id)
+                purge_collection(value.keys())
 
         elif selection == 'Add item':
             result = select_node(node_id=collection_node_id)
@@ -216,10 +222,37 @@ def mode_collection():
                     collection_name=collection_name,
                     collection_node_id=collection_node_id,
                     item_attr_list=item_attr_list)
-        else:
-            pass
+        elif selection == 'Remove attribute':
+            print "Select the attribute that will be removed:"
+            attribute_selection = select(item_attr_list)
+            if attribute_selection:
+                confirm = raw_input("Delete attribute '{0}' from all {1} items in the collection? y/n\n".format(attribute_selection, len(value.keys())))
+                if confirm == 'y':
+                    for item_key, item in value.items():
+                        for key in item.keys():
+                            m = re.match(r'(.*) \((\d+)\)', key)
+                            if m.group(1) == attribute_selection:
+                                delete_node(node_id=m.group(2))
+                                break
+        elif selection == 'Add attribute':
+            item_attr = raw_input("Add a collection item attribute name: ")
+            if item_attr:
+                item_index = 0
+                for item_key, item in value.items():
+                    item_index += 1
+                    m = re.match(r'(.*) \((\d+)\)', item_key)
+                    item_value = render_value_for_node(m.group(2))
+                    print "item {0} of {1} items".format(item_index, len(value))
+                    print safe_dump(item_value, default_flow_style=False)
 
+                    new_attr_value = raw_input("Enter item attribute value for '{0}': ".format(item_attr))
+                    # set value to none if it's an empty string
+                    new_attr_value = new_attr_value if len(new_attr_value) else None
+                    item_attr_node_id = insert_node(name=item_attr, value=new_attr_value)
 
+                    insert_node_node(node_id=m.group(2), target_node_id=item_attr_node_id)
+        # Update the value after each operation
+        value = render_value_for_node(collection_node_id)
 
 
 def add_item_with_attributes_to_collection(collection_name, collection_node_id, item_attr_list):
@@ -264,15 +297,6 @@ def mode_new_collection():
                     collection_name=collection_name,
                     collection_node_id=collection_node_id,
                     item_attr_list=item_attr_list)
-#            item_node_id = insert_node(name='{0}_item'.format(collection_name), value=None)
-#            insert_query(name='select_link_node_from_node.sql', node_id=item_node_id)
-#            insert_node_node(node_id=collection_node_id, target_node_id=item_node_id)
-#            for item_attr_name in item_attr_list:
-#                value = raw_input("Enter item attribute value for '{0}': ".format(item_attr_name))
-#                # set value to none if it's an empty string
-#                value = value if len(value) else None
-#                item_attr_node_id = insert_node(name=item_attr_name, value=value)
-#                insert_node_node(node_id=item_node_id, target_node_id=item_attr_node_id)
 
     if collection_node_id:
         print "Added collection name '{0}' with node id: {1}".format(collection_name, collection_node_id)
