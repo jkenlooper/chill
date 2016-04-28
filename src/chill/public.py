@@ -117,6 +117,9 @@ class PageView(MethodView):
             abort(404)
         rule_kw.update( node )
         values = rule_kw
+        xhr_data = request.get_json()
+        if xhr_data:
+            values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
         values.update( request.args.to_dict(flat=True) )
         values['method'] = request.method
@@ -146,6 +149,9 @@ class PageView(MethodView):
 
         rule_kw.update( node )
         values = rule_kw
+        xhr_data = request.get_json()
+        if xhr_data:
+            values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
         values.update( request.args.to_dict(flat=True) )
         values['method'] = request.method
@@ -165,6 +171,9 @@ class PageView(MethodView):
 
         rule_kw.update( node )
         values = rule_kw
+        xhr_data = request.get_json()
+        if xhr_data:
+            values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
         values.update( request.args.to_dict(flat=True) )
         values['method'] = request.method
@@ -184,6 +193,9 @@ class PageView(MethodView):
 
         rule_kw.update( node )
         values = rule_kw
+        xhr_data = request.get_json()
+        if xhr_data:
+            values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
         values.update( request.args.to_dict(flat=True) )
         values['method'] = request.method
@@ -203,6 +215,9 @@ class PageView(MethodView):
 
         rule_kw.update( node )
         values = rule_kw
+        xhr_data = request.get_json()
+        if xhr_data:
+            values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
         values.update( request.args.to_dict(flat=True) )
         values['method'] = request.method
