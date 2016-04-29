@@ -89,6 +89,11 @@ CHILL_DATABASE_URI = "db"
 # {{ url_for('send_media_file', filename='llama.jpg') }}
 #MEDIA_PATH = "/media/"
 
+# When creating a stand-alone static website the files in the MEDIA_FOLDER are
+# only included if they are linked to from a page.  Set this to True if all the
+# files in the media folder should be included in the FREEZER_DESTINATION.
+#MEDIA_FREEZE_ALL = False
+
 # The theme is where all the front end resources like css, js, graphics and
 # such that make up the theme of a website. The THEME_STATIC_FOLDER is where
 # these files are located and by default nothing is set here.
@@ -316,10 +321,10 @@ def freeze(config, urls_file=None):
 
     @freezer.register_generator
     def send_media_file():
-        media_folder = app.config['MEDIA_FOLDER']
+        media_folder = app.config.get('MEDIA_FOLDER', None)
         media_path = app.config.get('MEDIA_PATH', '/media/')
         freeze_all_files = app.config.get('MEDIA_FREEZE_ALL', False)
-        if freeze_all_files and os.path.isdir( media_folder ) and media_path[0] == '/':
+        if media_folder and freeze_all_files and os.path.isdir( media_folder ) and media_path[0] == '/':
             for (dirpath, dirnames, filenames) in os.walk(media_folder, topdown=True):
                 start = len(os.path.commonprefix((media_folder, dirpath)))
                 relative_path = dirpath[start+1:]
@@ -330,9 +335,9 @@ def freeze(config, urls_file=None):
 
     @freezer.register_generator
     def send_theme_file():
-        theme_static_folder = app.config['THEME_STATIC_FOLDER']
+        theme_static_folder = app.config.get('THEME_STATIC_FOLDER', None)
         theme_static_path = app.config.get('THEME_STATIC_PATH', '/theme/')
-        if os.path.isdir( theme_static_folder ) and theme_static_path[0] == '/':
+        if theme_static_folder and os.path.isdir( theme_static_folder ) and theme_static_path[0] == '/':
             for (dirpath, dirnames, filenames) in os.walk(theme_static_folder, topdown=True):
                 start = len(os.path.commonprefix((theme_static_folder, dirpath)))
                 relative_path = dirpath[start+1:]
