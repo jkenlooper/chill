@@ -399,6 +399,8 @@ def mode_database_functions():
                             print "no files found in media folder."
                     if filepath:
                         add_picture_for_node(node_id=node, filepath=filepath)
+            else:
+                print "MEDIA_FOLDER not set in config."
 
         elif selection == 'link_picturename_for_node':
             if current_app.config.get('MEDIA_FOLDER'):
@@ -416,6 +418,8 @@ def mode_database_functions():
                             print "no files found in media folder."
                     if filepath:
                         link_picturename_for_node(node_id=node, picturename=filepath)
+            else:
+                print "MEDIA_FOLDER not set in config."
 
         elif selection == 'help':
             print "------"
