@@ -39,7 +39,7 @@ setup(
     install_requires=[
         'setuptools',
         'docutils',
-        'Flask',
+        'Flask==0.10.1',
         'Jinja2',
         'Flask-Cache',
         'Frozen-Flask',
@@ -50,6 +50,7 @@ setup(
         'gevent',
         'docopt',
         'pyselect',
+        'MarkupSafe',
       ],
     entry_points={
         'console_scripts': [
