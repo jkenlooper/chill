@@ -303,6 +303,62 @@ class SQL(ChillTestCase):
                 self.app.logger.debug('test: %s', rv.data)
                 assert 'yup' in rv.data
 
+    def test_noderequest_args(self):
+        """
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'select_llama.sql'), 'w')
+        f.write("""
+          select :llama as llama;
+          """)
+        f.close()
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                page = insert_node(name='page', value=None)
+                insert_route(path='/page/', node_id=page)
+
+                llama = insert_node(name='llama', value=None)
+                insert_node_node(node_id=page, target_node_id=llama)
+                insert_query(name='select_llama.sql', node_id=llama)
+
+                rv = c.get('/page/?llama=chuck', follow_redirects=True)
+                assert 200 == rv.status_code
+                self.app.logger.debug('test: %s', rv.data)
+                assert 'chuck' in rv.data
+
+                rv = c.get('/page/?nollama=chuck', follow_redirects=True)
+                assert 200 == rv.status_code
+                self.app.logger.debug('test: %s', rv.data)
+                assert 'chuck' not in rv.data
+
+    def test_noderequest_cookies(self):
+        """
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'select_llama.sql'), 'w')
+        f.write("""
+          select :llama as llama;
+          """)
+        f.close()
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                page = insert_node(name='page', value=None)
+                insert_route(path='/page/', node_id=page)
+
+                llama = insert_node(name='llama', value=None)
+                insert_node_node(node_id=page, target_node_id=llama)
+                insert_query(name='select_llama.sql', node_id=llama)
+
+                c.set_cookie('localhost', 'llama', 'chuck')
+
+                rv = c.get('/page/', follow_redirects=True)
+                assert 200 == rv.status_code
+                self.app.logger.debug('test: %s', rv.data)
+                assert 'chuck' in rv.data
+
+
     def test_template(self):
         with self.app.app_context():
             init_db()

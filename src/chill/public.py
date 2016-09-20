@@ -122,6 +122,7 @@ class PageView(MethodView):
             values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
         values.update( request.args.to_dict(flat=True) )
+        values.update( request.cookies )
         values['method'] = request.method
         noderequest = values.copy()
         noderequest.pop('node_id')
