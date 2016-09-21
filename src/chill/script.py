@@ -7,8 +7,10 @@ Usage: chill run [--config <file>]
        chill init
        chill migrate [--config <file>]
        chill --help
+       chill --version
 
 Options:
+  --version         Display version
   -h --help         Show this screen.
   --config <file>   Set config file. [default: ./site.cfg]
   --urls <file>     A txt file with a url to freeze on each line
@@ -28,6 +30,7 @@ import os
 import sqlite3
 from docopt import docopt
 from flask_frozen import Freezer
+from setuptools_scm import get_version
 
 from chill.app import make_app, db
 from database import fetch_query_string
@@ -41,6 +44,8 @@ from chill.database import (
         )
 from chill.operate import operate_menu
 from chill.migrations import migrate1
+
+chill_version = get_version()
 
 SITECFG = """
 # The site.cfg file is used to configure a flask app.  Refer to the flask
@@ -135,7 +140,7 @@ CACHE_TYPE = "null"
 
 def main():
     ""
-    args = docopt(__doc__)
+    args = docopt(__doc__, version=chill_version)
     # parse args and pass to run, server, etc.
     if args['init']:
         init()

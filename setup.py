@@ -1,12 +1,13 @@
+# https://packaging.python.org/en/latest/distributing.html
 from setuptools import setup, find_packages
 import os
 
 name = "chill"
-version = "0.2.1"
 
 setup(
     name=name,
-    version=version,
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
     author='Jake Hickenlooper',
     author_email='jake@weboftomorrow.com',
     description="Database driven web application framework in Flask",
@@ -38,6 +39,7 @@ setup(
     test_suite="chill.tests",
     install_requires=[
         'setuptools',
+        'setuptools_scm',
         'docutils',
         'Flask==0.10.1',
         'Jinja2',
