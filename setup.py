@@ -10,6 +10,7 @@ setup(
     setup_requires=['setuptools_scm'],
     author='Jake Hickenlooper',
     author_email='jake@weboftomorrow.com',
+    keywords='static website SQL sqlite Flask web framework',
     description="Database driven web application framework in Flask",
     long_description="""
         This involves creating custom SQL queries to pull your data from your database
@@ -19,8 +20,12 @@ setup(
         be used and such.
     """,
     url='https://github.com/jkenlooper/chill',
+    license='GPL',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 4 - Beta',
+        'Environment :: Console',
+        'Environment :: Web Environment',
+        'Framework :: Flask',
         'Intended Audience :: Developers',
         'Intended Audience :: Information Technology',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
@@ -30,7 +35,6 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Site Management',
         'Topic :: Internet :: WWW/HTTP :: WSGI',
         'Topic :: Software Development :: Build Tools',
-        'Environment :: Web Environment',
         ],
     package_dir={'': 'src'},
     packages=find_packages('src'),
