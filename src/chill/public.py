@@ -92,6 +92,14 @@ def node_from_uri(uri, method="GET"):
         # Only one result for a getting a node from a unique path.
         return (result[0], rule_kw)
     return (None, rule_kw)
+
+def skip_cache():
+    """Skip the cache if request has CHILL_SKIP_CACHE set"""
+    if request.headers.has_key(u'CHILL_SKIP_CACHE'):
+        return True
+
+    return False
+
 # The page blueprint has no static files or templates read from disk.
 #page = Blueprint('public', __name__, static_folder=os.path.join( os.getcwd(), current_app.config.get('CHILL_STATIC_DIR', 'static') ), template_folder=None)
 
@@ -108,7 +116,7 @@ class PageView(MethodView):
     When a node is retrieved (get) it renders that nodes value. (See `render_node`.)
     """
 
-    @cache.cached()
+    @cache.cached(unless=skip_cache)
     def get(self, uri=''):
         "For sql queries that start with 'SELECT ...'"
         (node, rule_kw) = node_from_uri(uri)
