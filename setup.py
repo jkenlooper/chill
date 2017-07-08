@@ -1,13 +1,12 @@
 # https://packaging.python.org/en/latest/distributing.html
 from setuptools import setup, find_packages
-import os
 
-name = "chill"
+__version__ = ''
+execfile('src/chill/_version.py')
 
 setup(
-    name=name,
-    use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    name='chill',
+    version=__version__,
     author='Jake Hickenlooper',
     author_email='jake@weboftomorrow.com',
     keywords='static website SQL sqlite Flask web framework',
@@ -43,7 +42,6 @@ setup(
     test_suite="chill.tests",
     install_requires=[
         'setuptools',
-        'setuptools_scm',
         'docutils',
         'Flask==0.10.1',
         'Jinja2',
@@ -57,7 +55,7 @@ setup(
         'docopt',
         'pyselect',
         'MarkupSafe',
-      ],
+    ],
     entry_points={
         'console_scripts': [
             'chill = chill.script:main'

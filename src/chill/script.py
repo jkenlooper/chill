@@ -30,22 +30,20 @@ import os
 import sqlite3
 from docopt import docopt
 from flask_frozen import Freezer
-from setuptools_scm import get_version
 
 from chill.app import make_app, db
-from database import fetch_query_string
 from chill.database import (
-        init_db,
-        insert_node,
-        insert_node_node,
-        insert_route,
-        insert_query,
-        add_template_for_node,
-        )
+    init_db,
+    insert_node,
+    insert_node_node,
+    insert_route,
+    insert_query,
+    add_template_for_node,
+    fetch_query_string
+)
 from chill.operate import operate_menu
 from chill.migrations import migrate1
-
-chill_version = get_version()
+from chill._version import __version__
 
 SITECFG = """
 # The site.cfg file is used to configure a flask app.  Refer to the flask
@@ -140,7 +138,7 @@ CACHE_TYPE = "null"
 
 def main():
     ""
-    args = docopt(__doc__, version=chill_version)
+    args = docopt(__doc__, version=__version__)
     # parse args and pass to run, server, etc.
     if args['init']:
         init()
