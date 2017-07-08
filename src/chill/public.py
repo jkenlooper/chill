@@ -94,8 +94,8 @@ def node_from_uri(uri, method="GET"):
     return (None, rule_kw)
 
 def skip_cache():
-    """Skip the cache if request has CHILL_SKIP_CACHE set"""
-    if request.headers.has_key(u'CHILL_SKIP_CACHE'):
+    """Skip the cache if request has Chill-Skip-Cache set"""
+    if request.headers.has_key(u'Chill-Skip-Cache'):
         return True
 
     return False
