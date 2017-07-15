@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import unittest
 import tempfile
 import os
@@ -224,6 +226,25 @@ class SQL(ChillTestCase):
             assert 'a' == r.get('name')
             assert 'apple' == r.get('value')
 
+    def test_insert_one_node_with_unicode(self):
+        """
+        Add a node with a unicode value
+        """
+        with self.app.app_context():
+            init_db()
+            c = db.cursor()
+            c.execute(fetch_query_string('insert_node.sql'), {'name': 'a', 'value':u'Àрpĺè'})
+            a = c.lastrowid
+            db.commit()
+
+            result = c.execute('select * from Node where id = :id;', {'id':a}).fetchall()
+            (result, col_names) = rowify(result, c.description)
+            assert len(result) == 1
+            r = result.pop()
+            assert a == r.get('id')
+            assert 'a' == r.get('name')
+            assert u'Àрpĺè' == r.get('value')
+
     def test_link(self):
         """
         Link to any node
@@ -273,6 +294,23 @@ class SQL(ChillTestCase):
                 assert 200 == rv.status_code
                 #self.app.logger.debug('test: %s', rv.data)
                 assert 'apple' in rv.data
+
+    def test_unicode_value(self):
+        """
+        """
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                a_id = insert_node(name='a', value=None)
+                insert_route(path='/', node_id=a_id)
+
+                content = insert_node(name='content', value=u'Àрpĺè')
+                insert_node_node(node_id=a_id, target_node_id=content)
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+                assert '\u00c0\u0440p\u013a\u00e8' in rv.data.decode('utf-8')
 
     def test_noderequest(self):
         """
@@ -404,7 +442,6 @@ class SQL(ChillTestCase):
             result = [x.get('name', None) for x in result]
             assert len(result) == 1
             assert result[0] == 'template_a.html'
-
 
     def test_delete_one_node(self):
         """
@@ -692,6 +729,38 @@ class Template(ChillTestCase):
                 rv = c.get('/fruit/a', follow_redirects=True)
                 assert 'apple' in rv.data
                 assert 'template_b' in rv.data
+
+    def test_some_unicode_as_value_in_template(self):
+        """
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'template_unicode.html'), 'w')
+        f.write("""
+          <h1>template_unicode</h1>
+          {{ isit|safe }}
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'isit.html'), 'w')
+        f.write("""
+            <div>template with a unicode {{ value }}</div>
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                test_id = insert_node(name='page', value=None)
+                insert_route(path='/test/1/', node_id=test_id)
+                add_template_for_node('template_unicode.html', test_id)
+
+                isit = insert_node(name='isit', value=u'Àрpĺè')
+                add_template_for_node('isit.html', isit)
+
+                insert_node_node(node_id=test_id, target_node_id=isit)
+
+                rv = c.get('/test/1/', follow_redirects=True)
+                assert u'Àрpĺè' in rv.data.decode('utf-8')
 
     def test_dict(self):
         """
@@ -1000,6 +1069,45 @@ class ShortcodeRoute(ChillTestCase):
 
                 rv = c.get('/cat/picture/', follow_redirects=True)
                 assert "<img alt='a picture of a cat'/>" in rv.data
+
+    def test_route_with_unicode(self):
+        "Expand the route shortcode with unicode contents"
+
+        f = open(os.path.join(self.tmp_template_dir, 'simple.html'), 'w')
+        f.write("""
+          <!doctype html>
+          <html><head><title>test</title></head>
+          <body>
+          <div>
+          {{ cat|shortcodes }}
+          </div>
+          </body>
+          </html>
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                page = insert_node(name='page', value=None)
+                insert_route(path='/', node_id=page)
+                add_template_for_node('simple.html', page)
+
+                catimg = insert_node(name='acat', value=u"Àрpĺè")
+                insert_route(path='/cat/picture/', node_id=catimg)
+
+                text = "something [chill route /cat/picture/ ] [blah blah[chill route /dog/pic] the end"
+                textnode = insert_node(name='cat', value=text)
+
+                insert_node_node(node_id=page, target_node_id=textnode)
+
+                rv = c.get('/', follow_redirects=True)
+                assert "something Àрpĺè [blah blah<!-- 404 '/dog/pic' --> the end" in rv.data
+                assert "[chill route /cat/picture/ ]" not in rv.data
+
+                rv = c.get('/cat/picture/', follow_redirects=True)
+                assert "Àрpĺè" in rv.data
 
 class ShortcodePageURI(ChillTestCase):
     def test_page_uri(self):

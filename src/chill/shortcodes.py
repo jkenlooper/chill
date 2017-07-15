@@ -105,7 +105,7 @@ class Node:
         self.children = []
 
     def render(self, context):
-        return ''.join(child.render(context) for child in self.children)
+        return u''.join(child.render(context) for child in self.children)
 
 
 class TextNode(Node):
@@ -143,7 +143,7 @@ class ShortcodeNode(Node):
 
     def render(self, context):
         try:
-            return str(self.func(context, None, self.pargs, self.kwargs))
+            return unicode(self.func(context, None, self.pargs, self.kwargs))
         except Exception as e:
             print e
             raise RenderingError('error rendering [%s] tag' % self.tag)
@@ -174,7 +174,7 @@ class ScopedShortcodeNode(ShortcodeNode):
         self.children = []
 
     def render(self, context):
-        content = ''.join(child.render(context) for child in self.children)
+        content = u''.join(child.render(context) for child in self.children)
         try:
             return str(self.func(context, content, self.pargs, self.kwargs))
         except:

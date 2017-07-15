@@ -252,7 +252,7 @@ def route_handler(context, content, pargs, kwargs):
     (node, rule_kw) = node_from_uri(pargs[0])
 
     if node == None:
-        return "<!-- 404 '{0}' -->".format(pargs[0])
+        return u"<!-- 404 '{0}' -->".format(pargs[0])
 
     rule_kw.update( node )
     values = rule_kw
