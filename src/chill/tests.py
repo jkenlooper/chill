@@ -6,13 +6,8 @@ import os
 import json
 import logging
 
-from PIL import Image
-
 from chill.app import make_app, db
 from chill.database import ( init_db,
-        init_picture_tables,
-        add_picture_for_node,
-        link_picturename_for_node,
         rowify,
         insert_node,
         insert_node_node,
@@ -21,7 +16,6 @@ from chill.database import ( init_db,
         insert_query,
         fetch_query_string,
         add_template_for_node )
-
 
 class ChillTestCase(unittest.TestCase):
 
@@ -911,124 +905,6 @@ Spain.</p>"""
 
                 rv = c.get('/a/', follow_redirects=True)
                 assert html in rv.data
-
-class Picture(ChillTestCase):
-    def test_add(self):
-        "Add a picture to the database"
-
-        with self.app.app_context():
-            with self.app.test_client() as c:
-                init_db()
-                init_picture_tables()
-
-                a = insert_node(name="apicture", value=None)
-
-                # Create a.jpg in tmp dir media_folder
-                ajpg = open(os.path.join(self.tmp_template_dir, 'a.jpg'), 'wb')
-                img = Image.new("RGB", (100,100))
-                img.save(fp=ajpg)
-
-                add_picture_for_node(node_id=a, filepath='a.jpg')
-
-                apage = insert_node(name="apage", value=None)
-                insert_node_node(node_id=apage, target_node_id=a)
-                insert_route(path='/', node_id=apage)
-
-                rv = c.get('/', follow_redirects=True)
-                rv_json = json.loads(rv.data)
-                assert 100 == rv_json['apicture']['width']
-
-    def test_simple_use_case(self):
-        "Add a picture and apply a template."
-
-        f = open(os.path.join(self.tmp_template_dir, 'simple.html'), 'w')
-        f.write("""
-          <!doctype html>
-          <html><head><title>test</title></head>
-          <body>
-          <div>
-          {{ cat|safe }}
-          </div>
-          </body>
-          </html>
-          """)
-        f.close()
-
-        f = open(os.path.join(self.tmp_template_dir, 'img.html'), 'w')
-        f.write("""
-          <img src="{{ url_for('send_media_file', filename=path) }}"/>
-          """)
-        f.close()
-
-        with self.app.app_context():
-            with self.app.test_client() as c:
-                init_db()
-                init_picture_tables()
-
-                # Create a blank jpg
-                catjpg = open(os.path.join(self.tmp_template_dir, 'cat.jpg'), 'wb')
-                img = Image.new("RGB", (300,200))
-                img.save(fp=catjpg)
-
-                # The 'cat' node is what will link the cat.jpg to.
-                cat = insert_node(name="cat", value=None)
-                add_picture_for_node(node_id=cat, filepath='cat.jpg')
-
-                # Set a img template around the 'cat'
-                add_template_for_node('img.html', cat)
-
-                # Setup a page to show the cat.jpg with the img template
-                page = insert_node(name='page', value=None)
-                insert_route(path='/cat/', node_id=page)
-                add_template_for_node('simple.html', page)
-
-                # Link the page with cat node
-                insert_node_node(node_id=page, target_node_id=cat)
-
-                rv = c.get('/cat/', follow_redirects=True)
-                assert '<title>test</title>' in rv.data
-                assert '<img src="/media/cat.jpg"/>' in rv.data
-
-    def test_add_and_link(self):
-        "Add a picture to the database and link it to two nodes"
-
-        with self.app.app_context():
-            with self.app.test_client() as c:
-                init_db()
-                init_picture_tables()
-
-                apage = insert_node(name="apage", value=None)
-                insert_route(path='/', node_id=apage)
-
-                for f in ('apple 200 300', 'banana 500 100', 'carrot 100 30'):
-                    (name, width, height) = f.split(' ')
-                    width = int(width)
-                    height = int(height)
-                    node = insert_node(name=name, value=None)
-                    # Create a.jpg in tmp dir media_folder
-                    jpg = open(os.path.join(self.tmp_template_dir, '{0}.jpg'.format(name)), 'wb')
-                    img = Image.new("RGB", (width,height))
-                    img.save(fp=jpg)
-
-                    add_picture_for_node(node_id=node, filepath='{0}.jpg'.format(name))
-                    insert_node_node(node_id=apage, target_node_id=node)
-
-                # Make a 'pictures' node and add all the pictures to it.
-                pictures = insert_node(name='pictures', value=None)
-                for name in ('apple.jpg', 'banana.jpg', 'carrot.jpg'):
-                    link_picturename_for_node(node_id=pictures, picturename=name)
-                insert_node_node(node_id=apage, target_node_id=pictures)
-
-                rv = c.get('/', follow_redirects=True)
-                #self.app.logger.debug('test: %s', rv.data)
-                rv_json = json.loads(rv.data)
-
-                assert 200 == rv_json['apple']['width']
-                assert 500 == rv_json['banana']['width']
-                assert 100 == rv_json['banana']['height']
-                assert 30 == rv_json['carrot']['height']
-
-                assert 'apple.jpg' in [x['path'] for x in rv_json['pictures']]
 
 class ShortcodeRoute(ChillTestCase):
     def test_route(self):

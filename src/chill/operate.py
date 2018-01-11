@@ -22,7 +22,6 @@ from chill.app import db
 from api import render_node
 from chill.database import (
         init_db,
-        init_picture_tables,
         insert_node,
         insert_node_node,
         delete_node,
@@ -31,8 +30,6 @@ from chill.database import (
         insert_query,
         add_template_for_node,
         fetch_query_string,
-        add_picture_for_node,
-        link_picturename_for_node,
         rowify,
         )
 
@@ -311,15 +308,12 @@ def mode_database_functions():
     selection = True
     database_functions = [
             'init_db',
-            'init_picture_tables',
             'insert_node',
             'insert_node_node',
             'delete_node',
             'insert_route',
             'insert_query',
             'add_template_for_node',
-            'add_picture_for_node',
-            'link_picturename_for_node',
             ]
     while selection:
         choices = database_functions + [
@@ -333,10 +327,6 @@ def mode_database_functions():
             confirm = raw_input("Initialize new database y/n? [n] ")
             if confirm == 'y':
                 init_db()
-        if selection == 'init_picture_tables':
-            confirm = raw_input("Initialize new tables for pictures y/n? [n] ")
-            if confirm == 'y':
-                init_picture_tables()
         elif selection == 'insert_node':
             name = raw_input("Node name: ")
             value = raw_input("Node value: ")
@@ -383,43 +373,6 @@ def mode_database_functions():
                 if node >= 0:
                     add_template_for_node(name=templatefile, node_id=node)
                     print "adding %s to node id: %s" % (templatefile, node)
-        elif selection == 'add_picture_for_node':
-            if current_app.config.get('MEDIA_FOLDER'):
-                node = existing_node_input()
-
-                if node >= 0:
-                    filepath = raw_input("Enter the filepath in the media folder. Enter nothing to bring up a list.")
-                    if not filepath:
-                        filelist = glob(os.path.join(current_app.config.get('MEDIA_FOLDER'), '*'))
-                        if len(filelist) > 0:
-                            toplevel_files = map(os.path.basename, filelist)
-                            toplevel_files.sort()
-                            filepath = select(toplevel_files)
-                        else:
-                            print "no files found in media folder."
-                    if filepath:
-                        add_picture_for_node(node_id=node, filepath=filepath)
-            else:
-                print "MEDIA_FOLDER not set in config."
-
-        elif selection == 'link_picturename_for_node':
-            if current_app.config.get('MEDIA_FOLDER'):
-                node = existing_node_input()
-
-                if node >= 0:
-                    filepath = raw_input("Enter the filepath/picturename in the media folder. Enter nothing to bring up a list.")
-                    if not filepath:
-                        filelist = glob(os.path.join(current_app.config.get('MEDIA_FOLDER'), '*'))
-                        if len(filelist) > 0:
-                            toplevel_files = map(os.path.basename, filelist)
-                            toplevel_files.sort()
-                            filepath = select(toplevel_files)
-                        else:
-                            print "no files found in media folder."
-                    if filepath:
-                        link_picturename_for_node(node_id=node, picturename=filepath)
-            else:
-                print "MEDIA_FOLDER not set in config."
 
         elif selection == 'help':
             print "------"
