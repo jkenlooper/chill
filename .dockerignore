@@ -1,0 +1,8 @@
+# In case it was first built locally
+**/*.pyc
+**/chill.egg-info
+bin/
+build/
+dist/
+include/
+lib/
