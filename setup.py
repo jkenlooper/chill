@@ -48,7 +48,6 @@ setup(
         'Flask-Cache',
         'Frozen-Flask',
         'Flask-Markdown',
-        'pysqlite',
         'PyYAML',
         'gevent',
         'docopt',
