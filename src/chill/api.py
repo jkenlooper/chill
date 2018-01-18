@@ -1,4 +1,4 @@
-import sqlite3
+from sqlalchemy.exc import DatabaseError
 from flask import current_app, render_template
 
 from chill.app import db
@@ -54,7 +54,7 @@ def _query(_node_id, value=None, **kw):
     c = db.cursor()
     try:
         result = c.execute(fetch_query_string('select_query_from_node.sql'), kw).fetchall()
-    except sqlite3.DatabaseError as err:
+    except DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         return value
     (query_result, query_col_names) = rowify(result, c.description)
@@ -68,7 +68,7 @@ def _query(_node_id, value=None, **kw):
                 try:
                     result = c.execute(fetch_query_string(query_name), kw).fetchall()
                     values.append( rowify(result, c.description) )
-                except sqlite3.DatabaseError as err:
+                except DatabaseError as err:
                     current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
         value = values
     #current_app.logger.debug("value: %s", value)
@@ -90,19 +90,19 @@ def _link(node_id):
 
 def _template(node_id, value=None):
     "Check if a template is assigned to it and render that with the value"
-    c = db.cursor()
+    result = []
     select_template_from_node = fetch_query_string('select_template_from_node.sql')
     try:
-        c.execute(select_template_from_node, {'node_id':node_id})
-        template_result = c.fetchone()
-        if template_result and template_result[1]:
-            template = template_result[1]
+        result = db.query(select_template_from_node, **{'node_id':node_id})
+        template_result = result.first()
+        if template_result and template_result.get('name'):
+            template = template_result.get('name')
 
             if isinstance(value, dict):
                 return render_template(template, **value)
             else:
                 return render_template(template, value=value)
-    except sqlite3.DatabaseError as err:
+    except DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
     # No template assigned to this node so just return the value

@@ -22,7 +22,7 @@ class ChillTestCase(unittest.TestCase):
     def setUp(self):
         self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
-        self.app = make_app(CHILL_DATABASE_URI=self.tmp_db.name,
+        self.app = make_app(CHILL_DATABASE_URI='sqlite:///' + self.tmp_db.name,
                 THEME_TEMPLATE_FOLDER=self.tmp_template_dir,
                 THEME_SQL_FOLDER=self.tmp_template_dir,
                 MEDIA_FOLDER=self.tmp_template_dir,
@@ -53,9 +53,7 @@ class SimpleCheck(ChillTestCase):
             with self.app.test_client() as c:
                 init_db()
 
-                cursor = db.cursor()
-                cursor.execute("""insert into Node (name, value) values (:name, :value)""", {"name": "bill", "value": "?"})
-                db.commit()
+                db.query("""insert into Node (name, value) values (:name, :value)""", **{"name": "bill", "value": "?"})
 
                 #rv = c.get('/bill', follow_redirects=True)
                 #assert '?' in rv.data

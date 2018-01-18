@@ -23,13 +23,10 @@ def init_db():
     Template
     """
     with current_app.app_context():
-        #db = get_db()
-        c = db.cursor()
-
+        trans = db.transaction()
         for filename in CHILL_CREATE_TABLE_FILES:
-            c.execute(fetch_query_string(filename))
-
-        db.commit()
+            db.query(fetch_query_string(filename))
+        trans.commit()
 
 def rowify(l, description):
     d = []
@@ -64,10 +61,10 @@ def fetch_query_string(file_name):
 def insert_node(**kw):
     "Insert a node with a name and optional value. Return the node id."
     with current_app.app_context():
-        c = db.cursor()
-        c.execute(fetch_query_string('insert_node.sql'), kw)
-        node_id = c.lastrowid
-        db.commit()
+        trans = db.transaction()
+        result = db.db.execute(fetch_query_string('insert_node.sql'), **kw)
+        node_id = result.lastrowid
+        trans.commit()
         return node_id
 
 def insert_node_node(**kw):
@@ -115,9 +112,9 @@ def insert_route(**kw):
             }
     binding.update(kw)
     with current_app.app_context():
-        c = db.cursor()
-        c.execute(fetch_query_string('insert_route.sql'), binding)
-        db.commit()
+        trans = db.transaction()
+        db.db.execute(fetch_query_string('insert_route.sql'), **binding)
+        trans.commit()
 
 def add_template_for_node(name, node_id):
     "Set the template to use to display the node"

@@ -48,6 +48,8 @@ setup(
         'Flask-Cache',
         'Frozen-Flask',
         'Flask-Markdown',
+        'psycopg2',
+        'records', # TODO: https://github.com/kennethreitz/records
         'PyYAML',
         'gevent',
         'docopt',

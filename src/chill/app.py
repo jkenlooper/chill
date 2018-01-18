@@ -7,6 +7,7 @@ from flaskext.markdown import Markdown
 from jinja2 import FileSystemLoader
 from cache import cache
 import sqlite3
+import records
 
 import shortcodes
 
@@ -40,16 +41,16 @@ class ChillFlask(Flask):
                                    cache_timeout=cache_timeout)
 
 def connect_to_database():
-    return sqlite3.connect(current_app.config['CHILL_DATABASE_URI'])
+    return records.Database(current_app.config['CHILL_DATABASE_URI'])
 
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = connect_to_database()
-        # Enable foreign key support so 'on update' and 'on delete' actions
-        # will apply. This needs to be set for each db connection.
-        c = db.cursor()
-        c.execute('pragma foreign_keys = ON;')
+        if current_app.config['CHILL_DATABASE_URI'].startswith('sqlite://'):
+            # Enable foreign key support so 'on update' and 'on delete' actions
+            # will apply. This needs to be set for each db connection.
+            db.query('pragma foreign_keys = ON;')
     return db
 
 db = LocalProxy(get_db)
