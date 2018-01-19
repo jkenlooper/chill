@@ -29,6 +29,11 @@ def init_db():
         trans.commit()
 
 def rowify(l, description):
+    # replace with
+    # if len(result) == 0:
+    #     values.append(([], []))
+    # else:
+    #     values.append( (result.as_dict(), result.first().keys()) )
     d = []
     col_names = []
     if l != None and description != None:
@@ -61,10 +66,10 @@ def fetch_query_string(file_name):
 def insert_node(**kw):
     "Insert a node with a name and optional value. Return the node id."
     with current_app.app_context():
-        trans = db.transaction()
-        result = db.db.execute(fetch_query_string('insert_node.sql'), **kw)
+        #trans = db.transaction()
+        result = db.db.execute(fetch_query_string('insert_node.sql'), kw)
+        #trans.commit()
         node_id = result.lastrowid
-        trans.commit()
         return node_id
 
 def insert_node_node(**kw):
@@ -74,18 +79,18 @@ def insert_node_node(**kw):
     """
     with current_app.app_context():
         insert_query(name='select_link_node_from_node.sql', node_id=kw.get('node_id'))
-        c = db.cursor()
-        c.execute(fetch_query_string('insert_node_node.sql'), kw)
-        db.commit()
+        trans = db.transaction()
+        db.query(fetch_query_string('insert_node_node.sql'), **kw)
+        trans.commit()
 
 def delete_node(**kw):
     """
     Delete a node by id.
     """
     with current_app.app_context():
-        c = db.cursor()
-        c.execute(fetch_query_string('delete_node_for_id.sql'), kw)
-        db.commit()
+        trans = db.transaction()
+        db.query(fetch_query_string('delete_node_for_id.sql'), **kw)
+        trans.commit()
 
 def select_node(**kw):
     """
@@ -113,23 +118,22 @@ def insert_route(**kw):
     binding.update(kw)
     with current_app.app_context():
         trans = db.transaction()
-        db.db.execute(fetch_query_string('insert_route.sql'), **binding)
+        db.query(fetch_query_string('insert_route.sql'), **binding)
         trans.commit()
 
 def add_template_for_node(name, node_id):
     "Set the template to use to display the node"
     with current_app.app_context():
-        c = db.cursor()
-        c.execute(fetch_query_string('insert_template.sql'),
-                {'name':name, 'node_id':node_id})
-        c.execute(fetch_query_string('select_template.sql'),
-                {'name':name, 'node_id':node_id})
-        result = c.fetchone()
+        trans = db.transaction()
+        db.query(fetch_query_string('insert_template.sql'),
+                **{'name':name, 'node_id':node_id})
+        result = db.query(fetch_query_string('select_template.sql'),
+                          **{'name':name, 'node_id':node_id}).first(as_dict=True)
         if result:
-            template_id = result[0]
-            c.execute(fetch_query_string('update_template_node.sql'),
-                    {'template':template_id, 'node_id':node_id})
-        db.commit()
+            template_id = result.get('id')
+            db.query(fetch_query_string('update_template_node.sql'),
+                    **{'template':template_id, 'node_id':node_id})
+        trans.commit()
 
 
 def insert_query(**kw):
@@ -142,14 +146,13 @@ def insert_query(**kw):
     in Node table.
     """
     with current_app.app_context():
-        c = db.cursor()
-        result = c.execute(fetch_query_string('select_query_where_name.sql'), kw).fetchall()
-        (result, col_names) = rowify(result, c.description)
+        #trans = db.transaction()
+        result = db.query(fetch_query_string('select_query_where_name.sql'), fetchall=True, **kw)
         if result:
             kw['query_id'] = result[0].get('id')
         else:
-            c.execute(fetch_query_string('insert_query.sql'), kw)
-            kw['query_id'] = c.lastrowid
-        c.execute(fetch_query_string('insert_query_node.sql'), kw)
-        db.commit()
+            result = db.db.execute(fetch_query_string('insert_query.sql'), kw)
+            kw['query_id'] = result.lastrowid
+        db.db.execute(fetch_query_string('insert_query_node.sql'), kw)
+        #trans.commit()
 

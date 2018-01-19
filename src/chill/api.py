@@ -1,4 +1,4 @@
-from sqlalchemy.exc import DatabaseError
+from sqlalchemy.exc import DatabaseError, StatementError
 from flask import current_app, render_template
 
 from chill.app import db
@@ -51,13 +51,12 @@ def _short_circuit(value=None):
 
 def _query(_node_id, value=None, **kw):
     "Look up value by using Query table"
-    c = db.cursor()
+    query_result = []
     try:
-        result = c.execute(fetch_query_string('select_query_from_node.sql'), kw).fetchall()
+        query_result = db.query(fetch_query_string('select_query_from_node.sql'), fetchall=True, **kw)
     except DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         return value
-    (query_result, query_col_names) = rowify(result, c.description)
     #current_app.logger.debug("queries kw: %s", kw)
     #current_app.logger.debug("queries value: %s", value)
     #current_app.logger.debug("queries: %s", query_result)
@@ -65,10 +64,16 @@ def _query(_node_id, value=None, **kw):
         values = []
         for query_name in [x.get('name', None) for x in query_result]:
             if query_name:
+                result = []
                 try:
-                    result = c.execute(fetch_query_string(query_name), kw).fetchall()
-                    values.append( rowify(result, c.description) )
-                except DatabaseError as err:
+                    result = db.query(fetch_query_string(query_name), **kw)
+                    if len(result) == 0:
+                        values.append(([], []))
+                    else:
+                        # There may be more results, but only interested in the
+                        # first one
+                        values.append((result.as_dict(), result[0].keys()))
+                except (DatabaseError, StatementError) as err:
                     current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
         value = values
     #current_app.logger.debug("value: %s", value)
