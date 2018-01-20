@@ -11,6 +11,7 @@ from chill.database import ( init_db,
         rowify,
         insert_node,
         insert_node_node,
+        select_node,
         delete_node,
         insert_route,
         insert_query,
@@ -489,6 +490,17 @@ class SQL(ChillTestCase):
 
             result = db.query(fetch_query_string('select_node_node_from_node_id.sql'), fetchall=True, **{'node_id': a_id})
             assert len(result) == 0
+
+    def test_select_node(self):
+        with self.app.app_context():
+            init_db()
+            simple_id = insert_node(name='simple', value='test')
+            result = select_node(node_id=simple_id)[0]
+            assert set(result.keys()) == set(['name', 'value', 'node_id'])
+            assert result.get('value') == 'test'
+            assert result.get('name') == 'simple'
+            assert result.get('node_id') == simple_id
+
 
 class Query(ChillTestCase):
     def test_empty(self):

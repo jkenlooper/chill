@@ -98,9 +98,7 @@ def select_node(**kw):
     Select node by id.
     """
     with current_app.app_context():
-        c = db.cursor()
-        result = c.execute(fetch_query_string('select_node_from_id.sql'), kw).fetchall()
-        (result, col_names) = rowify(result, c.description)
+        result = db.query(fetch_query_string('select_node_from_id.sql'), fetchall=True, **kw)
         return result
 
 def insert_route(**kw):

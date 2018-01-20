@@ -28,6 +28,7 @@ Subcommands:
 import os
 
 import sqlite3
+from sqlalchemy.exc import DatabaseError, StatementError
 from docopt import docopt
 from flask_frozen import Freezer
 
@@ -54,8 +55,11 @@ SITECFG = """
 #HOST = '127.0.0.1'
 #PORT = 5000
 
-# The sqlite database file
-CHILL_DATABASE_URI = "db"
+# Valid SQLite URL forms are:
+#   sqlite:///:memory: (or, sqlite://)
+#   sqlite:///relative/path/to/file.db
+#   sqlite:////absolute/path/to/file.db
+CHILL_DATABASE_URI = "sqlite:///db"
 
 # If using the ROOT_FOLDER then you will need to set the PUBLIC_URL_PREFIX to
 # something other than '/'.
@@ -292,10 +296,9 @@ def freeze(config, urls_file=None):
                         return ('public.index', {})
                     return ('public.uri_index', {'uri': url})
 
-        c = db.cursor()
         try:
-            result = c.execute(fetch_query_string('select_paths_to_freeze.sql')).fetchall()
-        except sqlite3.DatabaseError as err:
+            result = db.db.execute(fetch_query_string('select_paths_to_freeze.sql')).fetchall()
+        except (DatabaseError, StatementError) as err:
             app.logger.error("DatabaseError: %s", err)
             return []
         urls = filter(None, map(lambda x:cleanup_url(x[0]), result))
