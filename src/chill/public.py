@@ -75,7 +75,7 @@ def node_from_uri(uri, method="GET"):
     except DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
-    #current_app.logger.debug('result: "%s"' % result)
+    #current_app.logger.debug('result: "{}", {}'.format(result, len(result)))
     if not result or len(result) == 0:
         # See if the uri matches any dynamic rules
         (rule, rule_kw) = check_map(uri, request.url_root)
@@ -169,7 +169,6 @@ class PageView(MethodView):
 
         # Execute the sql query with the data
         _query(node.get('id'), **values)
-        db.commit()
 
         response = make_response('ok', 201)
         return response
@@ -191,7 +190,6 @@ class PageView(MethodView):
 
         # Execute the sql query with the data
         _query(node.get('id'), **values)
-        db.commit()
 
         response = make_response('ok', 201)
         return response
@@ -213,7 +211,6 @@ class PageView(MethodView):
 
         # Execute the sql query with the data
         _query(node.get('id'), **values)
-        db.commit()
 
         response = make_response('ok', 201)
         return response
@@ -235,7 +232,6 @@ class PageView(MethodView):
 
         # Execute the sql query with the data
         _query(node.get('id'), **values)
-        db.commit()
 
         response = make_response('ok', 204)
         return response

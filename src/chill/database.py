@@ -29,6 +29,7 @@ def init_db():
         trans.commit()
 
 def rowify(l, description):
+    # TODO: this is still needed in api _query
     # replace with
     # if len(result) == 0:
     #     values.append(([], []))

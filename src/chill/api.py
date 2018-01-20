@@ -66,32 +66,27 @@ def _query(_node_id, value=None, **kw):
             if query_name:
                 result = []
                 try:
-                    result = db.query(fetch_query_string(query_name), **kw)
-                    if len(result) == 0:
+                    #current_app.logger.debug("query_name: %s", query_name)
+                    #current_app.logger.debug("kw: %s", kw)
+                    # Query string can be insert or select here
+                    result = db.db.execute(fetch_query_string(query_name), kw)
+                    if not result.returns_rows:
                         values.append(([], []))
                     else:
-                        # There may be more results, but only interested in the
-                        # first one
-                        values.append((result.as_dict(), result[0].keys()))
+                        result = result.fetchall()
+                        if len(result) == 0:
+                            values.append(([], []))
+                        else:
+                            current_app.logger.debug("result: %s", result)
+                            # There may be more results, but only interested in the
+                            # first one. Use the older rowify method for now.
+                            values.append(rowify(result, [(x, None) for x in result[0].keys()]))
+                            #current_app.logger.debug("fetchone: %s", values)
                 except (DatabaseError, StatementError) as err:
                     current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
         value = values
     #current_app.logger.debug("value: %s", value)
     return value
-
-def _link(node_id):
-    "Add the value for a linked node"
-    c = db.cursor()
-    linked_value = c.execute(fetch_query_string('select_link_node_from_node.sql'), {'node_id': node_id}).fetchall()
-    if linked_value:
-        if len(linked_value) > 1:
-            list = []
-            for v in linked_value:
-                list.append({v[1]: render_node(v[2], None, v[1])})
-            linked_value = list
-        else:
-            linked_value = render_node(linked_value[0][0]) #TODO
-    return linked_value
 
 def _template(node_id, value=None):
     "Check if a template is assigned to it and render that with the value"
@@ -118,6 +113,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
     if value == None:
         kw.update( noderequest )
         results = _query(_node_id, **kw)
+        current_app.logger.debug("results: %s", results)
         if results and results[0]:
             values = []
             for (result, cols) in results:
@@ -125,7 +121,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
                     for subresult in result:
                         #if subresult.get('name') == kw.get('name'):
                             # This is a link node
-                        #current_app.logger.debug("sub: %s", subresult)
+                        current_app.logger.debug("sub: %s", subresult)
                         name = subresult.get('name')
                         if noderequest.get('_no_template'):
                             # For debugging or just simply viewing with the

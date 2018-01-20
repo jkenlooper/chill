@@ -30,6 +30,7 @@ class ChillTestCase(unittest.TestCase):
                 CACHE_NO_NULL_WARNING=True,
                 DEBUG=True)
         self.app.logger.setLevel(logging.CRITICAL)
+        #self.app.logger.setLevel(logging.DEBUG)
 
     def tearDown(self):
         """Get rid of the database and templates after each test."""
@@ -596,11 +597,9 @@ class Query(ChillTestCase):
 
 
                 page_id = insert_node(name='page1', value=None)
-                print page_id
                 insert_route(path='/page1/', node_id=page_id)
 
                 pageattr_id = insert_node(name='pageattr', value=None)
-                print pageattr_id
                 insert_node_node(node_id=page_id, target_node_id=pageattr_id)
                 insert_query(name='select_pageattr.sql', node_id=pageattr_id)
 
@@ -625,7 +624,6 @@ class Query(ChillTestCase):
                     insert_query(name='select_promoattr.sql', node_id=a_id)
 
                 rv = c.get('/page1', follow_redirects=True)
-                print rv
                 assert 200 == rv.status_code
                 rv_json = json.loads(rv.data)
                 assert set(expected.keys()) == set(rv_json.keys())
@@ -1026,15 +1024,13 @@ class PostMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                cursor = db.cursor()
-                cursor.execute("""
+                db.db.execute("""
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
                 """)
-                db.commit()
 
                 llamas_id = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/', node_id=llamas_id, weight=1, method="POST")
@@ -1089,15 +1085,13 @@ class PutMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                cursor = db.cursor()
-                cursor.execute("""
+                db.db.execute("""
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
                 """)
-                db.commit()
 
                 llamas_id = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="PUT")
@@ -1139,20 +1133,17 @@ class PatchMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                cursor = db.cursor()
-                cursor.execute("""
+                db.db.execute("""
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
                 """)
-                db.commit()
 
-                cursor.execute("""
+                db.db.execute("""
                   insert into Llama (llama_name) values ('Pocky');
                 """)
-                db.commit()
 
                 llamas_id = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="PATCH")
@@ -1194,20 +1185,17 @@ class DeleteMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                cursor = db.cursor()
-                cursor.execute("""
+                db.db.execute("""
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
                 """)
-                db.commit()
 
-                cursor.execute("""
+                db.db.execute("""
                   insert into Llama (llama_name, location, description) values ('Docky', 'somewhere', 'damaged');
                 """)
-                db.commit()
 
                 select_llama = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)
