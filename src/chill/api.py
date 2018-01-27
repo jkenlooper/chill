@@ -1,4 +1,5 @@
 from sqlalchemy.exc import DatabaseError, StatementError
+from sqlalchemy.sql import text
 from flask import current_app, render_template
 
 from chill.app import db
@@ -53,7 +54,7 @@ def _query(_node_id, value=None, **kw):
     "Look up value by using Query table"
     query_result = []
     try:
-        query_result = db.query(fetch_query_string('select_query_from_node.sql'), fetchall=True, **kw)
+        query_result = db.execute(text(fetch_query_string('select_query_from_node.sql')), **kw)
     except DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         return value
@@ -62,28 +63,28 @@ def _query(_node_id, value=None, **kw):
     #current_app.logger.debug("queries: %s", query_result)
     if query_result:
         values = []
-        for query_name in [x.get('name', None) for x in query_result]:
+        for query_name in [x['name'] for x in query_result]:
             if query_name:
-                result = []
-                try:
-                    #current_app.logger.debug("query_name: %s", query_name)
-                    #current_app.logger.debug("kw: %s", kw)
-                    # Query string can be insert or select here
-                    result = db.db.execute(fetch_query_string(query_name), kw)
-                    if not result.returns_rows:
-                        values.append(([], []))
-                    else:
-                        result = result.fetchall()
-                        if len(result) == 0:
-                            values.append(([], []))
-                        else:
-                            current_app.logger.debug("result: %s", result)
-                            # There may be more results, but only interested in the
-                            # first one. Use the older rowify method for now.
-                            values.append(rowify(result, [(x, None) for x in result[0].keys()]))
-                            #current_app.logger.debug("fetchone: %s", values)
-                except (DatabaseError, StatementError) as err:
-                    current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
+                #result = []
+                #try:
+                #current_app.logger.debug("query_name: %s", query_name)
+                #current_app.logger.debug("kw: %s", kw)
+                # Query string can be insert or select here
+                result = db.execute(text(fetch_query_string(query_name)), **kw)
+                current_app.logger.debug("result query: %s", result.keys())
+                #except (DatabaseError, StatementError) as err:
+                    #current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
+                if result.returns_rows:
+                    values.append((result.fetchall(), result.keys()))
+                    #if len(result) == 0:
+                    #    values.append(([], []))
+                    #else:
+                    #    current_app.logger.debug("result: %s", result)
+                    #    # There may be more results, but only interested in the
+                    #    # first one. Use the older rowify method for now.
+                    #    # TODO: use case for rowify?
+                    #    values.append(rowify(result, [(x, None) for x in result.keys()]))
+                    #    #current_app.logger.debug("fetchone: %s", values)
         value = values
     #current_app.logger.debug("value: %s", value)
     return value
@@ -93,10 +94,11 @@ def _template(node_id, value=None):
     result = []
     select_template_from_node = fetch_query_string('select_template_from_node.sql')
     try:
-        result = db.query(select_template_from_node, **{'node_id':node_id})
-        template_result = result.first()
-        if template_result and template_result.get('name'):
-            template = template_result.get('name')
+        result = db.execute(text(select_template_from_node), node_id=node_id)
+        template_result = result.fetchone()
+        result.close()
+        if template_result and template_result['name']:
+            template = template_result['name']
 
             if isinstance(value, dict):
                 return render_template(template, **value)
@@ -114,7 +116,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
         kw.update( noderequest )
         results = _query(_node_id, **kw)
         current_app.logger.debug("results: %s", results)
-        if results and results[0]:
+        if results:
             values = []
             for (result, cols) in results:
                 if set(cols) == set(['node_id', 'name', 'value']):
@@ -122,13 +124,13 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
                         #if subresult.get('name') == kw.get('name'):
                             # This is a link node
                         current_app.logger.debug("sub: %s", subresult)
-                        name = subresult.get('name')
+                        name = subresult['name']
                         if noderequest.get('_no_template'):
                             # For debugging or just simply viewing with the
                             # operate script we append the node_id to the name
                             # of each. This doesn't work with templates.
-                            name = "{0} ({1})".format(name, subresult.get('node_id'))
-                        values.append( {name: render_node( subresult.get('node_id'), noderequest=noderequest, **subresult )} )
+                            name = "{0} ({1})".format(name, subresult['node_id'])
+                        values.append( {name: render_node( subresult['node_id'], noderequest=noderequest, **subresult )} )
                 #elif 'node_id' and 'name' in cols:
                 #    for subresult in result:
                 #        current_app.logger.debug("sub2: %s", subresult)

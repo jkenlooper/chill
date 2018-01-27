@@ -6,6 +6,8 @@ import os
 import json
 import logging
 
+from sqlalchemy.sql import text
+
 from chill.app import make_app, db
 from chill.database import ( init_db,
         rowify,
@@ -30,8 +32,8 @@ class ChillTestCase(unittest.TestCase):
                 DOCUMENT_FOLDER=self.tmp_template_dir,
                 CACHE_NO_NULL_WARNING=True,
                 DEBUG=True)
-        self.app.logger.setLevel(logging.CRITICAL)
-        #self.app.logger.setLevel(logging.DEBUG)
+        #self.app.logger.setLevel(logging.CRITICAL)
+        self.app.logger.setLevel(logging.DEBUG)
 
     def tearDown(self):
         """Get rid of the database and templates after each test."""
@@ -55,7 +57,7 @@ class SimpleCheck(ChillTestCase):
             with self.app.test_client() as c:
                 init_db()
 
-                db.query("""insert into Node (name, value) values (:name, :value)""", **{"name": "bill", "value": "?"})
+                db.execute(text("""insert into Node (name, value) values (:name, :value)"""), **{"name": "bill", "value": "?"})
 
                 #rv = c.get('/bill', follow_redirects=True)
                 #assert '?' in rv.data
@@ -399,28 +401,28 @@ class SQL(ChillTestCase):
             c = insert_node(name='c', value=None)
             add_template_for_node('template_c.html', c)
 
-            result = db.query(fetch_query_string('select_template_from_node.sql'), fetchall=True, **{'node_id': a})
-            result = [x.get('name', None) for x in result]
+            result = db.execute(text(fetch_query_string('select_template_from_node.sql')), node_id=a)
+            result = [x['name'] for x in result]
             assert len(result) == 1
             assert result[0] == 'template_a.html'
 
             # another node that uses the same template
-            result = db.query(fetch_query_string('select_template_from_node.sql'), fetchall=True, **{'node_id': aa})
-            result = [x.get('name', None) for x in result]
+            result = db.execute(text(fetch_query_string('select_template_from_node.sql')), node_id=aa)
+            result = [x['name'] for x in result]
             assert len(result) == 1
             assert result[0] == 'template_a.html'
 
             # can overwrite what node is tied to what template
             add_template_for_node('template_over_a.html', a)
 
-            result = db.query(fetch_query_string('select_template_from_node.sql'), fetchall=True, **{'node_id': a})
-            result = [x.get('name', None) for x in result]
+            result = db.execute(text(fetch_query_string('select_template_from_node.sql')), node_id=a)
+            result = [x['name'] for x in result]
             assert len(result) == 1
             assert result[0] == 'template_over_a.html'
 
             # this one still uses the other template
-            result = db.query(fetch_query_string('select_template_from_node.sql'), fetchall=True, **{'node_id': aa})
-            result = [x.get('name', None) for x in result]
+            result = db.execute(text(fetch_query_string('select_template_from_node.sql')), node_id=aa)
+            result = [x['name'] for x in result]
             assert len(result) == 1
             assert result[0] == 'template_a.html'
 
@@ -430,22 +432,20 @@ class SQL(ChillTestCase):
         """
         with self.app.app_context():
             init_db()
-            trans = db.transaction()
-            result = db.db.execute(fetch_query_string('insert_node.sql'), {'name': 'a', 'value':'apple'})
+            result = db.execute(text(fetch_query_string('insert_node.sql')), name='a', value='apple')
             a = result.lastrowid
-            trans.commit()
 
-            result = db.query(fetch_query_string('select_node_from_id.sql'), fetchall=True, **{'node_id': a})
+            result = db.execute(text(fetch_query_string('select_node_from_id.sql')), node_id=a).fetchall()
             assert len(result) == 1
-            r = result.first()
-            assert a == r.get('node_id')
-            assert 'a' == r.get('name')
-            assert 'apple' == r.get('value')
+            r = result[0]
+            assert a == r['node_id']
+            assert 'a' == r['name']
+            assert 'apple' == r['value']
 
             # now delete
             delete_node(node_id=a)
 
-            result = db.query(fetch_query_string('select_node_from_id.sql'), fetchall=True, **{'node_id': a})
+            result = db.execute(text(fetch_query_string('select_node_from_id.sql')), node_id=a).fetchall()
             assert len(result) == 0
 
     def test_delete_node_with_link(self):
@@ -465,30 +465,30 @@ class SQL(ChillTestCase):
             insert_node_node(node_id=a_id, target_node_id=d_id)
             insert_node_node(node_id=b_id, target_node_id=c_id)
 
-            result = db.query(fetch_query_string('select_link_node_from_node.sql'), fetchall=True, **{'node_id': a_id})
-            result = [x.get('node_id', None) for x in result]
+            result = db.execute(text(fetch_query_string('select_link_node_from_node.sql')), node_id=a_id)
+            result = [x['node_id'] for x in result]
             assert c_id in result
             assert d_id in result
             assert a_id not in result
 
-            result = db.query(fetch_query_string('select_link_node_from_node.sql'), fetchall=True, **{'node_id': b_id})
-            result = [x.get('node_id', None) for x in result]
+            result = db.execute(text(fetch_query_string('select_link_node_from_node.sql')), node_id=b_id)
+            result = [x['node_id'] for x in result]
             assert c_id in result
             assert d_id not in result
             assert a_id not in result
 
             # now delete (should use the 'on delete cascade' sql bit)
-            trans = db.transaction()
-            db.query(fetch_query_string('delete_node_for_id.sql'), **{'node_id': a_id})
-            trans.commit()
+            db.execute(text(fetch_query_string('delete_node_for_id.sql')), node_id=a_id)
 
-            result = db.query(fetch_query_string('select_node_from_id.sql'), fetchall=True, **{'node_id': a_id})
+            result = db.execute(text(fetch_query_string('select_node_from_id.sql')), node_id=a_id).fetchall()
             assert len(result) == 0
 
-            result = db.query(fetch_query_string('select_link_node_from_node.sql'), fetchall=True, **{'node_id': a_id})
+            result = db.execute(text(fetch_query_string('select_link_node_from_node.sql')), node_id=a_id).fetchall()
             assert len(result) == 0
 
-            result = db.query(fetch_query_string('select_node_node_from_node_id.sql'), fetchall=True, **{'node_id': a_id})
+
+            result = db.execute(text(fetch_query_string('select_node_node_from_node_id.sql')), node_id=a_id).fetchall()
+
             assert len(result) == 0
 
     def test_select_node(self):
@@ -497,9 +497,9 @@ class SQL(ChillTestCase):
             simple_id = insert_node(name='simple', value='test')
             result = select_node(node_id=simple_id)[0]
             assert set(result.keys()) == set(['name', 'value', 'node_id'])
-            assert result.get('value') == 'test'
-            assert result.get('name') == 'simple'
-            assert result.get('node_id') == simple_id
+            assert result['value'] == 'test'
+            assert result['name'] == 'simple'
+            assert result['node_id'] == simple_id
 
 
 class Query(ChillTestCase):

@@ -59,6 +59,7 @@ SITECFG = """
 #   sqlite:///:memory: (or, sqlite://)
 #   sqlite:///relative/path/to/file.db
 #   sqlite:////absolute/path/to/file.db
+# http://docs.sqlalchemy.org/en/latest/core/engines.html
 CHILL_DATABASE_URI = "sqlite:///db"
 
 # If using the ROOT_FOLDER then you will need to set the PUBLIC_URL_PREFIX to
@@ -214,8 +215,6 @@ def init():
 
         homepage_content = insert_node(name='homepage_content', value="Cascading, Highly Irrelevant, Lost Llamas")
         insert_node_node(node_id=homepage, target_node_id=homepage_content)
-
-        db.commit()
 
 def operate(config):
     "Interface to do simple operations on the database."

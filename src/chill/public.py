@@ -1,6 +1,7 @@
 import os
 import os.path
 
+from sqlalchemy.sql import text
 from sqlalchemy.exc import (
         DatabaseError,
         OperationalError
@@ -32,15 +33,15 @@ def check_map(uri, url_root):
     # TODO: Building the Map each time this is called seems like it could be more effiecent.
     result = []
     try:
-        result = db.query(fetch_query_string('select_route_where_dynamic.sql'), fetchall=True)
+        result = db.execute(text(fetch_query_string('select_route_where_dynamic.sql'))).fetchall()
     except OperationalError as err:
         current_app.logger.error("OperationalError: %s", err)
         return (None, None)
     if result:
-        routes = result.as_dict()
+        #routes = result.as_dict()
         #(routes, col_names) = rowify(result, c.description)
         #current_app.logger.debug( [x['rule'] for x in routes] )
-        rules = map( lambda r: Rule(r['rule'], endpoint='dynamic'), routes )
+        rules = map( lambda r: Rule(r['rule'], endpoint='dynamic'), result )
         d_map = Map( rules )
         map_adapter = d_map.bind(url_root)
         #current_app.logger.debug(uri)
@@ -71,7 +72,7 @@ def node_from_uri(uri, method="GET"):
 
     result = []
     try:
-        result = db.query(select_node_from_route, fetchall=True, **{'uri':uri, 'method':method})
+        result = db.execute(text(select_node_from_route), uri=uri, method=method).fetchall()
     except DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
@@ -83,12 +84,12 @@ def node_from_uri(uri, method="GET"):
         #current_app.logger.debug('rule: "%s"' % rule or '')
         if rule:
             try:
-                result = db.query(select_node_from_route, fetchall=True, **{'uri':rule, 'method':method})
+                result = db.execute(text(select_node_from_route), uri=rule, method=method).fetchall()
             except DatabaseError as err:
                 current_app.logger.error("DatabaseError: %s", err)
 
     if result:
-        result = result.as_dict()
+        #result = result.as_dict()
         #(result, col_names) = rowify(result, c.description)
 
         # Only one result for a getting a node from a unique path.
@@ -141,7 +142,7 @@ class PageView(MethodView):
 
         #current_app.logger.debug("get kw: %s", values)
         rendered = render_node(node['id'], noderequest=noderequest, **values)
-        #current_app.logger.debug("rendered: %s", rendered)
+        current_app.logger.debug("rendered: %s", rendered)
         if rendered:
             if not isinstance(rendered, (str, unicode, int, float)):
                 # return a json string
