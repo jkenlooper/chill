@@ -15,8 +15,8 @@ from glob import glob
 import re
 
 from yaml import safe_dump
-import sqlite3
 from sqlalchemy.exc import DatabaseError, StatementError
+from sqlalchemy.sql import text
 from flask import current_app
 from pyselect import select
 from chill.app import db
@@ -31,7 +31,6 @@ from chill.database import (
         insert_query,
         add_template_for_node,
         fetch_query_string,
-        rowify,
         )
 
 INVALID_NODE = -1
@@ -68,18 +67,18 @@ def existing_node_input():
         parsed_input = input_from_user
 
     if isinstance(parsed_input, int):
-        result = db.query(fetch_query_string('select_node_from_id.sql'),
-                fetchall=True, **{'node_id':parsed_input})
+        result = db.execute(text(fetch_query_string('select_node_from_id.sql')),
+                node_id=parsed_input).fetchall()
         if result:
-            node_id = int(result[0].get('node_id'))
+            node_id = int(result[0]['node_id'])
     else:
-        result = db.query(fetch_query_string('select_node_from_name.sql'),
-                fetchall=True, **{'node_name':parsed_input})
+        result = db.execute(text(fetch_query_string('select_node_from_name.sql')),
+                node_name=parsed_input).fetchall()
         if result:
             if len(result) == 1:
                 print 'Node id: {node_id}\nNode name: {name}'.format(**result[0])
                 print '-------------'
-                node_id = result[0].get('node_id')
+                node_id = result[0]['node_id']
             else:
                 print 'Multiple nodes found with the name: {0}'.format(parsed_input)
                 for item in result:
@@ -93,8 +92,8 @@ def existing_node_input():
                             print safe_dump(value, default_flow_style=False)
                         else:
                             for item in result:
-                                value = render_node(item.get('node_id'), noderequest={'_no_template':True}, **item)
-                                print 'Node id: {0}'.format(item.get('node_id'))
+                                value = render_node(item['node_id'], noderequest={'_no_template':True}, **item)
+                                print 'Node id: {0}'.format(item['node_id'])
                                 print safe_dump(value, default_flow_style=False)
                                 print '---'
                         node_id = node_input()
@@ -115,12 +114,12 @@ def render_value_for_node(node_id):
     value = None
     result = []
     try:
-        result = db.query(fetch_query_string('select_node_from_id.sql'), fetchall=True, **{'node_id':node_id})
+        result = db.execute(text(fetch_query_string('select_node_from_id.sql')), node_id=node_id).fetchall()
     except DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
     if result:
-        kw = result[0]
+        kw = dict(zip(result[0].keys(), result[0].values()))
         value = render_node(node_id, noderequest={'_no_template':True}, **kw)
 
     return value
@@ -352,7 +351,7 @@ def mode_database_functions():
             node = existing_node_input()
             if node >= 0:
                 result = select_node(node_id=node)
-                print safe_dump(result.as_dict(), default_flow_style=False)
+                print safe_dump(dict(zip(result[0].keys(), result[0].values())), default_flow_style=False)
 
         elif selection == 'insert_route':
             path = raw_input('path: ')
@@ -425,7 +424,7 @@ def operate_menu():
 
                 result = []
                 try:
-                    result = db.db.execute(sql, data)
+                    result = db.execute(text(sql), data)
                 except DatabaseError as err:
                     current_app.logger.error("DatabaseError: %s", err)
 
@@ -442,7 +441,8 @@ def operate_menu():
                             value = render_node(kw['node_id'], **kw)
                             print safe_dump(value, default_flow_style=False)
                         else:
-                            print safe_dump(rowify(result, [(x, None) for x in result[0].keys()]), default_flow_style=False)
+                            #print safe_dump(rowify(result, [(x, None) for x in result[0].keys()]), default_flow_style=False)
+                            print safe_dump([dict(zip(x.keys(), x.values())) for x in result], default_flow_style=False)
 
         elif selection == 'render_node':
             print globals()['render_node'].__doc__

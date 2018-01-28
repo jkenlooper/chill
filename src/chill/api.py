@@ -54,7 +54,7 @@ def _query(_node_id, value=None, **kw):
     "Look up value by using Query table"
     query_result = []
     try:
-        query_result = db.execute(text(fetch_query_string('select_query_from_node.sql')), **kw)
+        query_result = db.execute(text(fetch_query_string('select_query_from_node.sql')), **kw).fetchall()
     except DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         return value
@@ -70,6 +70,10 @@ def _query(_node_id, value=None, **kw):
                     current_app.logger.debug("query_name: %s", query_name)
                     #current_app.logger.debug("kw: %s", kw)
                     # Query string can be insert or select here
+                    #statement = text(fetch_query_string(query_name))
+                    #params = [x.key for x in statement.params().get_children()]
+                    #skw = {key: kw[key] for key in params}
+                    #result = db.execute(statement, **skw)
                     result = db.execute(text(fetch_query_string(query_name)), **kw)
                     current_app.logger.debug("result query: %s", result.keys())
                 except (DatabaseError, StatementError) as err:
