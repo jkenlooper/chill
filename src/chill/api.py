@@ -60,31 +60,34 @@ def _query(_node_id, value=None, **kw):
         return value
     #current_app.logger.debug("queries kw: %s", kw)
     #current_app.logger.debug("queries value: %s", value)
-    #current_app.logger.debug("queries: %s", query_result)
+    current_app.logger.debug("queries: %s", query_result)
     if query_result:
         values = []
         for query_name in [x['name'] for x in query_result]:
             if query_name:
-                #result = []
-                #try:
-                #current_app.logger.debug("query_name: %s", query_name)
-                #current_app.logger.debug("kw: %s", kw)
-                # Query string can be insert or select here
-                result = db.execute(text(fetch_query_string(query_name)), **kw)
-                current_app.logger.debug("result query: %s", result.keys())
-                #except (DatabaseError, StatementError) as err:
-                    #current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
-                if result.returns_rows:
-                    values.append((result.fetchall(), result.keys()))
-                    #if len(result) == 0:
-                    #    values.append(([], []))
-                    #else:
-                    #    current_app.logger.debug("result: %s", result)
-                    #    # There may be more results, but only interested in the
-                    #    # first one. Use the older rowify method for now.
-                    #    # TODO: use case for rowify?
-                    #    values.append(rowify(result, [(x, None) for x in result.keys()]))
-                    #    #current_app.logger.debug("fetchone: %s", values)
+                result = []
+                try:
+                    current_app.logger.debug("query_name: %s", query_name)
+                    #current_app.logger.debug("kw: %s", kw)
+                    # Query string can be insert or select here
+                    result = db.execute(text(fetch_query_string(query_name)), **kw)
+                    current_app.logger.debug("result query: %s", result.keys())
+                except (DatabaseError, StatementError) as err:
+                    current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
+                if result and result.returns_rows:
+                    result = result.fetchall()
+                    #values.append(([[dict(zip(result.keys(), x)) for x in result]], result.keys()))
+                    #values.append((result.fetchall(), result.keys()))
+                    #current_app.logger.debug("fetchall: %s", values)
+                    if len(result) == 0:
+                        values.append(([], []))
+                    else:
+                        current_app.logger.debug("result: %s", result)
+                        # There may be more results, but only interested in the
+                        # first one. Use the older rowify method for now.
+                        # TODO: use case for rowify?
+                        values.append(rowify(result, [(x, None) for x in result[0].keys()]))
+                        #current_app.logger.debug("fetchone: %s", values)
         value = values
     #current_app.logger.debug("value: %s", value)
     return value

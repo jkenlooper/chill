@@ -23,6 +23,7 @@ from chill.database import ( init_db,
 class ChillTestCase(unittest.TestCase):
 
     def setUp(self):
+        self.debug=False
         self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
         self.app = make_app(CHILL_DATABASE_URI='sqlite:///' + self.tmp_db.name,
@@ -31,9 +32,8 @@ class ChillTestCase(unittest.TestCase):
                 MEDIA_FOLDER=self.tmp_template_dir,
                 DOCUMENT_FOLDER=self.tmp_template_dir,
                 CACHE_NO_NULL_WARNING=True,
-                DEBUG=True)
-        #self.app.logger.setLevel(logging.CRITICAL)
-        self.app.logger.setLevel(logging.DEBUG)
+                DEBUG=self.debug)
+        self.app.logger.setLevel(logging.DEBUG if self.debug else logging.CRITICAL)
 
     def tearDown(self):
         """Get rid of the database and templates after each test."""
@@ -209,17 +209,15 @@ class SQL(ChillTestCase):
         """
         with self.app.app_context():
             init_db()
-            trans = db.transaction()
-            result = db.db.execute(fetch_query_string('insert_node.sql'), {'name': 'a', 'value':'apple'})
+            result = db.execute(text(fetch_query_string('insert_node.sql')), name='a', value='apple')
             a = result.lastrowid
-            trans.commit()
 
-            result = db.query('select * from Node where id = :id;', fetchall=True, **{'id':a})
+            result = db.execute(text('select * from Node where id = :id;'), id=a).fetchall()
             assert len(result) == 1
-            r = result.first()
-            assert a == r.get('id')
-            assert 'a' == r.get('name')
-            assert 'apple' == r.get('value')
+            r = result[0]
+            assert a == r['id']
+            assert 'a' == r['name']
+            assert 'apple' == r['value']
 
     def test_insert_one_node_with_unicode(self):
         """
@@ -227,17 +225,15 @@ class SQL(ChillTestCase):
         """
         with self.app.app_context():
             init_db()
-            trans = db.transaction()
-            result = db.db.execute(fetch_query_string('insert_node.sql'), {'name': 'a', 'value':u'Àрpĺè'})
+            result = db.execute(text(fetch_query_string('insert_node.sql')), name='a', value=u'Àрpĺè')
             a = result.lastrowid
-            trans.commit()
 
-            result = db.query('select * from Node where id = :id;', fetchall=True, **{'id':a})
+            result = db.execute(text('select * from Node where id = :id;'), id=a).fetchall()
             assert len(result) == 1
-            r = result.first()
-            assert a == r.get('id')
-            assert 'a' == r.get('name')
-            assert u'Àрpĺè' == r.get('value')
+            r = result[0]
+            assert a == r['id']
+            assert 'a' == r['name']
+            assert u'Àрpĺè' == r['value']
 
     def test_link(self):
         """
@@ -256,14 +252,14 @@ class SQL(ChillTestCase):
             insert_node_node(node_id=a_id, target_node_id=d_id)
             insert_node_node(node_id=b_id, target_node_id=c_id)
 
-            result = db.query(fetch_query_string('select_link_node_from_node.sql'), fetchall=True, **{'node_id': a_id})
-            result = [x.get('node_id', None) for x in result]
+            result = db.execute(text(fetch_query_string('select_link_node_from_node.sql')), node_id=a_id)
+            result = [x['node_id'] for x in result]
             assert c_id in result
             assert d_id in result
             assert a_id not in result
 
-            result = db.query(fetch_query_string('select_link_node_from_node.sql'), fetchall=True, **{'node_id': b_id})
-            result = [x.get('node_id', None) for x in result]
+            result = db.execute(text(fetch_query_string('select_link_node_from_node.sql')), node_id=b_id)
+            result = [x['node_id'] for x in result]
             assert c_id in result
             assert d_id not in result
             assert a_id not in result
@@ -596,17 +592,14 @@ class Query(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                trans = db.transaction()
-                db.query("""
+                db.execute(text("""
                 create table PromoAttr (
                   node_id integer,
                   abc integer,
                   title varchar(255),
                   description text
                   );
-                """)
-                trans.commit()
-
+                """))
 
                 page_id = insert_node(name='page1', value=None)
                 insert_route(path='/page1/', node_id=page_id)
@@ -629,9 +622,7 @@ class Query(ChillTestCase):
 
                 for a in range(0,100):
                     a_id = insert_node(name='promo', value=None)
-                    trans = db.transaction()
-                    db.query(fetch_query_string('insert_promoattr.sql'), **{'node_id':a_id, 'title':'promo %i' % a, 'description': 'a'*a})
-                    trans.commit()
+                    db.execute(text(fetch_query_string('insert_promoattr.sql')), **{'node_id':a_id, 'title':'promo %i' % a, 'description': 'a'*a})
                     # wire the promo to it's attr
                     insert_query(name='select_promoattr.sql', node_id=a_id)
 
@@ -1036,13 +1027,13 @@ class PostMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                db.db.execute("""
+                db.execute(text("""
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
-                """)
+                """))
 
                 llamas_id = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/', node_id=llamas_id, weight=1, method="POST")
@@ -1097,13 +1088,13 @@ class PutMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                db.db.execute("""
+                db.execute(text("""
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
-                """)
+                """))
 
                 llamas_id = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="PUT")
@@ -1145,17 +1136,17 @@ class PatchMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                db.db.execute("""
+                db.execute(text("""
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
-                """)
+                """))
 
-                db.db.execute("""
+                db.execute(text("""
                   insert into Llama (llama_name) values ('Pocky');
-                """)
+                """))
 
                 llamas_id = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=llamas_id, weight=1, method="PATCH")
@@ -1197,17 +1188,17 @@ class DeleteMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                db.db.execute("""
+                db.execute(text("""
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
-                """)
+                """))
 
-                db.db.execute("""
+                db.execute(text("""
                   insert into Llama (llama_name, location, description) values ('Docky', 'somewhere', 'damaged');
-                """)
+                """))
 
                 select_llama = insert_node(name='llamas', value=None)
                 insert_route(path='/api/llamas/name/<llama_name>/', node_id=select_llama, weight=1)

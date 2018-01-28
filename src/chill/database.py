@@ -28,12 +28,6 @@ def init_db():
             db.execute(text(fetch_query_string(filename)))
 
 def rowify(l, description):
-    # TODO: this is still needed in api _query
-    # replace with
-    # if len(result) == 0:
-    #     values.append(([], []))
-    # else:
-    #     values.append( (result.as_dict(), result.first().keys()) )
     d = []
     col_names = []
     if l != None and description != None:

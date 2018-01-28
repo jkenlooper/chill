@@ -140,7 +140,7 @@ class PageView(MethodView):
         noderequest.pop('name')
         noderequest.pop('value')
 
-        #current_app.logger.debug("get kw: %s", values)
+        current_app.logger.debug("get kw: %s", values)
         rendered = render_node(node['id'], noderequest=noderequest, **values)
         current_app.logger.debug("rendered: %s", rendered)
         if rendered:
@@ -169,7 +169,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _query(node.get('id'), **values)
+        _query(node['id'], **values)
 
         response = make_response('ok', 201)
         return response
@@ -190,7 +190,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _query(node.get('id'), **values)
+        _query(node['id'], **values)
 
         response = make_response('ok', 201)
         return response
@@ -211,7 +211,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _query(node.get('id'), **values)
+        _query(node['id'], **values)
 
         response = make_response('ok', 201)
         return response
@@ -232,7 +232,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _query(node.get('id'), **values)
+        _query(node['id'], **values)
 
         response = make_response('ok', 204)
         return response

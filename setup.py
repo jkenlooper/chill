@@ -50,7 +50,6 @@ setup(
         'Flask-Markdown',
         'psycopg2',
         'sqlalchemy',
-        'records', # TODO: https://github.com/kennethreitz/records
         'PyYAML',
         'gevent',
         'docopt',
