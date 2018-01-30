@@ -355,7 +355,7 @@ def mode_database_functions():
 
         elif selection == 'insert_route':
             path = raw_input('path: ')
-            weight = raw_input('weight: ')
+            weight = raw_input('weight: ') or None
             method = raw_input('method: ') or 'GET'
             node = existing_node_input()
             if node >= 0:

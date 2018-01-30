@@ -29,6 +29,7 @@ import os
 
 import sqlite3
 from sqlalchemy.exc import DatabaseError, StatementError
+from sqlalchemy.sql import text
 from docopt import docopt
 from flask_frozen import Freezer
 
@@ -296,7 +297,7 @@ def freeze(config, urls_file=None):
                     return ('public.uri_index', {'uri': url})
 
         try:
-            result = db.db.execute(fetch_query_string('select_paths_to_freeze.sql')).fetchall()
+            result = db.execute(text(fetch_query_string('select_paths_to_freeze.sql'))).fetchall()
         except (DatabaseError, StatementError) as err:
             app.logger.error("DatabaseError: %s", err)
             return []

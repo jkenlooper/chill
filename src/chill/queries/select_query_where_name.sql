@@ -1,1 +1,1 @@
-select * from Query where name is :name;
+select * from Query where name = :name;

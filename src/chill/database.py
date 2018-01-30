@@ -65,6 +65,9 @@ def insert_node(**kw):
         # statement and using the inserted_primary_key?
         #node_id = result.inserted_primary_key
         node_id = result.lastrowid
+        if (not node_id):
+            result = result.fetchall()
+            node_id = result[0]['id']
         return node_id
 
 def insert_node_node(**kw):
@@ -137,5 +140,8 @@ def insert_query(**kw):
         else:
             result = db.execute(text(fetch_query_string('insert_query.sql')), **kw)
             kw['query_id'] = result.lastrowid
+            if (not kw['query_id']):
+                result = result.fetchall()
+                kw['query_id']  = result[0]['id']
         db.execute(text(fetch_query_string('insert_query_node.sql')), **kw)
 
