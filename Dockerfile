@@ -23,8 +23,5 @@ WORKDIR /usr/src/app
 COPY . .
 RUN pip install .
 
-# Copy the context files to arbitrary /usr/run directory
 WORKDIR /usr/run
-COPY . .
-
 ENTRYPOINT ["chill"]
