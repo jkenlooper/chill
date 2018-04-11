@@ -15,7 +15,8 @@ from glob import glob
 import re
 
 from yaml import safe_dump
-import sqlite3
+from sqlalchemy.exc import DatabaseError, StatementError
+from sqlalchemy.sql import text
 from flask import current_app
 from pyselect import select
 from chill.app import db
@@ -30,7 +31,6 @@ from chill.database import (
         insert_query,
         add_template_for_node,
         fetch_query_string,
-        rowify,
         )
 
 INVALID_NODE = -1
@@ -56,7 +56,6 @@ def existing_node_input():
     """
     input_from_user = raw_input("Existing node name or id: ")
     node_id = INVALID_NODE
-    c = db.cursor()
 
     if not input_from_user:
         return node_id
@@ -68,22 +67,18 @@ def existing_node_input():
         parsed_input = input_from_user
 
     if isinstance(parsed_input, int):
-        c.execute(fetch_query_string('select_node_from_id.sql'),
-                {'node_id':parsed_input})
-        result = c.fetchall()
-        (result, col_names) = rowify(result, c.description)
+        result = db.execute(text(fetch_query_string('select_node_from_id.sql')),
+                node_id=parsed_input).fetchall()
         if result:
-            node_id = int(result[0].get('node_id'))
+            node_id = int(result[0]['node_id'])
     else:
-        c.execute(fetch_query_string('select_node_from_name.sql'),
-                {'node_name':parsed_input})
-        result = c.fetchall()
-        (result, col_names) = rowify(result, c.description)
+        result = db.execute(text(fetch_query_string('select_node_from_name.sql')),
+                node_name=parsed_input).fetchall()
         if result:
             if len(result) == 1:
                 print 'Node id: {node_id}\nNode name: {name}'.format(**result[0])
                 print '-------------'
-                node_id = result[0].get('node_id')
+                node_id = result[0]['node_id']
             else:
                 print 'Multiple nodes found with the name: {0}'.format(parsed_input)
                 for item in result:
@@ -97,8 +92,8 @@ def existing_node_input():
                             print safe_dump(value, default_flow_style=False)
                         else:
                             for item in result:
-                                value = render_node(item.get('node_id'), noderequest={'_no_template':True}, **item)
-                                print 'Node id: {0}'.format(item.get('node_id'))
+                                value = render_node(item['node_id'], noderequest={'_no_template':True}, **item)
+                                print 'Node id: {0}'.format(item['node_id'])
                                 print safe_dump(value, default_flow_style=False)
                                 print '---'
                         node_id = node_input()
@@ -117,16 +112,14 @@ def render_value_for_node(node_id):
     rendered.
     """
     value = None
-    c = db.cursor()
+    result = []
     try:
-        c.execute(fetch_query_string('select_node_from_id.sql'), {'node_id':node_id})
-    except sqlite3.DatabaseError as err:
+        result = db.execute(text(fetch_query_string('select_node_from_id.sql')), node_id=node_id).fetchall()
+    except DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
-    result = c.fetchall()
     if result:
-        (result, col_names) = rowify(result, c.description)
-        kw = result[0]
+        kw = dict(zip(result[0].keys(), result[0].values()))
         value = render_node(node_id, noderequest={'_no_template':True}, **kw)
 
     return value
@@ -298,8 +291,6 @@ def mode_new_collection():
     if collection_node_id:
         print "Added collection name '{0}' with node id: {1}".format(collection_name, collection_node_id)
 
-    db.commit()
-
 
 def mode_database_functions():
     "Select a function to perform from chill.database"
@@ -311,9 +302,11 @@ def mode_database_functions():
             'insert_node',
             'insert_node_node',
             'delete_node',
+            'select_node',
             'insert_route',
             'insert_query',
             'add_template_for_node',
+            'fetch_query_string',
             ]
     while selection:
         choices = database_functions + [
@@ -354,9 +347,15 @@ def mode_database_functions():
             if node >= 0:
                 delete_node(node_id=node)
 
+        elif selection == 'select_node':
+            node = existing_node_input()
+            if node >= 0:
+                result = select_node(node_id=node)
+                print safe_dump(dict(zip(result[0].keys(), result[0].values())), default_flow_style=False)
+
         elif selection == 'insert_route':
             path = raw_input('path: ')
-            weight = raw_input('weight: ')
+            weight = raw_input('weight: ') or None
             method = raw_input('method: ') or 'GET'
             node = existing_node_input()
             if node >= 0:
@@ -374,6 +373,12 @@ def mode_database_functions():
                     add_template_for_node(name=templatefile, node_id=node)
                     print "adding %s to node id: %s" % (templatefile, node)
 
+        elif selection == 'fetch_query_string':
+            sqlfile = choose_query_file()
+            if sqlfile:
+                sql = fetch_query_string(sqlfile)
+                print sql
+
         elif selection == 'help':
             print "------"
             for f in database_functions:
@@ -382,8 +387,6 @@ def mode_database_functions():
             print "------"
         else:
             pass
-
-        db.commit()
 
 def operate_menu():
     "Select between these operations on the database"
@@ -419,22 +422,27 @@ def operate_menu():
                     value = raw_input(placeholder + ': ')
                     data[placeholder] = value
 
-                c = db.cursor()
+                result = []
                 try:
-                    c.execute(sql, data)
-                except sqlite3.DatabaseError as err:
+                    result = db.execute(text(sql), data)
+                except DatabaseError as err:
                     current_app.logger.error("DatabaseError: %s", err)
 
-                result = c.fetchall()
-                if result:
-                    (result, col_names) = rowify(result, c.description)
-                    kw = result[0]
-
-                    if 'node_id' in kw:
-                        value = render_node(kw['node_id'], **kw)
-                        print safe_dump(value, default_flow_style=False)
+                if result and result.returns_rows:
+                    result = result.fetchall()
+                    print result
+                    if not result:
+                        print 'No results.'
                     else:
-                        print safe_dump(result, default_flow_style=False)
+                        kw = result[0]
+
+                        if 'node_id' in kw:
+                            print 'render node %s' % kw['node_id']
+                            value = render_node(kw['node_id'], **kw)
+                            print safe_dump(value, default_flow_style=False)
+                        else:
+                            #print safe_dump(rowify(result, [(x, None) for x in result[0].keys()]), default_flow_style=False)
+                            print safe_dump([dict(zip(x.keys(), x.values())) for x in result], default_flow_style=False)
 
         elif selection == 'render_node':
             print globals()['render_node'].__doc__
@@ -471,7 +479,3 @@ def operate_menu():
             print "------"
         else:
             print 'Done'
-
-        db.commit()
-
-

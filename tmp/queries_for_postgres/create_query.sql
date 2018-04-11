@@ -1,4 +1,4 @@
 create table Query (
-    id integer primary key,
+    id serial primary key,
     name varchar(255) not null
 );

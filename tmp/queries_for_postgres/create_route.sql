@@ -1,5 +1,5 @@
 create table Route (
-    id integer primary key,
+    id serial primary key,
     path text not null,
     node_id integer,
     weight integer default 0,

@@ -6,7 +6,9 @@ from flask.helpers import send_from_directory
 from flaskext.markdown import Markdown
 from jinja2 import FileSystemLoader
 from cache import cache
-import sqlite3
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
+from sqlalchemy import event
 
 import shortcodes
 
@@ -40,16 +42,24 @@ class ChillFlask(Flask):
                                    cache_timeout=cache_timeout)
 
 def connect_to_database():
-    return sqlite3.connect(current_app.config['CHILL_DATABASE_URI'])
+    """
+    Return the engine. Echo all sql statements if in DEBUG mode.
+    """
+    return create_engine(current_app.config['CHILL_DATABASE_URI'], echo=current_app.config['DEBUG'])
+
 
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = connect_to_database()
-        # Enable foreign key support so 'on update' and 'on delete' actions
-        # will apply. This needs to be set for each db connection.
-        c = db.cursor()
-        c.execute('pragma foreign_keys = ON;')
+        if str(db.url).startswith('sqlite://'):
+            # Enable foreign key support so 'on update' and 'on delete' actions
+            # will apply. This needs to be set for each db connection.
+            @event.listens_for(Engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.close()
     return db
 
 db = LocalProxy(get_db)
@@ -140,7 +150,7 @@ def make_app(config=None, **kw):
     def teardown_db(exception):
         db = getattr(g, '_database', None)
         if db is not None:
-            db.close()
+            db.dispose()
 
 
     # STATIC_URL='http://cdn.example.com/whatever/works/'

@@ -1,7 +1,11 @@
 import os
 import os.path
 
-import sqlite3
+from sqlalchemy.sql import text
+from sqlalchemy.exc import (
+        DatabaseError,
+        OperationalError
+        )
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import HTTPException
 
@@ -27,17 +31,17 @@ def check_map(uri, url_root):
     return a tuple of the rule and kw.
     """
     # TODO: Building the Map each time this is called seems like it could be more effiecent.
-    c = db.cursor()
+    result = []
     try:
-        c.execute(fetch_query_string('select_route_where_dynamic.sql'))
-    except sqlite3.OperationalError as err:
+        result = db.execute(text(fetch_query_string('select_route_where_dynamic.sql'))).fetchall()
+    except OperationalError as err:
         current_app.logger.error("OperationalError: %s", err)
         return (None, None)
-    result = c.fetchall()
     if result:
-        (routes, col_names) = rowify(result, c.description)
+        #routes = result.as_dict()
+        #(routes, col_names) = rowify(result, c.description)
         #current_app.logger.debug( [x['rule'] for x in routes] )
-        rules = map( lambda r: Rule(r['rule'], endpoint='dynamic'), routes )
+        rules = map( lambda r: Rule(r['rule'], endpoint='dynamic'), result )
         d_map = Map( rules )
         map_adapter = d_map.bind(url_root)
         #current_app.logger.debug(uri)
@@ -66,14 +70,13 @@ def node_from_uri(uri, method="GET"):
     rule_kw = {}
     select_node_from_route = fetch_query_string('select_node_from_route.sql')
 
-    c = db.cursor()
+    result = []
     try:
-        c.execute(select_node_from_route, {'uri':uri, 'method':method})
-    except sqlite3.DatabaseError as err:
+        result = db.execute(text(select_node_from_route), uri=uri, method=method).fetchall()
+    except DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
-    result = c.fetchall()
-    #current_app.logger.debug('result: "%s"' % result)
+    #current_app.logger.debug('result: "{}", {}'.format(result, len(result)))
     if not result or len(result) == 0:
         # See if the uri matches any dynamic rules
         (rule, rule_kw) = check_map(uri, request.url_root)
@@ -81,13 +84,13 @@ def node_from_uri(uri, method="GET"):
         #current_app.logger.debug('rule: "%s"' % rule or '')
         if rule:
             try:
-                c.execute(select_node_from_route, {'uri':rule, 'method':method})
-                result = c.fetchall()
-            except sqlite3.DatabaseError as err:
+                result = db.execute(text(select_node_from_route), uri=rule, method=method).fetchall()
+            except DatabaseError as err:
                 current_app.logger.error("DatabaseError: %s", err)
 
     if result:
-        (result, col_names) = rowify(result, c.description)
+        #result = result.as_dict()
+        #(result, col_names) = rowify(result, c.description)
 
         # Only one result for a getting a node from a unique path.
         return (result[0], rule_kw)
@@ -137,9 +140,9 @@ class PageView(MethodView):
         noderequest.pop('name')
         noderequest.pop('value')
 
-        #current_app.logger.debug("get kw: %s", values)
+        current_app.logger.debug("get kw: %s", values)
         rendered = render_node(node['id'], noderequest=noderequest, **values)
-        #current_app.logger.debug("rendered: %s", rendered)
+        current_app.logger.debug("rendered: %s", rendered)
         if rendered:
             if not isinstance(rendered, (str, unicode, int, float)):
                 # return a json string
@@ -166,8 +169,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _query(node.get('id'), **values)
-        db.commit()
+        _query(node['id'], **values)
 
         response = make_response('ok', 201)
         return response
@@ -188,8 +190,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _query(node.get('id'), **values)
-        db.commit()
+        _query(node['id'], **values)
 
         response = make_response('ok', 201)
         return response
@@ -210,8 +211,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _query(node.get('id'), **values)
-        db.commit()
+        _query(node['id'], **values)
 
         response = make_response('ok', 201)
         return response
@@ -232,8 +232,7 @@ class PageView(MethodView):
         values['method'] = request.method
 
         # Execute the sql query with the data
-        _query(node.get('id'), **values)
-        db.commit()
+        _query(node['id'], **values)
 
         response = make_response('ok', 204)
         return response

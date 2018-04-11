@@ -1,15 +1,16 @@
 import os
+from sqlalchemy.sql import text
 from flask import current_app, g
 from chill.app import db
 from cache import cache
 
 CHILL_CREATE_TABLE_FILES = (
         'create_chill.sql',
-        'create_node_node.sql',
-        'create_node.sql',
-        'create_route.sql',
         'create_query.sql',
-        'create_template.sql'
+        'create_template.sql',
+        'create_node.sql',
+        'create_node_node.sql',
+        'create_route.sql'
         )
 
 def init_db():
@@ -23,13 +24,8 @@ def init_db():
     Template
     """
     with current_app.app_context():
-        #db = get_db()
-        c = db.cursor()
-
         for filename in CHILL_CREATE_TABLE_FILES:
-            c.execute(fetch_query_string(filename))
-
-        db.commit()
+            db.execute(text(fetch_query_string(filename)))
 
 def rowify(l, description):
     d = []
@@ -64,10 +60,14 @@ def fetch_query_string(file_name):
 def insert_node(**kw):
     "Insert a node with a name and optional value. Return the node id."
     with current_app.app_context():
-        c = db.cursor()
-        c.execute(fetch_query_string('insert_node.sql'), kw)
-        node_id = c.lastrowid
-        db.commit()
+        result = db.execute(text(fetch_query_string('insert_node.sql')), **kw)
+        # TODO: support for postgres may require using a RETURNING id; sql
+        # statement and using the inserted_primary_key?
+        #node_id = result.inserted_primary_key
+        node_id = result.lastrowid
+        if (not node_id):
+            result = result.fetchall()
+            node_id = result[0]['id']
         return node_id
 
 def insert_node_node(**kw):
@@ -77,27 +77,21 @@ def insert_node_node(**kw):
     """
     with current_app.app_context():
         insert_query(name='select_link_node_from_node.sql', node_id=kw.get('node_id'))
-        c = db.cursor()
-        c.execute(fetch_query_string('insert_node_node.sql'), kw)
-        db.commit()
+        db.execute(text(fetch_query_string('insert_node_node.sql')), **kw)
 
 def delete_node(**kw):
     """
     Delete a node by id.
     """
     with current_app.app_context():
-        c = db.cursor()
-        c.execute(fetch_query_string('delete_node_for_id.sql'), kw)
-        db.commit()
+        db.execute(text(fetch_query_string('delete_node_for_id.sql')), **kw)
 
 def select_node(**kw):
     """
     Select node by id.
     """
     with current_app.app_context():
-        c = db.cursor()
-        result = c.execute(fetch_query_string('select_node_from_id.sql'), kw).fetchall()
-        (result, col_names) = rowify(result, c.description)
+        result = db.execute(text(fetch_query_string('select_node_from_id.sql')), **kw).fetchall()
         return result
 
 def insert_route(**kw):
@@ -115,24 +109,19 @@ def insert_route(**kw):
             }
     binding.update(kw)
     with current_app.app_context():
-        c = db.cursor()
-        c.execute(fetch_query_string('insert_route.sql'), binding)
-        db.commit()
+        db.execute(text(fetch_query_string('insert_route.sql')), **binding)
 
 def add_template_for_node(name, node_id):
     "Set the template to use to display the node"
     with current_app.app_context():
-        c = db.cursor()
-        c.execute(fetch_query_string('insert_template.sql'),
-                {'name':name, 'node_id':node_id})
-        c.execute(fetch_query_string('select_template.sql'),
-                {'name':name, 'node_id':node_id})
-        result = c.fetchone()
+        db.execute(text(fetch_query_string('insert_template.sql')),
+                name=name, node_id=node_id)
+        result = db.execute(text(fetch_query_string('select_template.sql')),
+                          name=name, node_id=node_id).fetchall()
         if result:
-            template_id = result[0]
-            c.execute(fetch_query_string('update_template_node.sql'),
-                    {'template':template_id, 'node_id':node_id})
-        db.commit()
+            template_id = result[0]['id']
+            db.execute(text(fetch_query_string('update_template_node.sql')),
+                    template=template_id, node_id=node_id)
 
 
 def insert_query(**kw):
@@ -145,14 +134,14 @@ def insert_query(**kw):
     in Node table.
     """
     with current_app.app_context():
-        c = db.cursor()
-        result = c.execute(fetch_query_string('select_query_where_name.sql'), kw).fetchall()
-        (result, col_names) = rowify(result, c.description)
+        result = db.execute(text(fetch_query_string('select_query_where_name.sql')), **kw).fetchall()
         if result:
-            kw['query_id'] = result[0].get('id')
+            kw['query_id'] = result[0]['id']
         else:
-            c.execute(fetch_query_string('insert_query.sql'), kw)
-            kw['query_id'] = c.lastrowid
-        c.execute(fetch_query_string('insert_query_node.sql'), kw)
-        db.commit()
+            result = db.execute(text(fetch_query_string('insert_query.sql')), **kw)
+            kw['query_id'] = result.lastrowid
+            if (not kw['query_id']):
+                result = result.fetchall()
+                kw['query_id']  = result[0]['id']
+        db.execute(text(fetch_query_string('insert_query_node.sql')), **kw)
 

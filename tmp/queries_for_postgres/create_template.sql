@@ -1,4 +1,4 @@
 create table Template (
-    id integer primary key,
+    id serial primary key,
     name varchar(255) unique not null
 );
