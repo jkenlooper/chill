@@ -248,7 +248,7 @@ def run(config):
 # bin/serve
 def serve(config):
     "Serve the app with Gevent"
-    from gevent.wsgi import WSGIServer
+    from gevent.pywsgi import WSGIServer
 
     app = make_app(config=config)
 
