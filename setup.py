@@ -43,7 +43,7 @@ setup(
     install_requires=[
         'setuptools',
         'docutils',
-        'Flask==0.10.1',
+        'Flask==1.0',
         'Jinja2',
         'Flask-Cache',
         'Frozen-Flask',
