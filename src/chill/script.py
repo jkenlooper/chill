@@ -171,7 +171,6 @@ def init():
     "Initialize the current directory with base starting files and database."
 
     if not os.path.exists('site.cfg'):
-        print "Creating a default site.cfg"
         f = open('site.cfg', 'w')
         f.write(SITECFG)
         f.close()
@@ -205,7 +204,7 @@ def init():
     app = make_app(config='site.cfg', DEBUG=True)
 
     with app.app_context():
-        print "initializing database"
+        app.logger.info("initializing database")
         init_db()
 
         homepage = insert_node(name='homepage', value=None)
@@ -265,7 +264,7 @@ def freeze(config, urls_file=None):
         app = make_app(config=config, URLS_FILE=urls_file)
     else:
         app = make_app(config=config)
-    app.logger.debug('freezing app to directory: %s' % app.config['FREEZER_DESTINATION'])
+    app.logger.info('freezing app to directory: %s' % app.config['FREEZER_DESTINATION'])
     freezer = Freezer(app)
 
 

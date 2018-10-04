@@ -45,7 +45,7 @@ def connect_to_database():
     """
     Return the engine. Echo all sql statements if in DEBUG mode.
     """
-    return create_engine(current_app.config['CHILL_DATABASE_URI'], echo=current_app.config['DEBUG'])
+    return create_engine(current_app.config['CHILL_DATABASE_URI'])
 
 
 def get_db():
