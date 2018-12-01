@@ -158,6 +158,8 @@ class PageView(MethodView):
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
+        if node == None:
+            abort(404)
 
         rule_kw.update( node )
         values = rule_kw
@@ -179,6 +181,8 @@ class PageView(MethodView):
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
+        if node == None:
+            abort(404)
 
         rule_kw.update( node )
         values = rule_kw
@@ -200,6 +204,8 @@ class PageView(MethodView):
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
+        if node == None:
+            abort(404)
 
         rule_kw.update( node )
         values = rule_kw
@@ -221,6 +227,8 @@ class PageView(MethodView):
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
+        if node == None:
+            abort(404)
 
         rule_kw.update( node )
         values = rule_kw

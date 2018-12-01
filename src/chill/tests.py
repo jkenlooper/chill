@@ -184,6 +184,38 @@ class Route(ChillTestCase):
                 rv = c.get('/vegetables/pear/', follow_redirects=True)
                 assert 'b' == rv.data
 
+    def test_404_on_mismatch_method(self):
+        """
+        route that matches, but has no method match
+        """
+        with self.app.app_context():
+            init_db()
+
+            llama_id = insert_node(name='llama', value='1234')
+            insert_route(path='/llama/', node_id=llama_id)
+
+            with self.app.test_client() as c:
+
+                rv = c.get('/llama/', follow_redirects=True)
+                assert '1234' == rv.data
+                assert 200 == rv.status_code
+
+                rv = c.post('/llama/', follow_redirects=True)
+                assert '1234' != rv.data
+                assert 404 == rv.status_code
+
+                rv = c.put('/llama/', follow_redirects=True)
+                assert '1234' != rv.data
+                assert 404 == rv.status_code
+
+                rv = c.patch('/llama/', follow_redirects=True)
+                assert '1234' != rv.data
+                assert 404 == rv.status_code
+
+                rv = c.delete('/llama/', follow_redirects=True)
+                assert '1234' != rv.data
+                assert 404 == rv.status_code
+
 
 class NothingConfigured(ChillTestCase):
     def test_empty(self):
