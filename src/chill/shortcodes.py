@@ -48,6 +48,7 @@ Author: Darren Mulholland <dmulholland@outlook.ie>
 License: This work has been placed in the public domain.
 
 """
+from __future__ import print_function
 
 __version__ = "2.0.1"
 
@@ -145,7 +146,7 @@ class ShortcodeNode(Node):
         try:
             return unicode(self.func(context, None, self.pargs, self.kwargs))
         except Exception as e:
-            print e
+            print(e)
             raise RenderingError('error rendering [%s] tag' % self.tag)
 
     def parse_args(self, argstring):

@@ -24,6 +24,7 @@ Subcommands:
     migrate - Perform a database migration from one version to the next.
 
 """
+from __future__ import print_function
 
 import os
 
@@ -221,7 +222,7 @@ def operate(config):
 
     app = make_app(config=config)
 
-    print "Operate Mode"
+    print("Operate Mode")
     with app.app_context():
         operate_menu()
 

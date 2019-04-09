@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 
 from werkzeug.local import LocalProxy
@@ -5,12 +6,12 @@ from flask import Flask, g, current_app, Blueprint, Markup
 from flask.helpers import send_from_directory
 from flaskext.markdown import Markdown
 from jinja2 import FileSystemLoader
-from cache import cache
+from .cache import cache
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
 
-import shortcodes
+from . import shortcodes
 
 #from chill.resource import resource
 #from chill.page import page

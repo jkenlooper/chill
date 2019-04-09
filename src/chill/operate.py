@@ -10,6 +10,8 @@ a simple approach using functions found within chill.  If needing to add lots
 of content it would be wise to write a script to handle these things.
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 import os
 from glob import glob
 import re
@@ -20,7 +22,7 @@ from sqlalchemy.sql import text
 from flask import current_app
 from pyselect import select
 from chill.app import db
-from api import render_node
+from .api import render_node
 from chill.database import (
         init_db,
         insert_node,
@@ -45,7 +47,7 @@ def node_input():
         node = int(raw_input("Node id: "))
     except ValueError:
         node = INVALID_NODE
-        print 'invalid node id: %s' % node
+        print('invalid node id: %s' % node)
     return node
 
 def existing_node_input():
@@ -76,33 +78,33 @@ def existing_node_input():
                 node_name=parsed_input).fetchall()
         if result:
             if len(result) == 1:
-                print 'Node id: {node_id}\nNode name: {name}'.format(**result[0])
-                print '-------------'
+                print('Node id: {node_id}\nNode name: {name}'.format(**result[0]))
+                print('-------------')
                 node_id = result[0]['node_id']
             else:
-                print 'Multiple nodes found with the name: {0}'.format(parsed_input)
+                print('Multiple nodes found with the name: {0}'.format(parsed_input))
                 for item in result:
-                    print '{node_id}: {name} = {value}'.format(**item)
+                    print('{node_id}: {name} = {value}'.format(**item))
                 node_selection = raw_input('Enter a node id from this list or enter "?" to render all or "?<node>" for a specific one.')
                 if node_selection:
                     node_selection_match = re.match(r"\?(\d)*", node_selection)
                     if node_selection_match:
                         if node_selection_match.groups()[0]:
                             value = render_node(int(node_selection_match.groups()[0]), noderequest={'_no_template':True}, **result[0])
-                            print safe_dump(value, default_flow_style=False)
+                            print(safe_dump(value, default_flow_style=False))
                         else:
                             for item in result:
                                 value = render_node(item['node_id'], noderequest={'_no_template':True}, **item)
-                                print 'Node id: {0}'.format(item['node_id'])
-                                print safe_dump(value, default_flow_style=False)
-                                print '---'
+                                print('Node id: {0}'.format(item['node_id']))
+                                print(safe_dump(value, default_flow_style=False))
+                                print('---')
                         node_id = node_input()
                     else:
                         try:
                             node_id = int(node_selection)
                         except ValueError:
                             node_id = INVALID_NODE
-                            print 'invalid node id: %s' % node
+                            print('invalid node id: %s' % node)
 
     return node_id
 
@@ -125,7 +127,7 @@ def render_value_for_node(node_id):
     return value
 
 def choose_query_file():
-    print "Choose from the available query files:"
+    print("Choose from the available query files:")
     choices = set(
             map(os.path.basename,
                 glob(os.path.join(os.path.dirname(__file__), 'queries', '*'))
@@ -148,7 +150,7 @@ def purge_collection(keys):
         name = m.group(1)
         node_id = m.group(2)
         value = render_value_for_node(node_id)
-        print 'remove node with name:{0} and id:{1}'.format(name, node_id)
+        print('remove node with name:{0} and id:{1}'.format(name, node_id))
 
         delete_node(node_id=node_id)
         if isinstance(value, dict):
@@ -162,13 +164,13 @@ def mode_collection():
     """
     Manage an existing collection node.
     """
-    print globals()['mode_collection'].__doc__
+    print(globals()['mode_collection'].__doc__)
     collection_node_id = existing_node_input()
     value = render_value_for_node(collection_node_id)
     if not value:
         return None
-    print "Collection length: {0}".format(len(value))
-    print safe_dump(value, default_flow_style=False)
+    print("Collection length: {0}".format(len(value)))
+    print(safe_dump(value, default_flow_style=False))
 
     item_attr_list = []
     if len(value):
@@ -187,7 +189,7 @@ def mode_collection():
             'Purge collection'
             ])
         if selection == 'View collection':
-            print safe_dump(value, default_flow_style=False)
+            print(safe_dump(value, default_flow_style=False))
         elif selection == 'Purge collection':
             confirm = raw_input("Delete all {0} items and their {1} attributes from the collection? y/n\n".format(len(value.keys()), len(item_attr_list)))
             if confirm == 'y':
@@ -198,7 +200,7 @@ def mode_collection():
             if item_node_id < 0:
                 return
             value = render_value_for_node(item_node_id)
-            print safe_dump(value, default_flow_style=False)
+            print(safe_dump(value, default_flow_style=False))
             confirm = raw_input("Delete this node and it's attributes? y/n\n").format(len(value.keys()), len(item_attr_list))
             if confirm == 'y':
                 delete_node(node_id=item_node_id)
@@ -213,7 +215,7 @@ def mode_collection():
                     collection_node_id=collection_node_id,
                     item_attr_list=item_attr_list)
         elif selection == 'Remove attribute':
-            print "Select the attribute that will be removed:"
+            print("Select the attribute that will be removed:")
             attribute_selection = select(item_attr_list)
             if attribute_selection:
                 confirm = raw_input("Delete attribute '{0}' from all {1} items in the collection? y/n\n".format(attribute_selection, len(value.keys())))
@@ -232,8 +234,8 @@ def mode_collection():
                     item_index += 1
                     m = re.match(r'(.*) \((\d+)\)', item_key)
                     item_value = render_value_for_node(m.group(2))
-                    print "item {0} of {1} items".format(item_index, len(value))
-                    print safe_dump(item_value, default_flow_style=False)
+                    print("item {0} of {1} items".format(item_index, len(value)))
+                    print(safe_dump(item_value, default_flow_style=False))
 
                     new_attr_value = raw_input("Enter item attribute value for '{0}': ".format(item_attr))
                     # set value to none if it's an empty string
@@ -261,7 +263,7 @@ def mode_new_collection():
     Create a new collection of items with common attributes.
     """
 
-    print globals()['mode_new_collection'].__doc__
+    print(globals()['mode_new_collection'].__doc__)
     collection_name = raw_input("Collection name: ")
     item_attr_list = []
     collection_node_id = None
@@ -289,13 +291,13 @@ def mode_new_collection():
                     item_attr_list=item_attr_list)
 
     if collection_node_id:
-        print "Added collection name '{0}' with node id: {1}".format(collection_name, collection_node_id)
+        print("Added collection name '{0}' with node id: {1}".format(collection_name, collection_node_id))
 
 
 def mode_database_functions():
     "Select a function to perform from chill.database"
 
-    print globals()['mode_database_functions'].__doc__
+    print(globals()['mode_database_functions'].__doc__)
     selection = True
     database_functions = [
             'init_db',
@@ -315,7 +317,7 @@ def mode_database_functions():
         selection = select(choices)
 
         if selection:
-            print globals().get(selection).__doc__
+            print(globals().get(selection).__doc__)
         if selection == 'init_db':
             confirm = raw_input("Initialize new database y/n? [n] ")
             if confirm == 'y':
@@ -324,7 +326,7 @@ def mode_database_functions():
             name = raw_input("Node name: ")
             value = raw_input("Node value: ")
             node = insert_node(name=name, value=value or None)
-            print "name: %s \nid: %s" % (name, node)
+            print("name: %s \nid: %s" % (name, node))
 
         elif selection == 'insert_query':
             sqlfile = choose_query_file()
@@ -332,12 +334,12 @@ def mode_database_functions():
                 node = existing_node_input()
                 if node >= 0:
                     insert_query(name=sqlfile, node_id=node)
-                    print "adding %s to node id: %s" % (sqlfile, node)
+                    print("adding %s to node id: %s" % (sqlfile, node))
 
         elif selection == 'insert_node_node':
-            print "Add parent node id"
+            print("Add parent node id")
             node = existing_node_input()
-            print "Add target node id"
+            print("Add target node id")
             target_node = existing_node_input()
             if node >= 0 and target_node >= 0:
                 insert_node_node(node_id=node, target_node_id=target_node)
@@ -351,7 +353,7 @@ def mode_database_functions():
             node = existing_node_input()
             if node >= 0:
                 result = select_node(node_id=node)
-                print safe_dump(dict(zip(result[0].keys(), result[0].values())), default_flow_style=False)
+                print(safe_dump(dict(zip(result[0].keys(), result[0].values())), default_flow_style=False))
 
         elif selection == 'insert_route':
             path = raw_input('path: ')
@@ -371,20 +373,20 @@ def mode_database_functions():
                 node = existing_node_input()
                 if node >= 0:
                     add_template_for_node(name=templatefile, node_id=node)
-                    print "adding %s to node id: %s" % (templatefile, node)
+                    print("adding %s to node id: %s" % (templatefile, node))
 
         elif selection == 'fetch_query_string':
             sqlfile = choose_query_file()
             if sqlfile:
                 sql = fetch_query_string(sqlfile)
-                print sql
+                print(sql)
 
         elif selection == 'help':
-            print "------"
+            print("------")
             for f in database_functions:
-                print "\n** %s **" % f
-                print globals().get(f).__doc__
-            print "------"
+                print("\n** %s **" % f)
+                print(globals().get(f).__doc__)
+            print("------")
         else:
             pass
 
@@ -394,7 +396,7 @@ def operate_menu():
     selection = True
     while selection:
 
-        print globals()['operate_menu'].__doc__
+        print(globals()['operate_menu'].__doc__)
         selection = select([
             'chill.database functions',
             'execute sql file',
@@ -407,7 +409,7 @@ def operate_menu():
         if selection == 'chill.database functions':
             mode_database_functions()
         elif selection == 'execute sql file':
-            print "View the sql file and show a fill in the blanks interface with raw_input"
+            print("View the sql file and show a fill in the blanks interface with raw_input")
             sqlfile = choose_query_file()
             if not sqlfile:
                 # return to the menu choices if not file picked
@@ -416,7 +418,7 @@ def operate_menu():
                 sql_named_placeholders_re = re.compile(r":(\w+)")
                 sql = fetch_query_string(sqlfile)
                 placeholders = set(sql_named_placeholders_re.findall(sql))
-                print sql
+                print(sql)
                 data = {}
                 for placeholder in placeholders:
                     value = raw_input(placeholder + ': ')
@@ -430,26 +432,26 @@ def operate_menu():
 
                 if result and result.returns_rows:
                     result = result.fetchall()
-                    print result
+                    print(result)
                     if not result:
-                        print 'No results.'
+                        print('No results.')
                     else:
                         kw = result[0]
 
                         if 'node_id' in kw:
-                            print 'render node %s' % kw['node_id']
+                            print('render node %s' % kw['node_id'])
                             value = render_node(kw['node_id'], **kw)
-                            print safe_dump(value, default_flow_style=False)
+                            print(safe_dump(value, default_flow_style=False))
                         else:
                             #print safe_dump(rowify(result, [(x, None) for x in result[0].keys()]), default_flow_style=False)
-                            print safe_dump([dict(zip(x.keys(), x.values())) for x in result], default_flow_style=False)
+                            print(safe_dump([dict(zip(x.keys(), x.values())) for x in result], default_flow_style=False))
 
         elif selection == 'render_node':
-            print globals()['render_node'].__doc__
+            print(globals()['render_node'].__doc__)
             node_id = existing_node_input()
 
             value = render_value_for_node(node_id)
-            print safe_dump(value, default_flow_style=False)
+            print(safe_dump(value, default_flow_style=False))
 
         elif selection == 'New collection':
             mode_new_collection()
@@ -458,24 +460,24 @@ def operate_menu():
         elif selection == 'Add document for node':
             folder = current_app.config.get('DOCUMENT_FOLDER')
             if not folder:
-                print "No DOCUMENT_FOLDER configured for the application."
+                print("No DOCUMENT_FOLDER configured for the application.")
             else:
                 choices = map(os.path.basename,
                             glob(os.path.join(folder, '*'))
                             )
                 choices.sort()
                 if len(choices) == 0:
-                    print "No files found in DOCUMENT_FOLDER."
+                    print("No files found in DOCUMENT_FOLDER.")
                 else:
                     filename = select(choices)
                     if filename:
                         defaultname = os.path.splitext(filename)[0]
                         nodename = raw_input("Enter name for node [{0}]: ".format(defaultname)) or defaultname
                         node = insert_node(name=nodename, value=filename)
-                        print "Added document '%s' to node '%s' with id: %s" % (filename, nodename, node)
+                        print("Added document '%s' to node '%s' with id: %s" % (filename, nodename, node))
         elif selection == 'help':
-            print "------"
-            print __doc__
-            print "------"
+            print("------")
+            print(__doc__)
+            print("------")
         else:
-            print 'Done'
+            print('Done')

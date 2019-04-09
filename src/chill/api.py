@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 from sqlalchemy.exc import DatabaseError, StatementError
 from sqlalchemy.sql import text
 from flask import current_app, render_template
 
 from chill.app import db
-from database import fetch_query_string, rowify
+from .database import fetch_query_string, rowify
 
 def _short_circuit(value=None):
     """

@@ -1,8 +1,9 @@
+from __future__ import absolute_import
 import os
 from sqlalchemy.sql import text
 from flask import current_app, g
 from chill.app import db
-from cache import cache
+from .cache import cache
 
 CHILL_CREATE_TABLE_FILES = (
         'create_chill.sql',

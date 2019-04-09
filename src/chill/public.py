@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import os.path
 
@@ -16,10 +17,10 @@ from flask import (
 from flask.views import MethodView
 
 from chill.app import db
-from database import fetch_query_string, rowify
-from api import render_node, _query
-from cache import cache
-import shortcodes
+from .database import fetch_query_string, rowify
+from .api import render_node, _query
+from .cache import cache
+from . import shortcodes
 
 encoder = json.JSONEncoder(indent=2, sort_keys=True)
 
@@ -98,7 +99,7 @@ def node_from_uri(uri, method="GET"):
 
 def skip_cache():
     """Skip the cache if request has Chill-Skip-Cache set"""
-    if request.headers.has_key(u'Chill-Skip-Cache'):
+    if u'Chill-Skip-Cache' in request.headers:
         return True
 
     return False
