@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from builtins import str
 import os
 import os.path
 
@@ -42,7 +43,7 @@ def check_map(uri, url_root):
         #routes = result.as_dict()
         #(routes, col_names) = rowify(result, c.description)
         #current_app.logger.debug( [x['rule'] for x in routes] )
-        rules = map( lambda r: Rule(r['rule'], endpoint='dynamic'), result )
+        rules = [Rule(r['rule'], endpoint='dynamic') for r in result]
         d_map = Map( rules )
         map_adapter = d_map.bind(url_root)
         #current_app.logger.debug(uri)
@@ -145,7 +146,7 @@ class PageView(MethodView):
         rendered = render_node(node['id'], noderequest=noderequest, **values)
         current_app.logger.debug("rendered: %s", rendered)
         if rendered:
-            if not isinstance(rendered, (str, unicode, int, float)):
+            if not isinstance(rendered, (str, str, int, float)):
                 # return a json string
                 return encoder.encode(rendered)
             return rendered
@@ -275,7 +276,7 @@ def route_handler(context, content, pargs, kwargs):
     rendered = render_node(node['id'], noderequest=noderequest, **values)
 
     if rendered:
-        if not isinstance(rendered, (str, unicode, int, float)):
+        if not isinstance(rendered, (str, str, int, float)):
             # return a json string
             return encoder.encode(rendered)
 

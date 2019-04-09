@@ -26,6 +26,7 @@ Subcommands:
 """
 from __future__ import print_function
 
+from builtins import map
 import os
 
 import sqlite3
@@ -301,13 +302,13 @@ def freeze(config, urls_file=None):
         except (DatabaseError, StatementError) as err:
             app.logger.error("DatabaseError: %s", err)
             return []
-        urls = filter(None, map(lambda x:cleanup_url(x[0]), result))
+        urls = [_f for _f in [cleanup_url(x[0]) for x in result] if _f]
 
         urls_file = app.config.get('URLS_FILE', None)
         if urls_file:
             urls_file = urls_file if urls_file[0] == os.sep else os.path.join(os.getcwd(), urls_file)
             f = open(urls_file, 'r')
-            urls.extend(filter(None, map(cleanup_url, f.readlines())))
+            urls.extend([_f for _f in map(cleanup_url, f.readlines()) if _f])
             f.close()
 
         return urls

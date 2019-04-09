@@ -33,15 +33,15 @@ def _short_circuit(value=None):
             else:
                 return value[0]
     else:
-        value = filter(None, value)
+        value = [_f for _f in value if _f]
         # Only checking first item and assumin all others are same type
         if isinstance(value[0], dict):
             if set(value[0].keys()) == set(value[1].keys()):
                 return value
-            elif max([len(x.keys()) for x in value]) == 1:
+            elif max([len(list(x.keys())) for x in value]) == 1:
                 newvalue = {}
                 for v in value:
-                    key = v.keys()[0]
+                    key = list(v.keys())[0]
                     newvalue[key] = v[key]
                 return newvalue
             else:
@@ -76,7 +76,7 @@ def _query(_node_id, value=None, **kw):
                     #skw = {key: kw[key] for key in params}
                     #result = db.execute(statement, **skw)
                     result = db.execute(text(fetch_query_string(query_name)), **kw)
-                    current_app.logger.debug("result query: %s", result.keys())
+                    current_app.logger.debug("result query: %s", list(result.keys()))
                 except (DatabaseError, StatementError) as err:
                     current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
                 if result and result.returns_rows:
@@ -91,7 +91,7 @@ def _query(_node_id, value=None, **kw):
                         # There may be more results, but only interested in the
                         # first one. Use the older rowify method for now.
                         # TODO: use case for rowify?
-                        values.append(rowify(result, [(x, None) for x in result[0].keys()]))
+                        values.append(rowify(result, [(x, None) for x in list(result[0].keys())]))
                         #current_app.logger.debug("fetchone: %s", values)
         value = values
     #current_app.logger.debug("value: %s", value)

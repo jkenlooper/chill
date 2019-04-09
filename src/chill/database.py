@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from builtins import zip
 import os
 from sqlalchemy.sql import text
 from flask import current_app, g
@@ -34,7 +35,7 @@ def rowify(l, description):
     if l != None and description != None:
         col_names = [x[0] for x in description]
         for row in l:
-            d.append(dict(zip(col_names, row)))
+            d.append(dict(list(zip(col_names, row))))
     return (d, col_names)
 
 def _fetch_sql_string(file_name):

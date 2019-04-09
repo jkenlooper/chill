@@ -50,6 +50,9 @@ License: This work has been placed in the public domain.
 """
 from __future__ import print_function
 
+from builtins import bytes
+from builtins import str
+from builtins import object
 __version__ = "2.0.1"
 
 
@@ -98,7 +101,7 @@ class RenderingError(ShortcodeError):
     pass
 
 
-class Node:
+class Node(object):
 
     """ Input text is parsed into a tree of Node objects. """
 
@@ -144,7 +147,7 @@ class ShortcodeNode(Node):
 
     def render(self, context):
         try:
-            return unicode(self.func(context, None, self.pargs, self.kwargs))
+            return str(self.func(context, None, self.pargs, self.kwargs))
         except Exception as e:
             print(e)
             raise RenderingError('error rendering [%s] tag' % self.tag)
@@ -182,7 +185,7 @@ class ScopedShortcodeNode(ShortcodeNode):
             raise RenderingError('error rendering [%s] tag' % self.tag)
 
 
-class Parser:
+class Parser(object):
 
     """ Parses text and renders shortcodes.
 

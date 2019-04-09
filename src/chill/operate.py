@@ -12,6 +12,9 @@ of content it would be wise to write a script to handle these things.
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from builtins import map
+from builtins import input
+from builtins import zip
 import os
 from glob import glob
 import re
@@ -44,7 +47,7 @@ def node_input():
     Return -1 if invalid
     """
     try:
-        node = int(raw_input("Node id: "))
+        node = int(input("Node id: "))
     except ValueError:
         node = INVALID_NODE
         print('invalid node id: %s' % node)
@@ -56,7 +59,7 @@ def existing_node_input():
 
     Return -1 if invalid
     """
-    input_from_user = raw_input("Existing node name or id: ")
+    input_from_user = input("Existing node name or id: ")
     node_id = INVALID_NODE
 
     if not input_from_user:
@@ -85,7 +88,7 @@ def existing_node_input():
                 print('Multiple nodes found with the name: {0}'.format(parsed_input))
                 for item in result:
                     print('{node_id}: {name} = {value}'.format(**item))
-                node_selection = raw_input('Enter a node id from this list or enter "?" to render all or "?<node>" for a specific one.')
+                node_selection = input('Enter a node id from this list or enter "?" to render all or "?<node>" for a specific one.')
                 if node_selection:
                     node_selection_match = re.match(r"\?(\d)*", node_selection)
                     if node_selection_match:
@@ -121,7 +124,7 @@ def render_value_for_node(node_id):
         current_app.logger.error("DatabaseError: %s", err)
 
     if result:
-        kw = dict(zip(result[0].keys(), result[0].values()))
+        kw = dict(list(zip(list(result[0].keys()), list(result[0].values()))))
         value = render_node(node_id, noderequest={'_no_template':True}, **kw)
 
     return value
@@ -154,7 +157,7 @@ def purge_collection(keys):
 
         delete_node(node_id=node_id)
         if isinstance(value, dict):
-            purge_collection(value.keys())
+            purge_collection(list(value.keys()))
 
 def list_items_in_collection(keys):
     "List just the items in the collection."
@@ -174,7 +177,7 @@ def mode_collection():
 
     item_attr_list = []
     if len(value):
-        for key in value.items()[0][1].keys():
+        for key in list(value.items())[0][1].keys():
             m = re.match(r'(.*) \((\d+)\)', key)
             item_attr_list.append(m.group(1))
 
@@ -191,20 +194,20 @@ def mode_collection():
         if selection == 'View collection':
             print(safe_dump(value, default_flow_style=False))
         elif selection == 'Purge collection':
-            confirm = raw_input("Delete all {0} items and their {1} attributes from the collection? y/n\n".format(len(value.keys()), len(item_attr_list)))
+            confirm = input("Delete all {0} items and their {1} attributes from the collection? y/n\n".format(len(list(value.keys())), len(item_attr_list)))
             if confirm == 'y':
                 delete_node(node_id=collection_node_id)
-                purge_collection(value.keys())
+                purge_collection(list(value.keys()))
         elif selection == 'Remove item':
             item_node_id = existing_node_input()
             if item_node_id < 0:
                 return
             value = render_value_for_node(item_node_id)
             print(safe_dump(value, default_flow_style=False))
-            confirm = raw_input("Delete this node and it's attributes? y/n\n").format(len(value.keys()), len(item_attr_list))
+            confirm = input("Delete this node and it's attributes? y/n\n").format(len(list(value.keys())), len(item_attr_list))
             if confirm == 'y':
                 delete_node(node_id=item_node_id)
-                purge_collection(value.keys())
+                purge_collection(list(value.keys()))
 
         elif selection == 'Add item':
             result = select_node(node_id=collection_node_id)
@@ -218,26 +221,26 @@ def mode_collection():
             print("Select the attribute that will be removed:")
             attribute_selection = select(item_attr_list)
             if attribute_selection:
-                confirm = raw_input("Delete attribute '{0}' from all {1} items in the collection? y/n\n".format(attribute_selection, len(value.keys())))
+                confirm = input("Delete attribute '{0}' from all {1} items in the collection? y/n\n".format(attribute_selection, len(list(value.keys()))))
                 if confirm == 'y':
-                    for item_key, item in value.items():
-                        for key in item.keys():
+                    for item_key, item in list(value.items()):
+                        for key in list(item.keys()):
                             m = re.match(r'(.*) \((\d+)\)', key)
                             if m.group(1) == attribute_selection:
                                 delete_node(node_id=m.group(2))
                                 break
         elif selection == 'Add attribute':
-            item_attr = raw_input("Add a collection item attribute name: ")
+            item_attr = input("Add a collection item attribute name: ")
             if item_attr:
                 item_index = 0
-                for item_key, item in value.items():
+                for item_key, item in list(value.items()):
                     item_index += 1
                     m = re.match(r'(.*) \((\d+)\)', item_key)
                     item_value = render_value_for_node(m.group(2))
                     print("item {0} of {1} items".format(item_index, len(value)))
                     print(safe_dump(item_value, default_flow_style=False))
 
-                    new_attr_value = raw_input("Enter item attribute value for '{0}': ".format(item_attr))
+                    new_attr_value = input("Enter item attribute value for '{0}': ".format(item_attr))
                     # set value to none if it's an empty string
                     new_attr_value = new_attr_value if len(new_attr_value) else None
                     item_attr_node_id = insert_node(name=item_attr, value=new_attr_value)
@@ -252,7 +255,7 @@ def add_item_with_attributes_to_collection(collection_name, collection_node_id, 
     insert_query(name='select_link_node_from_node.sql', node_id=item_node_id)
     insert_node_node(node_id=collection_node_id, target_node_id=item_node_id)
     for item_attr_name in item_attr_list:
-        value = raw_input("Enter item attribute value for '{0}': ".format(item_attr_name))
+        value = input("Enter item attribute value for '{0}': ".format(item_attr_name))
         # set value to none if it's an empty string
         value = value if len(value) else None
         item_attr_node_id = insert_node(name=item_attr_name, value=value)
@@ -264,7 +267,7 @@ def mode_new_collection():
     """
 
     print(globals()['mode_new_collection'].__doc__)
-    collection_name = raw_input("Collection name: ")
+    collection_name = input("Collection name: ")
     item_attr_list = []
     collection_node_id = None
     if collection_name:
@@ -272,7 +275,7 @@ def mode_new_collection():
         insert_query(name='select_link_node_from_node.sql', node_id=collection_node_id)
         item_attr = True
         while item_attr:
-            item_attr = raw_input("Add a collection item attribute name: ")
+            item_attr = input("Add a collection item attribute name: ")
             if item_attr:
                 item_attr_list.append(item_attr)
 
@@ -319,12 +322,12 @@ def mode_database_functions():
         if selection:
             print(globals().get(selection).__doc__)
         if selection == 'init_db':
-            confirm = raw_input("Initialize new database y/n? [n] ")
+            confirm = input("Initialize new database y/n? [n] ")
             if confirm == 'y':
                 init_db()
         elif selection == 'insert_node':
-            name = raw_input("Node name: ")
-            value = raw_input("Node value: ")
+            name = input("Node name: ")
+            value = input("Node value: ")
             node = insert_node(name=name, value=value or None)
             print("name: %s \nid: %s" % (name, node))
 
@@ -353,20 +356,20 @@ def mode_database_functions():
             node = existing_node_input()
             if node >= 0:
                 result = select_node(node_id=node)
-                print(safe_dump(dict(zip(result[0].keys(), result[0].values())), default_flow_style=False))
+                print(safe_dump(dict(list(zip(list(result[0].keys()), list(result[0].values())))), default_flow_style=False))
 
         elif selection == 'insert_route':
-            path = raw_input('path: ')
-            weight = raw_input('weight: ') or None
-            method = raw_input('method: ') or 'GET'
+            path = input('path: ')
+            weight = input('weight: ') or None
+            method = input('method: ') or 'GET'
             node = existing_node_input()
             if node >= 0:
                 insert_route(path=path, node_id=node, weight=weight, method=method)
         elif selection == 'add_template_for_node':
             folder = current_app.config.get('THEME_TEMPLATE_FOLDER')
-            choices = map(os.path.basename,
+            choices = list(map(os.path.basename,
                         glob(os.path.join(folder, '*'))
-                        )
+                        ))
             choices.sort()
             templatefile = select(choices)
             if templatefile:
@@ -421,7 +424,7 @@ def operate_menu():
                 print(sql)
                 data = {}
                 for placeholder in placeholders:
-                    value = raw_input(placeholder + ': ')
+                    value = input(placeholder + ': ')
                     data[placeholder] = value
 
                 result = []
@@ -444,7 +447,7 @@ def operate_menu():
                             print(safe_dump(value, default_flow_style=False))
                         else:
                             #print safe_dump(rowify(result, [(x, None) for x in result[0].keys()]), default_flow_style=False)
-                            print(safe_dump([dict(zip(x.keys(), x.values())) for x in result], default_flow_style=False))
+                            print(safe_dump([dict(list(zip(list(x.keys()), list(x.values())))) for x in result], default_flow_style=False))
 
         elif selection == 'render_node':
             print(globals()['render_node'].__doc__)
@@ -462,9 +465,9 @@ def operate_menu():
             if not folder:
                 print("No DOCUMENT_FOLDER configured for the application.")
             else:
-                choices = map(os.path.basename,
+                choices = list(map(os.path.basename,
                             glob(os.path.join(folder, '*'))
-                            )
+                            ))
                 choices.sort()
                 if len(choices) == 0:
                     print("No files found in DOCUMENT_FOLDER.")
@@ -472,7 +475,7 @@ def operate_menu():
                     filename = select(choices)
                     if filename:
                         defaultname = os.path.splitext(filename)[0]
-                        nodename = raw_input("Enter name for node [{0}]: ".format(defaultname)) or defaultname
+                        nodename = input("Enter name for node [{0}]: ".format(defaultname)) or defaultname
                         node = insert_node(name=nodename, value=filename)
                         print("Added document '%s' to node '%s' with id: %s" % (filename, nodename, node))
         elif selection == 'help':

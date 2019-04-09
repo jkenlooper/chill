@@ -20,7 +20,7 @@ class LoadSelectSql(unittest.TestCase):
 
 
     def write_dict_to_files(self, d, dirname):
-        for (k, v) in d.items():
+        for (k, v) in list(d.items()):
             # mkdir that are in the path (if any)
             dirs = k.split('/')[:-1]
             if len(dirs) > 0:
