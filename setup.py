@@ -48,6 +48,7 @@ setup(
         'Flask-Cache',
         'Frozen-Flask',
         'Flask-Markdown',
+        'future',
         'psycopg2',
         'sqlalchemy',
         'PyYAML',
