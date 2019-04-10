@@ -32,7 +32,9 @@ also read through the tests.py file within the chill package.
 ## Installing
 
 This latest version is not published so I recommend installing with pip in
-editable mode.  I install it by `pip install -e .` after cloning the
+editable mode.  I install it by 
+`pip install -e . -r requirements.txt`
+after cloning the
 repository.  This will create a script called `chill`.  Type `chill --help` for
 help on using it.  It will need a config file and such.  I recommend creating
 an empty directory and running `chill init` within it.  That will create
