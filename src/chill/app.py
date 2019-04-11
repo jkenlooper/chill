@@ -199,7 +199,19 @@ def make_app(config=None, **kw):
                 return filename
 
             with open(os.path.join(document_folder, filename), 'r') as f:
-                content = f.read().decode('utf-8')
+                # py2 return unicode str (not py3 compat)
+                #content = f.read().decode('utf-8')
+
+                # py3 (not py2 compat)
+                #content = f.read()
+
+                #content = bytes(f.read(), 'utf-8')
+                #content = content.decode('utf-8')
+
+                # py2 and py3 compat
+                #content = bytes(f.read(), 'utf-8').decode('utf-8')
+
+                content = f.read()
             return content
 
         app.logger.warn("jinja2 filter 'readfile' can't find file: '{0}'".format(filename))

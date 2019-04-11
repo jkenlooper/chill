@@ -24,7 +24,7 @@ from chill.database import ( init_db,
 class ChillTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.debug=False
+        self.debug=True
         self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
         self.app = make_app(CHILL_DATABASE_URI='sqlite:///' + self.tmp_db.name,
@@ -38,7 +38,8 @@ class ChillTestCase(unittest.TestCase):
 
     def tearDown(self):
         """Get rid of the database and templates after each test."""
-        self.tmp_db.unlink(self.tmp_db.name)
+        #self.tmp_db.unlink(self.tmp_db.name)
+        os.unlink(self.tmp_db.name)
 
         # Walk and remove all files and directories in the created temp directory
         for root, dirs, files in os.walk(self.tmp_template_dir, topdown=False):
@@ -82,40 +83,40 @@ class Route(ChillTestCase):
             with self.app.test_client() as c:
 
                 rv = c.get('/', follow_redirects=True)
-                assert 'hello' == rv.data
+                assert b'hello' == rv.data
                 rv = c.get('/.', follow_redirects=True)
-                assert 'hello' == rv.data
+                assert b'hello' == rv.data
                 rv = c.get('/index.html', follow_redirects=True)
-                assert 'hello' == rv.data
+                assert b'hello' == rv.data
                 rv = c.get('', follow_redirects=True)
-                assert 'hello' == rv.data
+                assert b'hello' == rv.data
 
                 rv = c.get('/one', follow_redirects=True)
-                assert '1' == rv.data
+                assert b'1' == rv.data
                 rv = c.get('/one/', follow_redirects=True)
-                assert '1' == rv.data
+                assert b'1' == rv.data
                 rv = c.get('/one/.', follow_redirects=True)
-                assert '1' == rv.data
+                assert b'1' == rv.data
                 rv = c.get('/one/index.html', follow_redirects=True)
-                assert '1' == rv.data
+                assert b'1' == rv.data
                 rv = c.get('/one/two', follow_redirects=True)
-                assert '2' == rv.data
+                assert b'2' == rv.data
                 rv = c.get('/one/foo/../two', follow_redirects=True)
-                assert '2' == rv.data
+                assert b'2' == rv.data
                 rv = c.get('/./one//two', follow_redirects=True)
-                assert '2' == rv.data
+                assert b'2' == rv.data
                 rv = c.get('/one/two/', follow_redirects=True)
-                assert '2' == rv.data
+                assert b'2' == rv.data
                 rv = c.get('/one/two/index.html', follow_redirects=True)
-                assert '2' == rv.data
+                assert b'2' == rv.data
                 rv = c.get('/one/two/three', follow_redirects=True)
-                assert '3' == rv.data
+                assert b'3' == rv.data
                 rv = c.get('/one/two/other_three', follow_redirects=True)
-                assert '3' == rv.data
+                assert b'3' == rv.data
                 rv = c.get('/one/two/other_three/index.html', follow_redirects=True)
-                assert '3' == rv.data
+                assert b'3' == rv.data
                 rv = c.get('/one///////two/other_three/index.html', follow_redirects=True)
-                assert '3' == rv.data
+                assert b'3' == rv.data
                 rv = c.get('/one/two/other_three/nothing', follow_redirects=True)
                 assert 404 == rv.status_code
 
@@ -131,13 +132,13 @@ class Route(ChillTestCase):
                 rv = c.get('/', follow_redirects=True)
                 assert 404 == rv.status_code
                 rv = c.get('/1', follow_redirects=True)
-                assert 'hello' == rv.data
+                assert b'hello' == rv.data
                 rv = c.get('/1/', follow_redirects=True)
-                assert 'hello' == rv.data
+                assert b'hello' == rv.data
                 rv = c.get('////1/', follow_redirects=True)
-                assert 'hello' == rv.data
+                assert b'hello' == rv.data
                 rv = c.get('/1/index.html', follow_redirects=True)
-                assert 'hello' == rv.data
+                assert b'hello' == rv.data
                 rv = c.get('/1/index.html/not', follow_redirects=True)
                 assert 404 == rv.status_code
 
@@ -155,11 +156,11 @@ class Route(ChillTestCase):
                 rv = c.get('/fruit', follow_redirects=True)
                 assert 404 == rv.status_code
                 rv = c.get('/fruit/pear/', follow_redirects=True)
-                assert 'fruit' == rv.data
+                assert b'fruit' == rv.data
                 rv = c.get('/vegetables', follow_redirects=True)
                 assert 404 == rv.status_code
                 rv = c.get('/vegetables/pear/', follow_redirects=True)
-                assert 'vegetables' == rv.data
+                assert b'vegetables' == rv.data
 
     def test_weight(self):
         with self.app.app_context():
@@ -175,15 +176,15 @@ class Route(ChillTestCase):
             with self.app.test_client() as c:
 
                 rv = c.get('/apple', follow_redirects=True)
-                assert 'b' == rv.data
+                assert b'b' == rv.data
                 rv = c.get('/animals/ape', follow_redirects=True)
-                assert 'aardvark' == rv.data
+                assert b'aardvark' == rv.data
                 rv = c.get('/animals/ape/1', follow_redirects=True)
-                assert 'b' == rv.data
+                assert b'b' == rv.data
                 rv = c.get('/vegetables', follow_redirects=True)
-                assert 'b' == rv.data
+                assert b'b' == rv.data
                 rv = c.get('/vegetables/pear/', follow_redirects=True)
-                assert 'b' == rv.data
+                assert b'b' == rv.data
 
     def test_404_on_mismatch_method(self):
         """
@@ -198,23 +199,23 @@ class Route(ChillTestCase):
             with self.app.test_client() as c:
 
                 rv = c.get('/llama/', follow_redirects=True)
-                assert '1234' == rv.data
+                assert b'1234' == rv.data
                 assert 200 == rv.status_code
 
                 rv = c.post('/llama/', follow_redirects=True)
-                assert '1234' != rv.data
+                assert b'1234' != rv.data
                 assert 404 == rv.status_code
 
                 rv = c.put('/llama/', follow_redirects=True)
-                assert '1234' != rv.data
+                assert b'1234' != rv.data
                 assert 404 == rv.status_code
 
                 rv = c.patch('/llama/', follow_redirects=True)
-                assert '1234' != rv.data
+                assert b'1234' != rv.data
                 assert 404 == rv.status_code
 
                 rv = c.delete('/llama/', follow_redirects=True)
-                assert '1234' != rv.data
+                assert b'1234' != rv.data
                 assert 404 == rv.status_code
 
 
@@ -313,7 +314,7 @@ class SQL(ChillTestCase):
                 rv = c.get('/', follow_redirects=True)
                 assert 200 == rv.status_code
                 #self.app.logger.debug('test: %s', rv.data)
-                assert 'apple' in rv.data
+                assert b'apple' in rv.data
 
     def test_unicode_value(self):
         """
@@ -330,7 +331,8 @@ class SQL(ChillTestCase):
 
                 rv = c.get('/', follow_redirects=True)
                 assert 200 == rv.status_code
-                assert '\u00c0\u0440p\u013a\u00e8' in rv.data.decode('utf-8')
+                #assert '\u00c0\u0440p\u013a\u00e8' in bytes(rv.data, 'utf-8').decode('utf-8')
+                assert b'\u00c0\u0440p\u013a\u00e8' in rv.data
 
     def test_noderequest(self):
         """
@@ -354,12 +356,12 @@ class SQL(ChillTestCase):
                 rv = c.get('/page/cucumber/', follow_redirects=True)
                 assert 200 == rv.status_code
                 self.app.logger.debug('test: %s', rv.data)
-                assert 'yup' not in rv.data
+                assert b'yup' not in rv.data
 
                 rv = c.get('/page/pear/', follow_redirects=True)
                 assert 200 == rv.status_code
                 self.app.logger.debug('test: %s', rv.data)
-                assert 'yup' in rv.data
+                assert b'yup' in rv.data
 
     def test_noderequest_args(self):
         """
@@ -383,12 +385,12 @@ class SQL(ChillTestCase):
                 rv = c.get('/page/?llama=chuck', follow_redirects=True)
                 assert 200 == rv.status_code
                 self.app.logger.debug('test: %s', rv.data)
-                assert 'chuck' in rv.data
+                assert b'chuck' in rv.data
 
                 rv = c.get('/page/?nollama=chuck', follow_redirects=True)
                 assert 200 == rv.status_code
                 self.app.logger.debug('test: %s', rv.data)
-                assert 'chuck' not in rv.data
+                assert b'chuck' not in rv.data
 
     def test_noderequest_cookies(self):
         """
@@ -414,7 +416,7 @@ class SQL(ChillTestCase):
                 rv = c.get('/page/', follow_redirects=True)
                 assert 200 == rv.status_code
                 self.app.logger.debug('test: %s', rv.data)
-                assert 'chuck' in rv.data
+                assert b'chuck' in rv.data
 
 
     def test_template(self):
@@ -712,15 +714,15 @@ class Template(ChillTestCase):
                 add_template_for_node('template_a.html', test_id)
 
                 rv = c.get('/test/1', follow_redirects=True)
-                assert 'testing one' in rv.data
+                assert b'testing one' in rv.data
 
                 a_id = insert_node(name='a', value='apple')
                 insert_route(path='/fruit/a/', node_id=a_id)
                 add_template_for_node('template_a.html', a_id)
 
                 rv = c.get('/fruit/a', follow_redirects=True)
-                assert 'apple' in rv.data
-                assert 'template_a' in rv.data
+                assert b'apple' in rv.data
+                assert b'template_a' in rv.data
 
                 b_id = insert_node(name='b', value='banana')
                 add_template_for_node('template_b.html', b_id)
@@ -734,8 +736,8 @@ class Template(ChillTestCase):
                 add_template_for_node('template_b.html', a_id)
 
                 rv = c.get('/fruit/a', follow_redirects=True)
-                assert 'apple' in rv.data
-                assert 'template_b' in rv.data
+                assert b'apple' in rv.data
+                assert b'template_b' in rv.data
 
     def test_some_unicode_as_value_in_template(self):
         """
@@ -799,9 +801,9 @@ class Template(ChillTestCase):
                 add_template_for_node('llama.html', a)
 
                 rv = c.get('/a/chuck/', follow_redirects=True)
-                assert 'chuck' in rv.data
+                assert b'chuck' in rv.data
                 rv = c.get('/a/chase/', follow_redirects=True)
-                assert 'chase' in rv.data
+                assert b'chase' in rv.data
 
 class Documents(ChillTestCase):
     def test_reading_in_a_document(self):
@@ -833,7 +835,7 @@ class Documents(ChillTestCase):
                 add_template_for_node('template.html', apage)
 
                 rv = c.get('/a/', follow_redirects=True)
-                assert 'Hello' in rv.data
+                assert b'Hello' in rv.data
 
     def test_markdown_document(self):
         """
@@ -917,7 +919,9 @@ Spain.</p>"""
                 add_template_for_node('template.html', apage)
 
                 rv = c.get('/a/', follow_redirects=True)
-                assert html in rv.data
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                self.app.logger.debug('html: %s', html)
+                assert bytes(html, 'utf-8') in rv.data
 
 class ShortcodeRoute(ChillTestCase):
     def test_route(self):
@@ -953,11 +957,11 @@ class ShortcodeRoute(ChillTestCase):
                 insert_node_node(node_id=page, target_node_id=textnode)
 
                 rv = c.get('/', follow_redirects=True)
-                assert "something <img alt='a picture of a cat'/> [blah blah<!-- 404 '/dog/pic' --> the end" in rv.data
-                assert "[chill route /cat/picture/ ]" not in rv.data
+                assert b"something <img alt='a picture of a cat'/> [blah blah<!-- 404 '/dog/pic' --> the end" in rv.data
+                assert b"[chill route /cat/picture/ ]" not in rv.data
 
                 rv = c.get('/cat/picture/', follow_redirects=True)
-                assert "<img alt='a picture of a cat'/>" in rv.data
+                assert b"<img alt='a picture of a cat'/>" in rv.data
 
     def test_route_with_unicode(self):
         "Expand the route shortcode with unicode contents"
@@ -992,11 +996,11 @@ class ShortcodeRoute(ChillTestCase):
                 insert_node_node(node_id=page, target_node_id=textnode)
 
                 rv = c.get('/', follow_redirects=True)
-                assert "something Àрpĺè [blah blah<!-- 404 '/dog/pic' --> the end" in rv.data
-                assert "[chill route /cat/picture/ ]" not in rv.data
+                assert bytes("something Àрpĺè [blah blah<!-- 404 '/dog/pic' --> the end", 'utf-8') in rv.data
+                assert b"[chill route /cat/picture/ ]" not in rv.data
 
                 rv = c.get('/cat/picture/', follow_redirects=True)
-                assert "Àрpĺè" in rv.data
+                assert bytes("Àрpĺè", 'utf-8') in rv.data
 
 class ShortcodePageURI(ChillTestCase):
     def test_page_uri(self):
@@ -1032,11 +1036,11 @@ class ShortcodePageURI(ChillTestCase):
                 insert_node_node(node_id=page, target_node_id=textnode)
 
                 rv = c.get('/', follow_redirects=True)
-                assert "something link for cat page that does exist = '/cat/' link for dog that does not exist = '/dog/'" in rv.data
-                assert "[chill page_uri cat ]" not in rv.data
+                assert b"something link for cat page that does exist = '/cat/' link for dog that does not exist = '/dog/'" in rv.data
+                assert b"[chill page_uri cat ]" not in rv.data
 
                 rv = c.get('/cat/', follow_redirects=True)
-                assert "a page for cat" in rv.data
+                assert b"a page for cat" in rv.data
 
                 rv = c.get('/dog/', follow_redirects=True)
                 assert 404 == rv.status_code
