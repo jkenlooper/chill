@@ -209,9 +209,9 @@ def make_app(config=None, **kw):
                 #content = content.decode('utf-8')
 
                 # py2 and py3 compat
-                #content = bytes(f.read(), 'utf-8').decode('utf-8')
+                content = bytes(f.read(), 'utf-8').decode('utf-8')
 
-                content = f.read()
+                #content = f.read()
             return content
 
         app.logger.warn("jinja2 filter 'readfile' can't find file: '{0}'".format(filename))
