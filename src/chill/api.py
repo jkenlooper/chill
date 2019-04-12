@@ -61,14 +61,14 @@ def _query(_node_id, value=None, **kw):
         return value
     #current_app.logger.debug("queries kw: %s", kw)
     #current_app.logger.debug("queries value: %s", value)
-    current_app.logger.debug("queries: %s", query_result)
+    #current_app.logger.debug("queries: %s", query_result)
     if query_result:
         values = []
         for query_name in [x['name'] for x in query_result]:
             if query_name:
                 result = []
                 try:
-                    current_app.logger.debug("query_name: %s", query_name)
+                    #current_app.logger.debug("query_name: %s", query_name)
                     #current_app.logger.debug("kw: %s", kw)
                     # Query string can be insert or select here
                     #statement = text(fetch_query_string(query_name))
@@ -76,7 +76,7 @@ def _query(_node_id, value=None, **kw):
                     #skw = {key: kw[key] for key in params}
                     #result = db.execute(statement, **skw)
                     result = db.execute(text(fetch_query_string(query_name)), **kw)
-                    current_app.logger.debug("result query: %s", list(result.keys()))
+                    #current_app.logger.debug("result query: %s", list(result.keys()))
                 except (DatabaseError, StatementError) as err:
                     current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
                 if result and result.returns_rows:
@@ -87,7 +87,7 @@ def _query(_node_id, value=None, **kw):
                     if len(result) == 0:
                         values.append(([], []))
                     else:
-                        current_app.logger.debug("result: %s", result)
+                        #current_app.logger.debug("result: %s", result)
                         # There may be more results, but only interested in the
                         # first one. Use the older rowify method for now.
                         # TODO: use case for rowify?
@@ -123,7 +123,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
     if value == None:
         kw.update( noderequest )
         results = _query(_node_id, **kw)
-        current_app.logger.debug("results: %s", results)
+        #current_app.logger.debug("results: %s", results)
         if results:
             values = []
             for (result, cols) in results:
@@ -131,7 +131,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
                     for subresult in result:
                         #if subresult.get('name') == kw.get('name'):
                             # This is a link node
-                        current_app.logger.debug("sub: %s", subresult)
+                        #current_app.logger.debug("sub: %s", subresult)
                         name = subresult['name']
                         if noderequest.get('_no_template'):
                             # For debugging or just simply viewing with the

@@ -24,7 +24,7 @@ from chill.database import ( init_db,
 class ChillTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.debug=True
+        self.debug=False
         self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
         self.app = make_app(CHILL_DATABASE_URI='sqlite:///' + self.tmp_db.name,
@@ -355,12 +355,12 @@ class SQL(ChillTestCase):
 
                 rv = c.get('/page/cucumber/', follow_redirects=True)
                 assert 200 == rv.status_code
-                self.app.logger.debug('test: %s', rv.data)
+                #self.app.logger.debug('test: %s', rv.data)
                 assert b'yup' not in rv.data
 
                 rv = c.get('/page/pear/', follow_redirects=True)
                 assert 200 == rv.status_code
-                self.app.logger.debug('test: %s', rv.data)
+                #self.app.logger.debug('test: %s', rv.data)
                 assert b'yup' in rv.data
 
     def test_noderequest_args(self):
@@ -384,12 +384,12 @@ class SQL(ChillTestCase):
 
                 rv = c.get('/page/?llama=chuck', follow_redirects=True)
                 assert 200 == rv.status_code
-                self.app.logger.debug('test: %s', rv.data)
+                #self.app.logger.debug('test: %s', rv.data)
                 assert b'chuck' in rv.data
 
                 rv = c.get('/page/?nollama=chuck', follow_redirects=True)
                 assert 200 == rv.status_code
-                self.app.logger.debug('test: %s', rv.data)
+                #self.app.logger.debug('test: %s', rv.data)
                 assert b'chuck' not in rv.data
 
     def test_noderequest_cookies(self):
@@ -415,7 +415,7 @@ class SQL(ChillTestCase):
 
                 rv = c.get('/page/', follow_redirects=True)
                 assert 200 == rv.status_code
-                self.app.logger.debug('test: %s', rv.data)
+                #self.app.logger.debug('test: %s', rv.data)
                 assert b'chuck' in rv.data
 
 
@@ -919,8 +919,8 @@ Spain.</p>"""
                 add_template_for_node('template.html', apage)
 
                 rv = c.get('/a/', follow_redirects=True)
-                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
-                self.app.logger.debug('html: %s', html)
+                #self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                #self.app.logger.debug('html: %s', html)
                 assert bytes(html, 'utf-8') in rv.data
 
 class ShortcodeRoute(ChillTestCase):

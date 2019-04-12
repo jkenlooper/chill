@@ -142,9 +142,9 @@ class PageView(MethodView):
         noderequest.pop('name')
         noderequest.pop('value')
 
-        current_app.logger.debug("get kw: %s", values)
+        #current_app.logger.debug("get kw: %s", values)
         rendered = render_node(node['id'], noderequest=noderequest, **values)
-        current_app.logger.debug("rendered: %s", rendered)
+        #current_app.logger.debug("rendered: %s", rendered)
         if rendered:
             if not isinstance(rendered, (str, str, int, float)):
                 # return a json string
