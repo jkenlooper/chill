@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from builtins import range
+from builtins import range, bytes
 import unittest
 import tempfile
 import os
@@ -332,7 +332,7 @@ class SQL(ChillTestCase):
                 rv = c.get('/', follow_redirects=True)
                 assert 200 == rv.status_code
                 #assert '\u00c0\u0440p\u013a\u00e8' in bytes(rv.data, 'utf-8').decode('utf-8')
-                assert b'\u00c0\u0440p\u013a\u00e8' in rv.data
+                assert bytes(b'\u00c0\u0440p\u013a\u00e8') in rv.data
 
     def test_noderequest(self):
         """
