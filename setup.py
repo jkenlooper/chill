@@ -45,7 +45,7 @@ setup(
         'docutils',
         'Flask==1.0',
         'Jinja2',
-        'Flask-Cache',
+        'Flask-Caching',
         'Frozen-Flask',
         'Flask-Markdown',
         'future',

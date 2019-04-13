@@ -1,2 +1,1 @@
-future
 git+https://github.com/jkenlooper/pyselect#egg=pyselect
