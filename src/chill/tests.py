@@ -837,6 +837,45 @@ class Documents(ChillTestCase):
                 rv = c.get('/a/', follow_redirects=True)
                 assert b'Hello' in rv.data
 
+    def test_reading_in_a_document_with_unicode(self):
+        """
+        The custom 'readfile' jinja2 filter reads the file with unicode characters from the DOCUMENT_FOLDER.
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'imasimplefilewithunicode.txt'), 'w')
+        f.write("""
+          Hello, this is an Àрpĺè.
+          [chill route /cat/picture/ ]
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'template.html'), 'w')
+        f.write("""
+          <h1>template</h1>
+          {{ simplefilename }}
+          <br>
+          {{ simplefilename|readfile|safe|shortcodes }}
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                catimg = insert_node(name='acat', value="<img alt='a picture of a cat'/>")
+                insert_route(path='/cat/picture/', node_id=catimg)
+
+                a = insert_node(name='simplefilename', value='imasimplefilewithunicode.txt')
+                apage = insert_node(name='apage', value=None)
+                insert_node_node(node_id=apage, target_node_id=a)
+                insert_route(path='/a/', node_id=apage)
+                add_template_for_node('template.html', apage)
+
+                rv = c.get('/a/', follow_redirects=True)
+                assert bytes("Àрpĺè", 'utf-8') in rv.data
+
+                assert b"<img alt='a picture of a cat'/>" in rv.data
+                assert b"[chill route /cat/picture/ ]" not in rv.data
+
     def test_markdown_document(self):
         """
         Use 'readfile' and 'markdown' filter together.

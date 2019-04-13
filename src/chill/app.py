@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from builtins import str
+from builtins import str, bytes
 import os
 
 from werkzeug.local import LocalProxy
@@ -205,13 +205,8 @@ def make_app(config=None, **kw):
                 # py3 (not py2 compat)
                 #content = f.read()
 
-                #content = bytes(f.read(), 'utf-8')
-                #content = content.decode('utf-8')
-
                 # py2 and py3 compat
                 content = bytes(f.read(), 'utf-8').decode('utf-8')
-
-                #content = f.read()
             return content
 
         app.logger.warn("jinja2 filter 'readfile' can't find file: '{0}'".format(filename))
