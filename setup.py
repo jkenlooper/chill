@@ -54,7 +54,7 @@ setup(
         'PyYAML',
         'gevent',
         'docopt',
-        'pyselect',
+        #'pyselect', # Using pyselect within src/chill/ instead
         'MarkupSafe',
     ],
     entry_points={

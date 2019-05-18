@@ -23,7 +23,7 @@ from yaml import safe_dump
 from sqlalchemy.exc import DatabaseError, StatementError
 from sqlalchemy.sql import text
 from flask import current_app
-from pyselect import select
+from chill.pyselect import select
 from chill.app import db
 from .api import render_node
 from chill.database import (
