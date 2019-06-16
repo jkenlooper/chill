@@ -20,11 +20,12 @@ from chill.database import ( init_db,
         insert_query,
         fetch_query_string,
         add_template_for_node )
+from chill.yaml_chill_node import load_yaml, dump_yaml
 
 class ChillTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.debug=False
+        self.debug=True
         self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
         self.app = make_app(CHILL_DATABASE_URI='sqlite:///' + self.tmp_db.name,
@@ -1292,6 +1293,252 @@ class DeleteMethod(ChillTestCase):
 
                 rv = c.get('/api/llamas/name/Docky/', follow_redirects=True)
                 assert 404 == rv.status_code
+
+
+class YAMLChillNode(ChillTestCase):
+    def test_route_simple_value(self):
+        """
+        Create a node with a string value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: simple_value_at_route
+route: /simple/
+value: "simple string value"
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/simple/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('simple string value', 'utf-8') in rv.data
+
+    def test_multiple_route_simple_value(self):
+        """
+        Create two nodes with a string value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: simple_value_at_route
+route: /simple/
+value: "simple string value"
+
+--- !ChillNode
+name: another_value_at_route
+route: /another/
+value: "another string value"
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/simple/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('simple string value', 'utf-8') in rv.data
+
+                rv = c.get('/another/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('another string value', 'utf-8') in rv.data
+
+    def test_route_query_value(self):
+        """
+        Create a node with a query value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: query_value_at_route
+route: /total-count/
+value: get-total-count.sql
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'get-total-count.sql'), 'w')
+        f.write("""select 26;""")
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/total-count/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('26', 'utf-8') in rv.data
+
+    def test_template_simple_value(self):
+        """
+        Create a node with a string value and template
+        """
+        yaml_content = """
+--- !ChillNode
+name: simple_value_at_route
+route: /simple-template/
+template: test.html
+value: "simple"
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'test.html'), 'w')
+        f.write("""
+          <h1>test template</h1>
+          {{ value }}
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/simple-template/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('test template', 'utf-8') in rv.data
+                assert bytes('simple', 'utf-8') in rv.data
+
+    def test_rendered_value(self):
+        """
+        Create a node with a query value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value:
+    content: "hello"
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('hello', 'utf-8') in rv.data
+
+    def test_multiple_rendered_value(self):
+        """
+        Create a node with multiple query value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value:
+    content: "hello"
+    title: "a title here"
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('hello', 'utf-8') in rv.data
+                assert bytes('a title here', 'utf-8') in rv.data
+
+
+    def test_recursive_rendered_string_value(self):
+        """
+        Create a node with recursive query string value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value:
+    page:
+        content: an-example-doc.html
+        description: >
+            Description would go here and can be
+            multiple lines.
+        title: "a title here"
+        menu2:
+            one: 'cat'
+            two: 'dog'
+            footer:
+                one: 'kitten'
+                two: 'puppy'
+                three: 'tadpole'
+        menu:
+            one: 'cat'
+            two: 'dog'
+            footer:
+                one: 'kitten'
+                two: 'puppy'
+                three: 'tadpole'
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                json_response = json.loads(rv.data)
+                assert 'an-example-doc.html' == json_response['page']['content']
+                assert 'Description would go here and can be multiple lines.\n' == json_response['page']['description']
+                assert 'a title here' == json_response['page']['title']
+                assert 'tadpole' == json_response['page']['menu']['footer']['three']
+
+
 
 def suite():
     suite = unittest.TestSuite()

@@ -5,6 +5,8 @@ Usage: chill run [--config <file>]
        chill freeze [--config <file>] [--urls <file>]
        chill operate [--config <file>]
        chill init
+       chill load [--config <file>] [--yaml <file>]
+       chill dump [--config <file>] [--yaml <file>]
        chill migrate [--config <file>]
        chill --help
        chill --version
@@ -14,6 +16,7 @@ Options:
   -h --help         Show this screen.
   --config <file>   Set config file. [default: ./site.cfg]
   --urls <file>     A txt file with a url to freeze on each line
+  --yaml <file>     A yaml file with ChillNode objects [default: ./chill-data.yaml]
 
 Subcommands:
     run     - Start the web server in the foreground. Don't use for production.
@@ -21,6 +24,8 @@ Subcommands:
     freeze  - Freeze the application by creating a static version of it.
     operate - Interface to do simple operations on the database.
     init    - Initialize the current directory with base starting files and database.
+    load    - Load a yaml file that has ChillNode objects into the database.
+    dump    - Create a yaml file of ChillNode objects from the database.
     migrate - Perform a database migration from one version to the next.
 
 """
@@ -47,6 +52,7 @@ from chill.database import (
 )
 from chill.operate import operate_menu
 from chill.migrations import migrate1
+from chill.yaml_chill_node import load_yaml, dump_yaml
 from chill._version import __version__
 
 SITECFG = """
@@ -157,6 +163,12 @@ def main():
     if args['operate']:
         operate(args['--config'])
 
+    if args['load']:
+        load(args['--config'], yaml_file=args.get('--yaml', 'chill-data.yaml'))
+
+    if args['dump']:
+        dump(args['--config'], yaml_file=args.get('--yaml', 'chill-data.yaml'))
+
     if args['migrate']:
         migrate(args['--config'])
 
@@ -226,6 +238,22 @@ def operate(config):
     print("Operate Mode")
     with app.app_context():
         operate_menu()
+
+def load(config, yaml_file):
+    "Load a yaml file that has ChillNode objects into the database."
+
+    app = make_app(config=config)
+
+    with app.app_context():
+        load_yaml(yaml_file)
+
+def dump(config, yaml_file):
+    "Create a yaml file of ChillNode objects from the database."
+
+    app = make_app(config=config)
+
+    with app.app_context():
+        dump_yaml(yaml_file)
 
 def migrate(config):
     "Migrate the database from a previous version to a new one."
