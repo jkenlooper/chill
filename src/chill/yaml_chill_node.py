@@ -35,6 +35,9 @@ def _value_is_simple_string(value):
         else:
             return True
 
+                    #chill_node = page node id
+                    #item_name = page
+                    #item_value = {total_page, menu.footer.best, ...}
 def _add_node_to_parent(parent_node_id, name, value):
     if _value_is_simple_string(value):
         item_node_id = insert_node(name=name, value=value)
@@ -106,7 +109,11 @@ class ChillNode(yaml.YAMLObject):
 
             elif isinstance(self.value, dict):
                 for item_name in self.value.keys():
+                    #item_name = page
                     item_value = self.value.get(item_name)
+                    #item_value = {total_page, menu.footer.best, ...}
+                    #chill_node = page node id
+
                     _add_node_to_parent(chill_node, item_name, item_value)
 
             elif isinstance(self.value, list):

@@ -663,6 +663,7 @@ class Query(ChillTestCase):
                     insert_query(name='select_promoattr.sql', node_id=a_id)
 
                 rv = c.get('/page1', follow_redirects=True)
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert 200 == rv.status_code
                 rv_json = json.loads(rv.data)
                 assert set(expected.keys()) == set(rv_json.keys())
@@ -1377,7 +1378,7 @@ value: get-total-count.sql
         f.close()
 
         f = open(os.path.join(self.tmp_template_dir, 'get-total-count.sql'), 'w')
-        f.write("""select 26;""")
+        f.write("""select 26 as count;""")
         f.close()
 
         with self.app.app_context():
@@ -1390,7 +1391,8 @@ value: get-total-count.sql
                 assert 200 == rv.status_code
 
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
-                assert bytes('26', 'utf-8') in rv.data
+                data = json.loads(rv.data)
+                assert 26 == data['count']
 
     def test_template_simple_value(self):
         """
@@ -1458,7 +1460,7 @@ value:
 
     def test_multiple_rendered_value(self):
         """
-        Create a node with multiple query value and route
+        Create a node with multiple string value and route
         """
         yaml_content = """
 --- !ChillNode
@@ -1486,6 +1488,36 @@ value:
                 assert bytes('hello', 'utf-8') in rv.data
                 assert bytes('a title here', 'utf-8') in rv.data
 
+    def test_rendered_list_value(self):
+        """
+        Create a node with a list value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value:
+    - value: "a is for aardvark"
+    - value: "b is for bat"
+    - value: "c is for cat"
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                json_response = json.loads(rv.data)
+                assert 'a is for aardvark' == json_response[0]['value']
 
     def test_recursive_rendered_string_value(self):
         """
@@ -1538,6 +1570,152 @@ value:
                 assert 'a title here' == json_response['page']['title']
                 assert 'tadpole' == json_response['page']['menu']['footer']['three']
 
+    def test_recursive_rendered_query_value(self):
+        """
+        Create a node with recursive query value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value:
+    total_count: get-total-count.sql
+    best: get-best-animal.sql
+    simple: simple.sql
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'get-total-count.sql'), 'w')
+        f.write("""select 26 as value;""")
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'get-best-animal.sql'), 'w')
+        f.write("""select 'kangaroo' as value;""")
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'simple.sql'), 'w')
+        f.write("""
+          select 'yup' as a, 'pretty' as b, 'darn' as c, 'simple' as d;
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                json_response = json.loads(rv.data)
+                assert 26 == json_response['total_count']['value']
+                assert 'kangaroo' == json_response['best']['value']
+                assert 'yup' == json_response['simple']['a']
+
+
+    def test_recursive_rendered_query_and_string_value(self):
+        """
+        Create a node with recursive query value and string value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value:
+    page:
+        total_count: get-total-count.sql
+        description: >
+            Description would go here and can be
+            multiple lines.
+        title: "a title here"
+        menu:
+            one: 'cat'
+            two: 'dog'
+            footer:
+                one: 'kitten'
+                two: 'puppy'
+                three: 'tadpole'
+                best: get-best-animal.sql
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'get-total-count.sql'), 'w')
+        f.write("""select 26 as value;""")
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'get-best-animal.sql'), 'w')
+        f.write("""select 'kangaroo' as value;""")
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                json_response = json.loads(rv.data)
+                assert 26 == json_response['page']['total_count']['value']
+                assert 'Description would go here and can be multiple lines.\n' == json_response['page']['description']
+                assert 'a title here' == json_response['page']['title']
+                assert 'tadpole' == json_response['page']['menu']['footer']['three']
+                assert 'kangaroo' == json_response['page']['menu']['footer']['best']['value']
+
+    def test_query_with_list_value(self):
+        """
+        Create a node with query list value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value: get-list-of-animals.sql
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'get-list-of-animals.sql'), 'w')
+        f.write("""select name, description from Animal;""")
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                db.execute(text("""
+                create table Animal (
+                  id integer,
+                  name varchar(30),
+                  description text
+                  );
+                """))
+                db.execute(text("insert into Animal (name, description) values ('horse', '4 legged furry thing');"))
+                db.execute(text("insert into Animal (name, description) values ('llama', 'furry thing with four legs');"))
+                db.execute(text("insert into Animal (name, description) values ('cow', 'a furry thing that also has 4 legs');"))
+
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                json_response = json.loads(rv.data)
+                assert 'horse' == json_response[0]['name']
+                assert 'cow' == json_response[2]['name']
 
 
 def suite():
