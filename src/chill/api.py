@@ -17,8 +17,8 @@ def _short_circuit(value=None):
     ['abc'] -> 'abc'
     [['abc']] -> 'abc'
     [{'abc':123},{'def':456}] -> {'abc':123,'def':456}
-    [{'abc':123},{'abc':456}] -> [{'abc':123,'abc':456}] # skip for same set keys
-    [[{'abc':123},{'abc':456}]] -> [{'abc':123,'abc':456}]
+    [{'abc':123},{'abc':456}] -> [{'abc':123},{'abc':456}] # skip for same set keys
+    [[{'abc':123},{'abc':456}]] -> [{'abc':123},{'abc':456}]
     """
     if not isinstance(value, list):
         return value

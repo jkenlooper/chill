@@ -25,7 +25,7 @@ from chill.yaml_chill_node import load_yaml, dump_yaml
 class ChillTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.debug=True
+        self.debug=False
         self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
         self.app = make_app(CHILL_DATABASE_URI='sqlite:///' + self.tmp_db.name,
@@ -1458,6 +1458,96 @@ value:
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert bytes('hello', 'utf-8') in rv.data
 
+    def test_bool_value(self):
+        """
+        Raise TypeError for a node with a boolean value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+# Boolean values like Yes, No, true, False are not supported. Use a string value
+# like 'Yes' or 'false'.
+value: Yes
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                try:
+                    load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+                except TypeError as err:
+                    self.app.logger.debug(err)
+
+                rv = c.get('/', follow_redirects=True)
+                assert 404 == rv.status_code
+
+    def test_sub_bool_value(self):
+        """
+        Raise TypeError for a node with a sub boolean value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+# Boolean values like Yes, No, true, False are not supported. Use a string value
+# like 'Yes' or 'false'.
+value:
+    content: yes
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                try:
+                    load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+                except TypeError as err:
+                    self.app.logger.debug(err)
+
+                rv = c.get('/', follow_redirects=True)
+                assert 404 == rv.status_code
+
+    def test_sub_list_bool_value(self):
+        """
+        Raise TypeError for a node with a sub boolean value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+# Boolean values like Yes, No, true, False are not supported. Use a string value
+# like 'Yes' or 'false'.
+value:
+    - yes
+    - no
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                try:
+                    load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+                except TypeError as err:
+                    self.app.logger.debug(err)
+
+                rv = c.get('/', follow_redirects=True)
+                assert 404 == rv.status_code
+
     def test_multiple_rendered_value(self):
         """
         Create a node with multiple string value and route
@@ -1495,11 +1585,14 @@ value:
         yaml_content = """
 --- !ChillNode
 name: page
-route: /
+route: /list/
 value:
-    - value: "a is for aardvark"
-    - value: "b is for bat"
-    - value: "c is for cat"
+    - "a is for aardvark"
+    - "b is for bat"
+    - "c is for cat"
+    - 1234
+    - 'Yes'
+    - 'No'
         """
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
@@ -1512,12 +1605,56 @@ value:
 
                 load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
 
-                rv = c.get('/', follow_redirects=True)
+                rv = c.get('/list/', follow_redirects=True)
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert 200 == rv.status_code
 
-                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 json_response = json.loads(rv.data)
                 assert 'a is for aardvark' == json_response[0]['value']
+                assert '1234' == json_response[3]['value']
+                assert 'Yes' == json_response[4]['value']
+                assert 'No' == json_response[5]['value']
+
+    def test_rendered_sub_list_value(self):
+        """
+        Create a node with a sub list value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /list/
+value:
+    - "a is for aardvark"
+    -
+        page:
+            top: 'Yes'
+            menu:
+                - "one"
+                - "two"
+            bottom: 'No'
+    - "c is for cat"
+    - 1234
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/list/', follow_redirects=True)
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert 200 == rv.status_code
+
+                json_response = json.loads(rv.data)
+                assert 'a is for aardvark' == json_response[0]['value']
+                assert 'one' == json_response[1]['value']['page']['menu'][0]['menu']
+                assert 'two' == json_response[1]['value']['page']['menu'][1]['menu']
+                assert '1234' == json_response[3]['value']
 
     def test_recursive_rendered_string_value(self):
         """
