@@ -64,7 +64,6 @@ def _add_node_to_parent(parent_node_id, name, value):
         elif isinstance(_value, list):
             for item_value in _value:
                 _add_node_to_parent(item_node_id, name, item_value)
-            #raise NotImplementedError('TODO: recursively create item_node when value is list')
         else:
             raise TypeError('unsupported value type. Use only dict, or list.')
 
@@ -98,8 +97,24 @@ class ChillNode(yaml.YAMLObject):
         if self.route:
             if isinstance(self.route, str):
                 insert_route(path=self.route, node_id=chill_node, weight=None, method='GET')
+            elif isinstance(self.route, dict):
+                route_path = self.route.get('path', None)
+                if route_path == None:
+                    raise TypeError('A path must be set for a route')
+                elif not isinstance(route_path, str):
+                    raise TypeError('A path must be a string value')
+                route_weight = self.route.get('weight', None)
+                route_method = self.route.get('method', 'GET')
+                if route_weight != None and not isinstance(route_weight, int):
+                    raise TypeError("route weight value needs to be integer if defined")
+                if (isinstance(route_method, str) and route_method.upper() not in ('GET', 'POST', 'PUT', 'DELETE', 'PATCH')):
+                    raise TypeError("route method value needs to be 'GET', 'POST', 'PUT', 'DELETE', or 'PATCH' if defined")
+                elif not isinstance(route_method, str):
+                    raise TypeError("route method value needs to be 'GET', 'POST', 'PUT', 'DELETE', or 'PATCH' if defined")
+                insert_route(path=self.route['path'], node_id=chill_node, weight=route_weight, method=route_method.upper())
+
             else:
-                raise NotImplementedError('route value other then str not supported yet. Only GET routes')
+                raise TypeError('route value other then str or dict not supported')
 
         # Set the template
         if self.template:

@@ -1394,6 +1394,81 @@ value: get-total-count.sql
                 data = json.loads(rv.data)
                 assert 26 == data['count']
 
+    def test_method_and_weight_route_value(self):
+        """
+        Create a node with a route using specific method and weight values.
+        """
+        yaml_content = """
+--- !ChillNode
+name: llamas
+route:
+    path: /api/llamas/
+    method: POST
+value: insert_llama.sql
+
+--- !ChillNode
+name: llamas
+route:
+    path: /api/llamas/name/<llama_name>/
+value: select_llama.sql
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'insert_llama.sql'), 'w')
+        f.write("""
+          insert into Llama (llama_name, location, description) values (:llama_name, :location, :description);
+          """)
+        f.close()
+        f = open(os.path.join(self.tmp_template_dir, 'select_llama.sql'), 'w')
+        f.write("""
+          select * from Llama
+          where llama_name = :llama_name;
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+                db.execute(text("""
+                create table Llama (
+                  llama_name varchar(255),
+                  location varchar(255),
+                  description text
+                  );
+                """))
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                llama_1 = {
+                        'llama_name': 'Rocky',
+                        'location': 'unknown',
+                        'description': 'first llama'
+                        }
+                rv = c.post('/api/llamas/', data=llama_1)
+                assert 201 == rv.status_code
+
+                llama_2 = {
+                        'llama_name': 'Nocky',
+                        'location': 'unknown',
+                        'description': 'second llama'
+                        }
+                rv = c.post('/api/llamas/', data=llama_2)
+                assert 201 == rv.status_code
+
+                rv = c.get('/api/llamas/name/Rocky/', follow_redirects=True)
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                rv_json = json.loads(rv.data)
+                assert set(llama_1.keys()) == set(rv_json.keys())
+                assert set(llama_1.values()) == set(rv_json.values())
+
+                rv = c.get('/api/llamas/name/Nocky/', follow_redirects=True)
+                rv_json = json.loads(rv.data)
+                assert set(llama_2.keys()) == set(rv_json.keys())
+                assert set(llama_2.values()) == set(rv_json.values())
+
     def test_template_simple_value(self):
         """
         Create a node with a string value and template
