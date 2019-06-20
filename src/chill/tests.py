@@ -8,6 +8,7 @@ import json
 import logging
 
 from sqlalchemy.sql import text
+import yaml
 
 from chill.app import make_app, db
 from chill.database import ( init_db,
@@ -20,7 +21,7 @@ from chill.database import ( init_db,
         insert_query,
         fetch_query_string,
         add_template_for_node )
-from chill.yaml_chill_node import load_yaml, dump_yaml
+from chill.yaml_chill_node import load_yaml, dump_yaml, ChillNode
 
 class ChillTestCase(unittest.TestCase):
 
@@ -1316,6 +1317,7 @@ value: "simple string value"
             with self.app.test_client() as c:
                 init_db()
 
+
                 load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
 
                 rv = c.get('/simple/', follow_redirects=True)
@@ -1323,6 +1325,16 @@ value: "simple string value"
 
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert bytes('simple string value', 'utf-8') in rv.data
+
+                test_dump_file = os.path.join(self.tmp_template_dir, 'test-data-dump.yaml')
+                dump_yaml(test_dump_file)
+
+                with open(test_dump_file, 'r') as f:
+                    documents = yaml.safe_load_all(f.read())
+                    self.app.logger.debug(documents)
+                    for item in documents:
+                        self.app.logger.debug(item)
+                        assert isinstance(item, ChillNode) == True
 
     def test_multiple_route_simple_value(self):
         """
@@ -1361,6 +1373,16 @@ value: "another string value"
 
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert bytes('another string value', 'utf-8') in rv.data
+
+                test_dump_file = os.path.join(self.tmp_template_dir, 'test-data-dump.yaml')
+                dump_yaml(test_dump_file)
+
+                with open(test_dump_file, 'r') as f:
+                    documents = yaml.safe_load_all(f.read())
+                    self.app.logger.debug(documents)
+                    for item in documents:
+                        self.app.logger.debug(item)
+                        assert isinstance(item, ChillNode) == True
 
     def test_route_query_value(self):
         """

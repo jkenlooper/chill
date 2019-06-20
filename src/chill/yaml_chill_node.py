@@ -1,6 +1,7 @@
 import os
 import sqlite3
 
+from sqlalchemy.sql import text
 from flask import current_app
 import yaml
 
@@ -15,6 +16,7 @@ from chill.database import (
         insert_query,
         add_template_for_node,
         fetch_query_string,
+        rowify,
         )
 
 def _is_sql_file(file_name):
@@ -76,6 +78,12 @@ class ChillNode(yaml.YAMLObject):
     value = None
     template = None
     route = None
+
+    def __init__(self, name, value=None, template=None, route=None):
+        self.name = name
+        self.value = value
+        self.template = template
+        self.route = route
 
     def load(self):
         if not self.name:
@@ -152,6 +160,24 @@ class ChillNode(yaml.YAMLObject):
 def dump_yaml(yaml_file):
     "Dump chill database structure to ChillNode yaml objects."
     current_app.logger.debug(globals()['dump_yaml'].__doc__)
+
+    result = db.execute(text(fetch_query_string('select_all_chill_nodes.sql'))).fetchall()
+
+    current_app.logger.debug(result)
+    node_list = result
+    chill_nodes = []
+
+    for node in node_list:
+        current_app.logger.debug(node)
+        node_path = node.path
+        if isinstance(node_path, str):
+            chill_node = ChillNode(name=node.name, value=node.value)
+
+            chill_nodes.append(chill_node)
+
+    with open(yaml_file, 'w') as f:
+        current_app.logger.debug(yaml.dump_all(chill_nodes, default_flow_style=False))
+        f.write(yaml.dump_all(chill_nodes, default_flow_style=False))
 
     # select all from Node and store in a list
     # for each that has a route
