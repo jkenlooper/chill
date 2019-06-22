@@ -1298,6 +1298,18 @@ class DeleteMethod(ChillTestCase):
 
 
 class YAMLChillNode(ChillTestCase):
+    def check_dump(self):
+        test_dump_file = os.path.join(self.tmp_template_dir, 'test-data-dump.yaml')
+        dump_yaml(test_dump_file)
+
+        with open(test_dump_file, 'r') as f:
+            documents = yaml.safe_load_all(f.read())
+            self.app.logger.debug(documents)
+            for item in documents:
+                self.app.logger.debug(item)
+                assert isinstance(item, ChillNode) == True
+
+
     def test_route_simple_value(self):
         """
         Create a node with a string value and route
@@ -1326,15 +1338,7 @@ value: "simple string value"
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert bytes('simple string value', 'utf-8') in rv.data
 
-                test_dump_file = os.path.join(self.tmp_template_dir, 'test-data-dump.yaml')
-                dump_yaml(test_dump_file)
-
-                with open(test_dump_file, 'r') as f:
-                    documents = yaml.safe_load_all(f.read())
-                    self.app.logger.debug(documents)
-                    for item in documents:
-                        self.app.logger.debug(item)
-                        assert isinstance(item, ChillNode) == True
+                self.check_dump()
 
     def test_multiple_route_simple_value(self):
         """
@@ -1374,15 +1378,7 @@ value: "another string value"
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert bytes('another string value', 'utf-8') in rv.data
 
-                test_dump_file = os.path.join(self.tmp_template_dir, 'test-data-dump.yaml')
-                dump_yaml(test_dump_file)
-
-                with open(test_dump_file, 'r') as f:
-                    documents = yaml.safe_load_all(f.read())
-                    self.app.logger.debug(documents)
-                    for item in documents:
-                        self.app.logger.debug(item)
-                        assert isinstance(item, ChillNode) == True
+                self.check_dump()
 
     def test_route_query_value(self):
         """
@@ -1415,6 +1411,8 @@ value: get-total-count.sql
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 data = json.loads(rv.data)
                 assert 26 == data['count']
+
+                self.check_dump()
 
     def test_method_and_weight_route_value(self):
         """
@@ -1491,6 +1489,8 @@ value: select_llama.sql
                 assert set(llama_2.keys()) == set(rv_json.keys())
                 assert set(llama_2.values()) == set(rv_json.values())
 
+                self.check_dump()
+
     def test_template_simple_value(self):
         """
         Create a node with a string value and template
@@ -1554,6 +1554,8 @@ value:
 
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert bytes('hello', 'utf-8') in rv.data
+
+                self.check_dump()
 
     def test_bool_value(self):
         """
