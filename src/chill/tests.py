@@ -1298,17 +1298,22 @@ class DeleteMethod(ChillTestCase):
 
 
 class YAMLChillNode(ChillTestCase):
-    def check_dump(self):
+    def check_dump(self, expected_chill_nodes=None):
         test_dump_file = os.path.join(self.tmp_template_dir, 'test-data-dump.yaml')
         dump_yaml(test_dump_file)
 
         with open(test_dump_file, 'r') as f:
-            documents = yaml.safe_load_all(f.read())
-            self.app.logger.debug(documents)
+            contents = f.read()
+            self.app.logger.debug('contents {}'.format(contents))
+            self.app.logger.debug('expected {}'.format(expected_chill_nodes))
+            documents = yaml.safe_load_all(contents)
             for item in documents:
-                self.app.logger.debug(item)
+                self.app.logger.debug('check_dump {}'.format(item))
                 assert isinstance(item, ChillNode) == True
 
+                if isinstance(expected_chill_nodes, list):
+                    match = expected_chill_nodes.pop(expected_chill_nodes.index(str(item)))
+                    assert match == str(item)
 
     def test_route_simple_value(self):
         """
@@ -1320,6 +1325,7 @@ name: simple_value_at_route
 route: /simple/
 value: "simple string value"
         """
+        expected_chill_nodes = ["ChillNode(name='simple_value_at_route', value='simple string value', template=None, route='/simple/')"]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1338,7 +1344,7 @@ value: "simple string value"
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert bytes('simple string value', 'utf-8') in rv.data
 
-                self.check_dump()
+                self.check_dump(expected_chill_nodes)
 
     def test_multiple_route_simple_value(self):
         """
@@ -1355,6 +1361,10 @@ name: another_value_at_route
 route: /another/
 value: "another string value"
         """
+        expected_chill_nodes = [
+            "ChillNode(name='simple_value_at_route', value='simple string value', template=None, route='/simple/')",
+            "ChillNode(name='another_value_at_route', value='another string value', template=None, route='/another/')",
+        ]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1378,7 +1388,7 @@ value: "another string value"
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert bytes('another string value', 'utf-8') in rv.data
 
-                self.check_dump()
+                self.check_dump(expected_chill_nodes)
 
     def test_route_query_value(self):
         """
@@ -1390,6 +1400,7 @@ name: query_value_at_route
 route: /total-count/
 value: get-total-count.sql
         """
+        expected_chill_nodes = ["ChillNode(name='query_value_at_route', value='get-total-count.sql', template=None, route='/total-count/')"]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1412,7 +1423,7 @@ value: get-total-count.sql
                 data = json.loads(rv.data)
                 assert 26 == data['count']
 
-                self.check_dump()
+                self.check_dump(expected_chill_nodes)
 
     def test_method_and_weight_route_value(self):
         """
@@ -1432,6 +1443,10 @@ route:
     path: /api/llamas/name/<llama_name>/
 value: select_llama.sql
         """
+        expected_chill_nodes = [
+            "ChillNode(name='llamas', value='insert_llama.sql', template=None, route={'method': 'POST', 'path': '/api/llamas/'})",
+            "ChillNode(name='llamas', value='select_llama.sql', template=None, route='/api/llamas/name/<llama_name>/')"
+        ]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1489,7 +1504,7 @@ value: select_llama.sql
                 assert set(llama_2.keys()) == set(rv_json.keys())
                 assert set(llama_2.values()) == set(rv_json.values())
 
-                self.check_dump()
+                self.check_dump(expected_chill_nodes)
 
     def test_template_simple_value(self):
         """
@@ -1502,6 +1517,7 @@ route: /simple-template/
 template: test.html
 value: "simple"
         """
+        expected_chill_nodes = ["ChillNode(name='simple_value_at_route', value='simple', template='test.html', route='/simple-template/')"]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1527,6 +1543,8 @@ value: "simple"
                 assert bytes('test template', 'utf-8') in rv.data
                 assert bytes('simple', 'utf-8') in rv.data
 
+                self.check_dump(expected_chill_nodes)
+
     def test_rendered_value(self):
         """
         Create a node with a query value and route
@@ -1538,6 +1556,7 @@ route: /
 value:
     content: "hello"
         """
+        expected_chill_nodes = ["ChillNode(name='page', value={'content': 'hello'}, template=None, route='/')"]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1555,7 +1574,7 @@ value:
                 self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
                 assert bytes('hello', 'utf-8') in rv.data
 
-                self.check_dump()
+                self.check_dump(expected_chill_nodes)
 
     def test_bool_value(self):
         """

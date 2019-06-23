@@ -129,6 +129,7 @@ class ChillNode(yaml.YAMLObject):
     route = None
 
     def __init__(self, name, node_id=None, value=None, template=None, query=None, path=None, method=None, weight=None):
+        current_app.logger.debug("init {}".format(locals()))
         self.name = name
         if value != None:
             self.value = value
@@ -146,7 +147,7 @@ class ChillNode(yaml.YAMLObject):
                 self.value = query
 
         if path != None:
-            if isinstance(path, str) and method == None and weight == None:
+            if isinstance(path, str) and method in (None, 'GET') and weight == None:
                 self.route = path
             else:
                 route = {
@@ -243,8 +244,7 @@ def dump_yaml(yaml_file):
     for node in node_list:
         current_app.logger.debug(node)
         if isinstance(node.path, str):
-            # TODO: route or path, method, weight
-            chill_node = ChillNode(name=node.name, node_id=node.node_id, value=node.value, query=node.query, path=node.path, method=node.method, weight=node.weight)
+            chill_node = ChillNode(name=node.name, node_id=node.node_id, value=node.value, template=node.template, query=node.query, path=node.path, method=node.method, weight=node.weight)
 
             chill_nodes.append(chill_node)
 
