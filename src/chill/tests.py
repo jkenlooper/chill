@@ -1576,6 +1576,38 @@ value:
 
                 self.check_dump(expected_chill_nodes)
 
+    def test_rendered_chill_value(self):
+        """
+        Create a node with a query chill_value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value:
+    content:
+        chill_value: "hello"
+        """
+        expected_chill_nodes = ["ChillNode(name='page', value={'content': 'hello'}, template=None, route='/')"]
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('hello', 'utf-8') in rv.data
+
+                self.check_dump(expected_chill_nodes)
+
     def test_bool_value(self):
         """
         Raise TypeError for a node with a boolean value and route
@@ -1648,6 +1680,35 @@ route: /
 value:
     - yes
     - no
+        """
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                try:
+                    load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+                except TypeError as err:
+                    self.app.logger.debug(err)
+
+                rv = c.get('/', follow_redirects=True)
+                assert 404 == rv.status_code
+
+    def test_bool_chill_value(self):
+        """
+        Raise TypeError for a node with a boolean chill_value and route
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value:
+    content:
+        chill_value: Yes
         """
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
@@ -2020,6 +2081,84 @@ value: get-list-of-animals.sql
                 json_response = json.loads(rv.data)
                 assert 'horse' == json_response[0]['name']
                 assert 'cow' == json_response[2]['name']
+
+                self.check_dump(expected_chill_nodes)
+
+    def test_rendered_chill_value_with_template(self):
+        """
+        Create a node with a query chill_value and chill_template
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value:
+    content:
+        chill_value: "hello"
+        chill_template: "hello.html"
+        """
+        expected_chill_nodes = ["ChillNode(name='page', value={'content': {'chill_template': 'hello.html', 'chill_value': 'hello'}}, template=None, route='/')"]
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'hello.html'), 'w')
+        f.write("""
+          <h1>greeting template</h1>
+          {{ value }}
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('hello', 'utf-8') in rv.data
+
+                self.check_dump(expected_chill_nodes)
+
+    def test_rendered_value_with_template_and_no_chill_value(self):
+        """
+        Create a node with a query value and only chill_template
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value:
+    content:
+        chill_template: "hello.html"
+        """
+        expected_chill_nodes = ["ChillNode(name='page', value={'content': {'chill_template': 'hello.html'}}, template=None, route='/')"]
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'hello.html'), 'w')
+        f.write("""
+          <h1>greeting template</h1>
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('greeting', 'utf-8') in rv.data
 
                 self.check_dump(expected_chill_nodes)
 

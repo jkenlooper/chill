@@ -44,12 +44,14 @@ def _add_node_to_parent(parent_node_id, name, value):
     _value = value
     if isinstance(value, int) or isinstance(value, float):
         _value = str(value)
-    elif isinstance(value, dict) and (value.get('chill_template') != None or value.get('chill_value')  != None):
+    elif isinstance(value, dict) and set(value.keys()).issubset({'chill_template', 'chill_value'}):
         if value.get('chill_template') == None:
             _add_node_to_parent(parent_node_id, name, value.get('chill_value'))
             return
         else:
             _value = value.get('chill_value')
+            if isinstance(_value, int) or isinstance(_value, float):
+                _value = str(_value)
             node_has_template = True
 
     item_node_id = None
@@ -69,7 +71,8 @@ def _add_node_to_parent(parent_node_id, name, value):
         insert_node_node(node_id=parent_node_id, target_node_id=item_node_id)
 
         if isinstance(_value, dict):
-            # TODO: check if 'chill_template' or 'chill_value' is a key name
+            if set(_value.keys()).issubset({'chill_template', 'chill_value'}):
+                raise TypeError("chill_template or chill_value should not be set directly under a chill_value")
             for item_name in _value.keys():
                 item_value = _value.get(item_name)
                 _add_node_to_parent(item_node_id, item_name, item_value)
@@ -77,6 +80,8 @@ def _add_node_to_parent(parent_node_id, name, value):
         elif isinstance(_value, list):
             for item_value in _value:
                 _add_node_to_parent(item_node_id, name, item_value)
+        elif _value == None:
+            pass
         else:
             raise TypeError('unsupported value type. Use only dict, or list.')
 
@@ -122,8 +127,18 @@ def _render_chill_node_value(node_id):
         value = node.value
         current_app.logger.debug('no query; set node {} value {}'.format(node_id, value))
 
-    return value
+    template_for_node_result = db.execute(text(fetch_query_string('select_template_from_node.sql')), {"node_id": node_id}).fetchone()
+    if template_for_node_result:
+        template_for_node = template_for_node_result.name
+        current_app.logger.debug('template for node {}'.format(template_for_node))
+        chill_value = value
+        value = {
+            'chill_template': template_for_node,
+        }
+        if chill_value != None:
+            value['chill_value'] = chill_value
 
+    return value
 
 class ChillNode(yaml.YAMLObject):
     yaml_loader = yaml.SafeLoader
@@ -216,6 +231,8 @@ class ChillNode(yaml.YAMLObject):
                 insert_query(name=self.value, node_id=chill_node)
 
             elif isinstance(self.value, dict):
+                if set(self.value.keys()).issubset({'chill_template', 'chill_value'}):
+                    raise TypeError("chill_template or chill_value should not be set at the top ChillNode value.")
                 for item_name in self.value.keys():
                     item_value = self.value.get(item_name)
                     _add_node_to_parent(chill_node, item_name, item_value)
@@ -227,9 +244,6 @@ class ChillNode(yaml.YAMLObject):
                 pass
             else:
                 raise TypeError('unsupported value type. Use only dict, or list.')
-
-
-        current_app.logger.debug(self.route)
 
     def __repr__(self):
         return "%s(name=%r, value=%r, template=%r, route=%r)" % (self.__class__.__name__, self.name, self.value, self.template, self.route)
