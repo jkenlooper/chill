@@ -1666,6 +1666,36 @@ value:
                 rv = c.get('/', follow_redirects=True)
                 assert 404 == rv.status_code
 
+    def test_none_value(self):
+        """
+        Handle None value
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+value: None
+        """
+        expected_chill_nodes = ["ChillNode(name='page', value='None', template=None, route='/')"]
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                try:
+                    load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+                except TypeError as err:
+                    self.app.logger.debug(err)
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.check_dump(expected_chill_nodes)
+
     def test_multiple_rendered_value(self):
         """
         Create a node with multiple string value and route
@@ -1678,6 +1708,7 @@ value:
     content: "hello"
     title: "a title here"
         """
+        expected_chill_nodes = ["ChillNode(name='page', value={'content': 'hello', 'title': 'a title here'}, template=None, route='/')"]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1696,6 +1727,8 @@ value:
                 assert bytes('hello', 'utf-8') in rv.data
                 assert bytes('a title here', 'utf-8') in rv.data
 
+                self.check_dump(expected_chill_nodes)
+
     def test_rendered_list_value(self):
         """
         Create a node with a list value and route
@@ -1712,6 +1745,7 @@ value:
     - 'Yes'
     - 'No'
         """
+        expected_chill_nodes = ["ChillNode(name='page', value=[{'value': 'a is for aardvark'}, {'value': 'b is for bat'}, {'value': 'c is for cat'}, {'value': '1234'}, {'value': 'Yes'}, {'value': 'No'}], template=None, route='/list/')"]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1733,6 +1767,8 @@ value:
                 assert 'Yes' == json_response[4]['value']
                 assert 'No' == json_response[5]['value']
 
+                self.check_dump(expected_chill_nodes)
+
     def test_rendered_sub_list_value(self):
         """
         Create a node with a sub list value and route
@@ -1753,6 +1789,8 @@ value:
     - "c is for cat"
     - 1234
         """
+        expected_chill_nodes = ["ChillNode(name='page', value=[{'value': 'a is for aardvark'}, {'value': {'page': {'bottom': 'No', 'menu': [{'menu': 'one'}, {'menu': 'two'}], 'top': 'Yes'}}}, {'value': 'c is for cat'}, {'value': '1234'}], template=None, route='/list/')"]
+
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1773,6 +1811,8 @@ value:
                 assert 'one' == json_response[1]['value']['page']['menu'][0]['menu']
                 assert 'two' == json_response[1]['value']['page']['menu'][1]['menu']
                 assert '1234' == json_response[3]['value']
+
+                self.check_dump(expected_chill_nodes)
 
     def test_recursive_rendered_string_value(self):
         """
@@ -1804,6 +1844,7 @@ value:
                 two: 'puppy'
                 three: 'tadpole'
         """
+        expected_chill_nodes = ["ChillNode(name='page', value={'page': {'content': 'an-example-doc.html', 'description': 'Description would go here and can be multiple lines.\\n', 'menu': {'footer': {'one': 'kitten', 'three': 'tadpole', 'two': 'puppy'}, 'one': 'cat', 'two': 'dog'}, 'menu2': {'footer': {'one': 'kitten', 'three': 'tadpole', 'two': 'puppy'}, 'one': 'cat', 'two': 'dog'}, 'title': 'a title here'}}, template=None, route='/')"]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1825,6 +1866,8 @@ value:
                 assert 'a title here' == json_response['page']['title']
                 assert 'tadpole' == json_response['page']['menu']['footer']['three']
 
+                self.check_dump(expected_chill_nodes)
+
     def test_recursive_rendered_query_value(self):
         """
         Create a node with recursive query value and route
@@ -1838,6 +1881,7 @@ value:
     best: get-best-animal.sql
     simple: simple.sql
         """
+        expected_chill_nodes = ["ChillNode(name='page', value={'best': 'get-best-animal.sql', 'simple': 'simple.sql', 'total_count': 'get-total-count.sql'}, template=None, route='/')"]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1872,6 +1916,7 @@ value:
                 assert 'kangaroo' == json_response['best']['value']
                 assert 'yup' == json_response['simple']['a']
 
+                self.check_dump(expected_chill_nodes)
 
     def test_recursive_rendered_query_and_string_value(self):
         """
@@ -1897,6 +1942,7 @@ value:
                 three: 'tadpole'
                 best: get-best-animal.sql
         """
+        expected_chill_nodes = ["ChillNode(name='page', value={'page': {'description': 'Description would go here and can be multiple lines.\\n', 'menu': {'footer': {'best': 'get-best-animal.sql', 'one': 'kitten', 'three': 'tadpole', 'two': 'puppy'}, 'one': 'cat', 'two': 'dog'}, 'title': 'a title here', 'total_count': 'get-total-count.sql'}}, template=None, route='/')"]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1927,6 +1973,8 @@ value:
                 assert 'tadpole' == json_response['page']['menu']['footer']['three']
                 assert 'kangaroo' == json_response['page']['menu']['footer']['best']['value']
 
+                self.check_dump(expected_chill_nodes)
+
     def test_query_with_list_value(self):
         """
         Create a node with query list value and route
@@ -1937,6 +1985,7 @@ name: page
 route: /
 value: get-list-of-animals.sql
         """
+        expected_chill_nodes = ["ChillNode(name='page', value='get-list-of-animals.sql', template=None, route='/')"]
 
         f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
         f.write(yaml_content)
@@ -1972,6 +2021,7 @@ value: get-list-of-animals.sql
                 assert 'horse' == json_response[0]['name']
                 assert 'cow' == json_response[2]['name']
 
+                self.check_dump(expected_chill_nodes)
 
 def suite():
     suite = unittest.TestSuite()

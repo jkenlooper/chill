@@ -98,10 +98,17 @@ def _render_chill_node_value(node_id):
                 link_nodes_result = db.execute(text(fetch_query_string('select_link_node_from_node.sql')), {"node_id": node_id}).fetchall()
                 if link_nodes_result:
                     value = {}
-                    for link_node in link_nodes_result:
-                        current_app.logger.debug('link_nodes_result item {}'.format(link_node))
-                        value[link_node.name] = _render_chill_node_value(link_node.node_id)
-                        current_app.logger.debug('link_node name and value {} : {}'.format(link_node.name, value[link_node.name]))
+                    if len(link_nodes_result) > 1 and link_nodes_result[0].name == link_nodes_result[1].name:
+                        value = []
+                        for link_node in link_nodes_result:
+                            item = {}
+                            item[link_node.name] = _render_chill_node_value(link_node.node_id)
+                            value.append(item)
+                    else:
+                        for link_node in link_nodes_result:
+                            current_app.logger.debug('link_nodes_result item {}'.format(link_node))
+                            value[link_node.name] = _render_chill_node_value(link_node.node_id)
+                            current_app.logger.debug('link_node name and value {} : {}'.format(link_node.name, value[link_node.name]))
 
                 else:
                     node = select_node(node_id=node_id)[0]
@@ -137,12 +144,7 @@ class ChillNode(yaml.YAMLObject):
             self.template = template
         if query != None:
             if query == 'select_link_node_from_node.sql':
-                #self.value = {
-                #    'content': "hello"
-                #}
                 self.value = _render_chill_node_value(node_id)
-
-                #raise NotImplementedError('TODO: render_node for ChillNode value')
             else:
                 self.value = query
 
@@ -221,6 +223,8 @@ class ChillNode(yaml.YAMLObject):
             elif isinstance(self.value, list):
                 for item_value in self.value:
                     _add_node_to_parent(chill_node, 'value', item_value)
+            elif self.value == None:
+                pass
             else:
                 raise TypeError('unsupported value type. Use only dict, or list.')
 
