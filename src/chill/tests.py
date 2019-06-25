@@ -2162,6 +2162,84 @@ value:
 
                 self.check_dump(expected_chill_nodes)
 
+    def test_sub_chill_template_chill_value(self):
+        """
+        Create a node with nested chill_template and chill_value
+        """
+        yaml_content = """
+--- !ChillNode
+name: page
+route: /
+template: page.html
+value:
+    content:
+        chill_template: "hello.html"
+        chill_value:
+            - item:
+                chill_value: "one"
+                chill_template: one.html
+            - item:
+                chill_value: "two"
+                chill_template: two.html
+            - item:
+                chill_value:
+                    - subitem: "thr"
+                    - subitem: "ee"
+                chill_template: three.html
+        """
+        expected_chill_nodes = ["ChillNode(name='page', value={'content': {'chill_template': 'hello.html', 'chill_value': [{'content': {'item': {'chill_template': 'one.html', 'chill_value': 'one'}}}, {'content': {'item': {'chill_template': 'two.html', 'chill_value': 'two'}}}, {'content': {'item': {'chill_template': 'three.html', 'chill_value': [{'item': {'subitem': 'thr'}}, {'item': {'subitem': 'ee'}}]}}}]}}, template='page.html', route='/')"]
+
+        f = open(os.path.join(self.tmp_template_dir, 'test-data.yaml'), 'w')
+        f.write(yaml_content)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'page.html'), 'w')
+        f.write("""
+          page
+          {{ content|safe }}
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'hello.html'), 'w')
+        f.write("""
+          <h1>greeting template</h1>
+          {% for item in value %}
+          {{ item.content.item|safe }}
+          {% endfor %}
+          """)
+        f.close()
+
+        f = open(os.path.join(self.tmp_template_dir, 'one.html'), 'w')
+        f.write("""
+            <span>First</span> {{ value }}
+          """)
+        f.close()
+        f = open(os.path.join(self.tmp_template_dir, 'two.html'), 'w')
+        f.write("""
+            <span>Second</span> {{ value }}
+          """)
+        f.close()
+        f = open(os.path.join(self.tmp_template_dir, 'three.html'), 'w')
+        f.write("""
+            <span>Third</span> {% for item in value -%} {{ item.item.subitem }}{%- endfor %}
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                load_yaml(os.path.join(self.tmp_template_dir, 'test-data.yaml'))
+
+                rv = c.get('/', follow_redirects=True)
+                assert 200 == rv.status_code
+
+                self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
+                assert bytes('greeting', 'utf-8') in rv.data
+
+                self.check_dump(expected_chill_nodes)
+
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(NothingConfigured))

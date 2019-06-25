@@ -88,7 +88,7 @@ def _add_node_to_parent(parent_node_id, name, value):
     if node_has_template:
         add_template_for_node(value.get('chill_template'), item_node_id)
 
-def _render_chill_node_value(node_id):
+def _render_chill_node_value(node_id, root=False):
     # get the node
     query_result = db.execute(text(fetch_query_string('select_query_from_node.sql')), {"node_id": node_id}).fetchall()
     value = None
@@ -127,16 +127,17 @@ def _render_chill_node_value(node_id):
         value = node.value
         current_app.logger.debug('no query; set node {} value {}'.format(node_id, value))
 
-    template_for_node_result = db.execute(text(fetch_query_string('select_template_from_node.sql')), {"node_id": node_id}).fetchone()
-    if template_for_node_result:
-        template_for_node = template_for_node_result.name
-        current_app.logger.debug('template for node {}'.format(template_for_node))
-        chill_value = value
-        value = {
-            'chill_template': template_for_node,
-        }
-        if chill_value != None:
-            value['chill_value'] = chill_value
+    if not root:
+        template_for_node_result = db.execute(text(fetch_query_string('select_template_from_node.sql')), {"node_id": node_id}).fetchone()
+        if template_for_node_result:
+            template_for_node = template_for_node_result.name
+            current_app.logger.debug('template for node {}'.format(template_for_node))
+            chill_value = value
+            value = {
+                'chill_template': template_for_node,
+            }
+            if chill_value != None:
+                value['chill_value'] = chill_value
 
     return value
 
@@ -159,12 +160,12 @@ class ChillNode(yaml.YAMLObject):
             self.template = template
         if query != None:
             if query == 'select_link_node_from_node.sql':
-                self.value = _render_chill_node_value(node_id)
+                self.value = _render_chill_node_value(node_id, root=True)
             else:
                 self.value = query
 
         if path != None:
-            if isinstance(path, str) and method in (None, 'GET') and weight == None:
+            if isinstance(path, str) and method in (None, 'GET') and weight in (None, ''):
                 self.route = path
             else:
                 route = {
@@ -172,7 +173,7 @@ class ChillNode(yaml.YAMLObject):
                 }
                 if method != None:
                     route["method"] = method
-                if weight != None:
+                if weight != None and weight != '':
                     route["weight"] = weight
                 self.route = route
 
