@@ -111,27 +111,21 @@ def _render_chill_node_value(node_id, root=False):
                             value.append(item)
                     else:
                         for link_node in link_nodes_result:
-                            current_app.logger.debug('link_nodes_result item {}'.format(link_node))
                             value[link_node.name] = _render_chill_node_value(link_node.node_id)
-                            current_app.logger.debug('link_node name and value {} : {}'.format(link_node.name, value[link_node.name]))
 
                 else:
                     node = select_node(node_id=node_id)[0]
                     value = node.value
-                    current_app.logger.debug('set node {} value {}'.format(node_id, node.value))
             else:
                 value = query_name
-                current_app.logger.debug('set node {} to query value {}'.format(node_id, value))
     else:
         node = select_node(node_id=node_id)[0]
         value = node.value
-        current_app.logger.debug('no query; set node {} value {}'.format(node_id, value))
 
     if not root:
         template_for_node_result = db.execute(text(fetch_query_string('select_template_from_node.sql')), {"node_id": node_id}).fetchone()
         if template_for_node_result:
             template_for_node = template_for_node_result.name
-            current_app.logger.debug('template for node {}'.format(template_for_node))
             chill_value = value
             value = {
                 'chill_template': template_for_node,
@@ -152,7 +146,6 @@ class ChillNode(yaml.YAMLObject):
     route = None
 
     def __init__(self, name, node_id=None, value=None, template=None, query=None, path=None, method=None, weight=None):
-        current_app.logger.debug("init {}".format(locals()))
         self.name = name
         if value != None:
             self.value = value
@@ -252,16 +245,13 @@ class ChillNode(yaml.YAMLObject):
 
 def dump_yaml(yaml_file):
     "Dump chill database structure to ChillNode yaml objects."
-    current_app.logger.debug(globals()['dump_yaml'].__doc__)
 
     result = db.execute(text(fetch_query_string('select_all_chill_nodes.sql'))).fetchall()
 
-    current_app.logger.debug(result)
     node_list = result
     chill_nodes = []
 
     for node in node_list:
-        current_app.logger.debug(node)
         if isinstance(node.path, str):
             chill_node = ChillNode(name=node.name, node_id=node.node_id, value=node.value, template=node.template, query=node.query, path=node.path, method=node.method, weight=node.weight)
 
@@ -271,24 +261,8 @@ def dump_yaml(yaml_file):
         yaml.dump_all(chill_nodes, stream=f, default_flow_style=False)
         current_app.logger.debug(yaml.dump_all(chill_nodes, default_flow_style=False))
 
-    # select all from Node and store in a list
-    # for each that has a route
-        # get template string if defined
-        # if value is string
-            # set value
-        # else
-            # if query is defined and not path to Node_Node query
-                # set value to sql query file
-            # else
-                # recursivly render node value and set path to sql query files for
-                # nodes with null value.
-
-        # pop node from list for each node that has been added
-    #
-
 def load_yaml(yaml_file):
     "Load ChillNode yaml objects into chill database."
-    current_app.logger.debug(globals()['load_yaml'].__doc__)
 
     with open(yaml_file, 'r') as f:
         documents = yaml.safe_load_all(f.read())
