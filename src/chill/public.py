@@ -23,8 +23,6 @@ from .api import render_node, _query
 from .cache import cache
 from . import shortcodes
 
-encoder = json.JSONEncoder(indent=2, sort_keys=True)
-
 #def get_map_adapter():
 #    map_adapter = getattr(
 #
@@ -130,7 +128,7 @@ class PageView(MethodView):
             abort(404)
         rule_kw.update( node )
         values = rule_kw
-        xhr_data = request.get_json()
+        xhr_data = request.get_json(silent=True)
         if xhr_data:
             values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
@@ -148,7 +146,7 @@ class PageView(MethodView):
         if rendered:
             if not isinstance(rendered, (str, str, int, float)):
                 # return a json string
-                return encoder.encode(rendered)
+                return json.jsonify(rendered)
             return rendered
 
         # Nothing to show, so nothing found
@@ -165,7 +163,7 @@ class PageView(MethodView):
 
         rule_kw.update( node )
         values = rule_kw
-        xhr_data = request.get_json()
+        xhr_data = request.get_json(silent=True)
         if xhr_data:
             values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
@@ -188,7 +186,7 @@ class PageView(MethodView):
 
         rule_kw.update( node )
         values = rule_kw
-        xhr_data = request.get_json()
+        xhr_data = request.get_json(silent=True)
         if xhr_data:
             values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
@@ -211,7 +209,7 @@ class PageView(MethodView):
 
         rule_kw.update( node )
         values = rule_kw
-        xhr_data = request.get_json()
+        xhr_data = request.get_json(silent=True)
         if xhr_data:
             values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
@@ -234,7 +232,7 @@ class PageView(MethodView):
 
         rule_kw.update( node )
         values = rule_kw
-        xhr_data = request.get_json()
+        xhr_data = request.get_json(silent=True)
         if xhr_data:
             values.update( xhr_data )
         values.update( request.form.to_dict(flat=True) )
@@ -278,7 +276,7 @@ def route_handler(context, content, pargs, kwargs):
     if rendered:
         if not isinstance(rendered, (str, str, int, float)):
             # return a json string
-            return encoder.encode(rendered)
+            return json.jsonify(rendered)
 
         return rendered
 
