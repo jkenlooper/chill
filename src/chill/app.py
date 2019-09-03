@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from builtins import str, bytes
 import os
+import time
 
 from werkzeug.local import LocalProxy
 from flask import Flask, g, current_app, Blueprint, Markup
@@ -183,6 +184,14 @@ def make_app(config=None, **kw):
         """
         return dict(config=dict(app.config))
 
+    @app.context_processor
+    def inject_chill_vars():
+        """
+        Inject some useful variables for templates to use.
+        """
+        return {
+            "chill_now": int(time.time())
+        }
 
     # Add the markdown filter for the templates
     md = Markdown(app)

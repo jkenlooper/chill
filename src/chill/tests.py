@@ -808,6 +808,28 @@ class Template(ChillTestCase):
                 rv = c.get('/a/chase/', follow_redirects=True)
                 assert b'chase' in rv.data
 
+    def test_chill_now(self):
+        """
+        Check that the chill_now timestamp is available for templates to use
+        """
+        f = open(os.path.join(self.tmp_template_dir, 'chill_now.html'), 'w')
+        f.write("""
+          {% if chill_now %}timestamp: {{ chill_now }}{% endif %}
+          """)
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                a = insert_node(name='a', value=None)
+                insert_route(path='/a/', node_id=a)
+                add_template_for_node('chill_now.html', a)
+
+                rv = c.get('/a/', follow_redirects=True)
+                #self.app.logger.debug(rv.data)
+                assert b'timestamp' in rv.data
+
 class Documents(ChillTestCase):
     def test_reading_in_a_document(self):
         """
