@@ -93,8 +93,8 @@ def _render_chill_node_value(node_id, root=False):
     query_result = db.execute(text(fetch_query_string('select_query_from_node.sql')), {"node_id": node_id}).fetchall()
     value = None
     if query_result:
-        current_app.logger.debug('render {node_id}'.format(node_id=node_id))
-        current_app.logger.debug(query_result)
+        #current_app.logger.debug('render {node_id}'.format(node_id=node_id))
+        #current_app.logger.debug(query_result)
         values = []
         if len(query_result) > 1:
             raise NotImplementedError('TODO: Support for multiple queries found for a node.')
@@ -259,7 +259,7 @@ def dump_yaml(yaml_file):
 
     with open(yaml_file, 'w') as f:
         yaml.dump_all(chill_nodes, stream=f, default_flow_style=False)
-        current_app.logger.debug(yaml.dump_all(chill_nodes, default_flow_style=False))
+        #current_app.logger.debug(yaml.dump_all(chill_nodes, default_flow_style=False))
 
 def load_yaml(yaml_file):
     "Load ChillNode yaml objects into chill database."
@@ -267,7 +267,7 @@ def load_yaml(yaml_file):
     with open(yaml_file, 'r') as f:
         documents = yaml.safe_load_all(f.read())
         for item in documents:
-            current_app.logger.debug(item)
+            #current_app.logger.debug(item)
             if isinstance(item, ChillNode):
                 try:
                     item.load()

@@ -2,101 +2,78 @@
 
 # Cascading, Highly Irrelevant, Lost Llamas
 
-*Or, just chill.*
+*Or, just chill.*  This is a _Database driven web application framework in
+[Flask](https://palletsprojects.com/p/flask/)_ and it can be used to create
+static or dynamic web sites.
 
-(Oh, that makes little sense. Let me try to be more descriptive.)
+This involves creating custom SQL queries to pull data from a database and uses
+jinja2 HTML templates to populate pages for a website.  Chill can create static
+files for the website or can run as a Flask app and build pages on request.
 
-
-## Database driven web application framework in Flask
-
-This involves creating custom SQL queries to pull your data from your database
-into your jinja2 HTML templates for your website.  Chill creates a static
-version of the website or can run as a Flask app. Their are a few tables that
-are specific to Chill in order to handle page routes and what SQL query should
-be used and such.  
-
-## Quickstart
-
-Run the `chill init` script in an empty directory and it will create a minimal
-starting point for using Chill. The *site.cfg* created will have comments on each
-configuration value.  The `chill run --config site.cfg` will run the app in the
-foreground at the 'http://localhost:5000/' url. Notice that the script also
-creates a sqlite database in that directory.  This database is what the script
-uses to display the pages in a site.
-
-**Review the docs for more.** Some helpful guides and such are in the docs/
-folder.  They might even make some sense, but that is not a guarantee.  You can
-also read through the tests.py file within the chill package.
-
+Chill is database driven when it comes to handling http requests.  Each http
+request uses data from the database when determining what content to show on the
+page as well as what HTML templates to use.  Content for a page can come from
+other database queries and can recursively call other queries when populating
+the page.
 
 ## Installing
 
-This latest version is not published so I recommend installing with pip in
-editable mode.  I install it by 
-`pip install -e . -r requirements.txt`
-after cloning the
-repository.  This will create a script called `chill`.  Type `chill --help` for
-help on using it.  It will need a config file and such.  I recommend creating
-an empty directory and running `chill init` within it.  That will create
-a site.cfg config file and the bare minimum to show a homepage.  Run the `chill
-run --config site.cfg` and visit http://localhost:5000 with your browser.
+Chill can be installed via pip.
+```bash
+pip install chill
+```
 
+Or from within this cloned project; install with pip in editable mode.  It is
+recommended to setup a virtual environment first with `virtualenv . -p python3`
+command.
+```bash
+pip install -e .
+```
+
+This will create a script called `chill`.  Type `chill --help` for help on using
+it.  It will need a config file and such.  I recommend creating an empty
+directory and running `chill init` within it.  That will create a `site.cfg`
+config file and the bare minimum to show a homepage.  Run the 
+`chill run --config site.cfg` 
+and visit http://localhost:5000 with your browser.
+
+## Quick start
+
+Run the `chill init` script in an empty directory and it will create a minimal
+starting point for using Chill. The `site.cfg` created will have comments on each
+configuration value.  The `chill run --config site.cfg` will run the app in the
+foreground at the http://localhost:5000/ URL. Notice that the script also
+creates a sqlite database in that directory.  This database is what the script
+uses to display the pages in a site.
+
+**Review the docs for more.** Some helpful guides and such are in the [docs/
+folder](docs/).  The [tests.py](src/chill/tests.py) file within the chill
+package is also a good resource.
 
 ## Static site generator
 
-The command `chill freeze --config site.cfg` will go through all the urls and
-creates a static version of each page.  It places all the necessary files in
-a folder which can then simply be uploaded to a static web server or whatever.
-This is basically a wrapper around the Frozen-Flask python package.  Which is
-probably the reasoning behind the name 'chill'.
+The command `chill freeze --config site.cfg` will go through all the URLs and
+create a static version of each page.  It places all the necessary files in
+a folder which can then be uploaded to a static web server.  This is a wrapper
+around the Frozen-Flask python package.  Which is partly the inspiration behind
+the name 'chill'.  Also, llamas are cool and have two 'l's like chill.
+
+## Websites using chill
+
+* [Puzzle Massive](http://puzzle.massive.xyz/) - 
+    Massively Multiplayer Online Jigsaw Puzzles
+* [Web of Tomorrow](http://www.weboftomorrow.com/) -
+    A web developer's website about web development
+* [Awesome Mud Works](http://awesomemudworks.com/) -
+    Pottery studio in Salt Lake City, Utah
+
+A cookiecutter for making a _chill_ website also exists.  Checkout the
+[cookiecutter-website](https://github.com/jkenlooper/cookiecutter-website/)
+project to get started.
 
 ## Docker
 
-*TODO: publish the chill image*
+I've included a `Dockerfile` which can be used when creating a container for
+chill.  See the 
+[guide on using chill with docker](docs/docker-container-usage.md).
 
-Chill can also be run as a docker container.  Download the chill image or build
-it using the Dockerfile.  The chill image sets the entrypoint to be the chill
-command and copies the context to the container so you can use `docker run`
-commands to work with chill like it was installed on the host machine.
-
-These are just some example commands to give an idea on how to do development
-with a container.  In all of them the `--rm` is being used since there is no
-need to keep the container around after the command finishes.  The `-v` option
-is to allow the working directory to be bind-mounted to the host.  It should
-contain all the normal files for chill including the sqlite3 database.
-
-Also note that when developing it like this the chill app won't be directly
-accessible under the PORT set in site.cfg.  In the example commands I set the
-port mapping (`-p 8080:5000`).  It will need to have it's site.cfg HOST updated
-to be '0.0.0.0' or have some other kind of networking setup.
-
-### Start in the foreground.
-
-This is equivalent to using `chill run` within `$HOME/example-website/`, but
-maps the port from 8080 on the host to port 5000 for the chill app.  Then you
-can visit the website via http://localhost:8080 which will be running in
-a docker container.  You will need to make sure that the site.cfg has been
-updated to set the HOST to be external (0.0.0.0), or you won't be able to hit
-it with your web browser.
-
-```
-docker run --rm -p 8080:5000 -v $HOME/example-website/:/usr/run/ chill run
-```
-
-### Serve the app in daemon mode
-
-Same as using `chill serve`.  Uses the `-d` option for running the container in
-the background.
-
-```
-docker run -d --rm -p 8080:5000 -v $HOME/example-website/:/usr/run/ chill serve
-```
-
-### Run operate sub command
-
-Same as using `chill operate`.  Here the `-it` option is used so the operate
-functions correctly since it needs user input.
-
-```
-docker run -it --rm -v $HOME/example-website/:/usr/run/ chill operate
-```
