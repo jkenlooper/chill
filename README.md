@@ -2,13 +2,14 @@
 
 # Cascading, Highly Irrelevant, Lost Llamas
 
-*Or, just chill.*  This is a _Database driven web application framework in
-[Flask](https://palletsprojects.com/p/flask/)_ and it can be used to create
+*Or, just chill.*  This is a **database driven web application framework in
+[Flask](https://palletsprojects.com/p/flask/)** and it can be used to create
 static or dynamic web sites.
 
 This involves creating custom SQL queries to pull data from a database and uses
-jinja2 HTML templates to populate pages for a website.  Chill can create static
-files for the website or can run as a Flask app and build pages on request.
+[Jinja2](https://palletsprojects.com/p/jinja/) HTML templates to populate pages
+for a website.  Chill can create static files for the website or can run as
+a Flask app and build pages on request.
 
 Chill is database driven when it comes to handling http requests.  Each http
 request uses data from the database when determining what content to show on the
@@ -46,8 +47,8 @@ foreground at the http://localhost:5000/ URL. Notice that the script also
 creates a sqlite database in that directory.  This database is what the script
 uses to display the pages in a site.
 
-**Review the docs for more.** Some helpful guides and such are in the [docs/
-folder](docs/).  The [tests.py](src/chill/tests.py) file within the chill
+**Review the docs for more.** Some helpful guides and such are in the
+[docs/](docs/) folder.  The [tests.py](src/chill/tests.py) file within the chill
 package is also a good resource.
 
 ## Static site generator
