@@ -920,6 +920,57 @@ class Template(ChillTestCase):
                 assert b"timestamp" in rv.data
 
 
+class Filters(ChillTestCase):
+    def test_datetime_filter(self):
+        """
+        The custom 'datetime' jinja2 filter converts a timestamp to a formatted
+        date string.
+        """
+        f = open(os.path.join(self.tmp_template_dir, "datetime.html"), "w")
+        f.write(
+            """
+          {% set timestamp=1576122368 %}date and time:  {{ timestamp|datetime('y-MM-dd') }}
+          """
+        )
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                a = insert_node(name="a", value=None)
+                insert_route(path="/a/", node_id=a)
+                add_template_for_node("datetime.html", a)
+
+                rv = c.get("/a/", follow_redirects=True)
+                # self.app.logger.debug(rv.data)
+                assert b"2019-12-12" in rv.data
+
+    def test_timedelta_filter(self):
+        """
+        The custom 'timedelta' jinja2 filter wraps around the babel format_timedelta.
+        """
+        f = open(os.path.join(self.tmp_template_dir, "timedelta.html"), "w")
+        f.write(
+            """
+          {% set timesince=847 %}time since:  {{ timesince|timedelta }}
+          """
+        )
+        f.close()
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                a = insert_node(name="a", value=None)
+                insert_route(path="/a/", node_id=a)
+                add_template_for_node("timedelta.html", a)
+
+                rv = c.get("/a/", follow_redirects=True)
+                # self.app.logger.debug(rv.data)
+                assert b"14 minutes" in rv.data
+
+
 class Documents(ChillTestCase):
     def test_reading_in_a_document(self):
         """

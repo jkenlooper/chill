@@ -56,6 +56,7 @@ setup(
         "docopt",
         #'pyselect', # Using pyselect within src/chill/ instead
         "MarkupSafe",
+        "babel",
     ],
     entry_points={"console_scripts": ["chill = chill.script:main"]},
 )
