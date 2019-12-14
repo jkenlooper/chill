@@ -29,7 +29,6 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Natural Language :: English",
         "Operating System :: POSIX",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.6",
         "Topic :: Internet :: WWW/HTTP :: Site Management",
         "Topic :: Internet :: WWW/HTTP :: WSGI",
