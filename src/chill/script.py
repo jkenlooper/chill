@@ -48,7 +48,7 @@ from chill.database import (
     insert_route,
     insert_query,
     add_template_for_node,
-    fetch_query_string
+    fetch_query_string,
 )
 from chill.operate import operate_menu
 from chill.migrations import migrate1
@@ -150,59 +150,63 @@ CACHE_TYPE = "null"
 #FREEZER_DESTINATION = "/home/something/path/to/frozen"
 """
 
+
 def main():
     ""
     args = docopt(__doc__, version=__version__)
     # parse args and pass to run, server, etc.
-    if args['init']:
+    if args["init"]:
         init()
 
-    if args['run']:
-        run(args['--config'])
+    if args["run"]:
+        run(args["--config"])
 
-    if args['operate']:
-        operate(args['--config'])
+    if args["operate"]:
+        operate(args["--config"])
 
-    if args['load']:
-        load(args['--config'], yaml_file=args.get('--yaml', 'chill-data.yaml'))
+    if args["load"]:
+        load(args["--config"], yaml_file=args.get("--yaml", "chill-data.yaml"))
 
-    if args['dump']:
-        dump(args['--config'], yaml_file=args.get('--yaml', 'chill-data.yaml'))
+    if args["dump"]:
+        dump(args["--config"], yaml_file=args.get("--yaml", "chill-data.yaml"))
 
-    if args['migrate']:
-        migrate(args['--config'])
+    if args["migrate"]:
+        migrate(args["--config"])
 
-    if args['serve']:
-        serve(args['--config'])
+    if args["serve"]:
+        serve(args["--config"])
 
-    if args['freeze']:
-        freeze(args['--config'], urls_file=args.get('--urls', None))
+    if args["freeze"]:
+        freeze(args["--config"], urls_file=args.get("--urls", None))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
+
 
 def init():
     "Initialize the current directory with base starting files and database."
 
-    if not os.path.exists('site.cfg'):
-        f = open('site.cfg', 'w')
+    if not os.path.exists("site.cfg"):
+        f = open("site.cfg", "w")
         f.write(SITECFG)
         f.close()
 
     try:
-        os.mkdir('queries')
+        os.mkdir("queries")
     except OSError:
         pass
 
     try:
-        os.mkdir('templates')
+        os.mkdir("templates")
     except OSError:
         pass
 
-    htmlfile = os.path.join('templates', 'homepage.html')
+    htmlfile = os.path.join("templates", "homepage.html")
     if not os.path.exists(htmlfile):
-        f = open(htmlfile, 'w')
-        f.write("""
+        f = open(htmlfile, "w")
+        f.write(
+            """
 <!doctype html>
 <html>
     <head>
@@ -212,23 +216,27 @@ def init():
         <p>{{ homepage_content }}</p>
     </body>
 </html>
-        """)
+        """
+        )
         f.close()
 
-    app = make_app(config='site.cfg', DEBUG=True)
+    app = make_app(config="site.cfg", DEBUG=True)
 
     with app.app_context():
         app.logger.info("initializing database")
         init_db()
 
-        homepage = insert_node(name='homepage', value=None)
-        insert_route(path='/', node_id=homepage)
-        insert_query(name='select_link_node_from_node.sql', node_id=homepage)
+        homepage = insert_node(name="homepage", value=None)
+        insert_route(path="/", node_id=homepage)
+        insert_query(name="select_link_node_from_node.sql", node_id=homepage)
 
-        add_template_for_node('homepage.html', homepage)
+        add_template_for_node("homepage.html", homepage)
 
-        homepage_content = insert_node(name='homepage_content', value="Cascading, Highly Irrelevant, Lost Llamas")
+        homepage_content = insert_node(
+            name="homepage_content", value="Cascading, Highly Irrelevant, Lost Llamas"
+        )
         insert_node_node(node_id=homepage, target_node_id=homepage_content)
+
 
 def operate(config):
     "Interface to do simple operations on the database."
@@ -239,6 +247,7 @@ def operate(config):
     with app.app_context():
         operate_menu()
 
+
 def load(config, yaml_file):
     "Load a yaml file that has ChillNode objects into the database."
 
@@ -246,6 +255,7 @@ def load(config, yaml_file):
 
     with app.app_context():
         load_yaml(yaml_file)
+
 
 def dump(config, yaml_file):
     "Create a yaml file of ChillNode objects from the database."
@@ -255,6 +265,7 @@ def dump(config, yaml_file):
     with app.app_context():
         dump_yaml(yaml_file)
 
+
 def migrate(config):
     "Migrate the database from a previous version to a new one."
 
@@ -263,16 +274,18 @@ def migrate(config):
     with app.app_context():
         migrate1()
 
+
 # bin/run
 def run(config):
     "Start the web server in the foreground. Don't use for production."
     app = make_app(config=config)
 
     app.run(
-            host=app.config.get("HOST", '127.0.0.1'),
-            port=app.config.get("PORT", 5000),
-            use_reloader=True,
-            )
+        host=app.config.get("HOST", "127.0.0.1"),
+        port=app.config.get("PORT", 5000),
+        use_reloader=True,
+    )
+
 
 # bin/serve
 def serve(config):
@@ -281,7 +294,7 @@ def serve(config):
 
     app = make_app(config=config)
 
-    host = app.config.get("HOST", '127.0.0.1')
+    host = app.config.get("HOST", "127.0.0.1")
     port = app.config.get("PORT", 5000)
     http_server = WSGIServer((host, port), app)
     http_server.serve_forever()
@@ -294,20 +307,19 @@ def freeze(config, urls_file=None):
         app = make_app(config=config, URLS_FILE=urls_file)
     else:
         app = make_app(config=config)
-    app.logger.info('freezing app to directory: %s' % app.config['FREEZER_DESTINATION'])
+    app.logger.info("freezing app to directory: %s" % app.config["FREEZER_DESTINATION"])
     freezer = Freezer(app)
 
-
-    #@freezer.register_generator
-    #def index_page():
+    # @freezer.register_generator
+    # def index_page():
     #    for (dirpath, dirnames, filenames) in os.walk(app.config['DATA_PATH'], topdown=True):
     #        start = len(os.path.commonprefix((app.config['DATA_PATH'], dirpath)))
     #        relative_path = dirpath[start+1:]
     #        for dirname in dirnames:
     #            yield ('page.index_page', {'uri': os.path.join(relative_path, dirname)})
 
-    #@freezer.register_generator
-    #def page_uri():
+    # @freezer.register_generator
+    # def page_uri():
     #    # uri_index will be used so just avoid showing a warning
     #    return [
     #            ('public.page_uri', {'uri': ''}),
@@ -316,70 +328,88 @@ def freeze(config, urls_file=None):
     def uri_index():
         def cleanup_url(url):
             url = url.strip()
-            if url.startswith('/'):
-                if url.endswith('/index.html'):
+            if url.startswith("/"):
+                if url.endswith("/index.html"):
                     return url
-                elif url.endswith('/'):
-                    url = url.strip('/')
+                elif url.endswith("/"):
+                    url = url.strip("/")
                     if len(url) == 0:
-                        return ('public.index', {})
-                    return ('public.uri_index', {'uri': url})
+                        return ("public.index", {})
+                    return ("public.uri_index", {"uri": url})
 
         try:
-            result = db.execute(text(fetch_query_string('select_paths_to_freeze.sql'))).fetchall()
+            result = db.execute(
+                text(fetch_query_string("select_paths_to_freeze.sql"))
+            ).fetchall()
         except (DatabaseError, StatementError) as err:
             app.logger.error("DatabaseError: %s", err)
             return []
         urls = [_f for _f in [cleanup_url(x[0]) for x in result] if _f]
 
-        urls_file = app.config.get('URLS_FILE', None)
+        urls_file = app.config.get("URLS_FILE", None)
         if urls_file:
-            urls_file = urls_file if urls_file[0] == os.sep else os.path.join(os.getcwd(), urls_file)
-            f = open(urls_file, 'r')
+            urls_file = (
+                urls_file
+                if urls_file[0] == os.sep
+                else os.path.join(os.getcwd(), urls_file)
+            )
+            f = open(urls_file, "r")
             urls.extend([_f for _f in map(cleanup_url, f.readlines()) if _f])
             f.close()
 
         return urls
 
-
     @freezer.register_generator
     def send_root_file():
-        root_folder = app.config.get('ROOT_FOLDER', None)
-        if root_folder and os.path.isdir( root_folder ):
+        root_folder = app.config.get("ROOT_FOLDER", None)
+        if root_folder and os.path.isdir(root_folder):
             for (dirpath, dirnames, filenames) in os.walk(root_folder, topdown=True):
                 start = len(os.path.commonprefix((root_folder, dirpath)))
-                relative_path = dirpath[start+1:]
+                relative_path = dirpath[start + 1 :]
                 for filename in filenames:
-                    yield ('send_root_file', {
-                            'filename': os.path.join(relative_path, filename)
-                            })
+                    yield (
+                        "send_root_file",
+                        {"filename": os.path.join(relative_path, filename)},
+                    )
 
     @freezer.register_generator
     def send_media_file():
-        media_folder = app.config.get('MEDIA_FOLDER', None)
-        media_path = app.config.get('MEDIA_PATH', '/media/')
-        freeze_all_files = app.config.get('MEDIA_FREEZE_ALL', False)
-        if media_folder and freeze_all_files and os.path.isdir( media_folder ) and media_path[0] == '/':
+        media_folder = app.config.get("MEDIA_FOLDER", None)
+        media_path = app.config.get("MEDIA_PATH", "/media/")
+        freeze_all_files = app.config.get("MEDIA_FREEZE_ALL", False)
+        if (
+            media_folder
+            and freeze_all_files
+            and os.path.isdir(media_folder)
+            and media_path[0] == "/"
+        ):
             for (dirpath, dirnames, filenames) in os.walk(media_folder, topdown=True):
                 start = len(os.path.commonprefix((media_folder, dirpath)))
-                relative_path = dirpath[start+1:]
+                relative_path = dirpath[start + 1 :]
                 for filename in filenames:
-                    yield ('send_media_file', {
-                            'filename': os.path.join(relative_path, filename)
-                            })
+                    yield (
+                        "send_media_file",
+                        {"filename": os.path.join(relative_path, filename)},
+                    )
 
     @freezer.register_generator
     def send_theme_file():
-        theme_static_folder = app.config.get('THEME_STATIC_FOLDER', None)
-        theme_static_path = app.config.get('THEME_STATIC_PATH', '/theme/')
-        if theme_static_folder and os.path.isdir( theme_static_folder ) and theme_static_path[0] == '/':
-            for (dirpath, dirnames, filenames) in os.walk(theme_static_folder, topdown=True):
+        theme_static_folder = app.config.get("THEME_STATIC_FOLDER", None)
+        theme_static_path = app.config.get("THEME_STATIC_PATH", "/theme/")
+        if (
+            theme_static_folder
+            and os.path.isdir(theme_static_folder)
+            and theme_static_path[0] == "/"
+        ):
+            for (dirpath, dirnames, filenames) in os.walk(
+                theme_static_folder, topdown=True
+            ):
                 start = len(os.path.commonprefix((theme_static_folder, dirpath)))
-                relative_path = dirpath[start+1:]
+                relative_path = dirpath[start + 1 :]
                 for filename in filenames:
-                    yield ('send_theme_file', {
-                            'filename': os.path.join(relative_path, filename)
-                            })
-
+                    yield (
+                        "send_theme_file",
+                        {"filename": os.path.join(relative_path, filename)},
+                    )
 
     freezer.freeze()
