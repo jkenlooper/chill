@@ -8,6 +8,7 @@ from .cache import cache
 
 CHILL_CREATE_TABLE_FILES = (
     "create_chill.sql",
+    "set_current_chill_version.sql",
     "create_query.sql",
     "create_template.sql",
     "create_node.sql",
