@@ -5,6 +5,7 @@ Usage: chill run [--config <file>]
        chill freeze [--config <file>] [--urls <file>]
        chill operate [--config <file>]
        chill init
+       chill initdb [--config <file>]
        chill load [--config <file>] [--yaml <file>]
        chill dump [--config <file>] [--yaml <file>]
        chill migrate [--config <file>]
@@ -24,6 +25,7 @@ Subcommands:
     freeze  - Freeze the application by creating a static version of it.
     operate - Interface to do simple operations on the database.
     init    - Initialize the current directory with base starting files and database.
+    initdb  - Initialize Chill database tables only.
     load    - Load a yaml file that has ChillNode objects into the database.
     dump    - Create a yaml file of ChillNode objects from the database.
     migrate - Perform a database migration from one version to the next.
@@ -158,6 +160,9 @@ def main():
     if args["init"]:
         init()
 
+    if args["initdb"]:
+        initdb(args["--config"])
+
     if args["run"]:
         run(args["--config"])
 
@@ -182,6 +187,16 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def initdb(config):
+    "Initialize Chill database tables only."
+
+    app = make_app(config=config)
+
+    with app.app_context():
+        app.logger.info("initializing database")
+        init_db()
 
 
 def init():

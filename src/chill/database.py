@@ -6,6 +6,14 @@ from flask import current_app, g
 from chill.app import db
 from .cache import cache
 
+CHILL_DROP_TABLE_FILES = (
+    "drop_chill.sql",
+    "drop_query.sql",
+    "drop_template.sql",
+    "drop_node.sql",
+    "drop_node_node.sql",
+    "drop_route.sql",
+)
 CHILL_CREATE_TABLE_FILES = (
     "create_chill.sql",
     "set_current_chill_version.sql",
@@ -26,6 +34,8 @@ def init_db():
     Route
     Query
     Template
+
+    The current Chill migration version is added to the Chill table.
     """
     with current_app.app_context():
         for filename in CHILL_CREATE_TABLE_FILES:
