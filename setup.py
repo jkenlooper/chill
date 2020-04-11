@@ -1,7 +1,7 @@
 # https://packaging.python.org/en/latest/distributing.html
 from setuptools import setup, find_packages
 
-__version__ = "0.6.0"  # Also set in src/chill/_version.py
+__version__ = "0.7.0"  # Also set in src/chill/_version.py
 
 setup(
     name="chill",
