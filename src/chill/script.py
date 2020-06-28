@@ -1,7 +1,7 @@
 """Chill - Database driven web application framework in Flask
 
-Usage: chill run [--config <file>]
-       chill serve [--config <file>]
+Usage: chill run [--config <file>] [--readonly]
+       chill serve [--config <file>] [--readonly]
        chill freeze [--config <file>] [--urls <file>]
        chill operate [--config <file>]
        chill init
@@ -16,6 +16,7 @@ Options:
   --version         Display version
   -h --help         Show this screen.
   --config <file>   Set config file. [default: ./site.cfg]
+  --readonly        Set sqlite database connection to be read only
   --urls <file>     A txt file with a url to freeze on each line
   --yaml <file>     A yaml file with ChillNode objects [default: ./chill-data.yaml]
 
@@ -35,8 +36,9 @@ from __future__ import print_function
 
 from builtins import map
 import os
-
+import subprocess
 import sqlite3
+
 from sqlalchemy.exc import DatabaseError, StatementError
 from sqlalchemy.sql import text
 from docopt import docopt
@@ -72,6 +74,11 @@ SITECFG = """
 #   sqlite:////absolute/path/to/file.db
 # http://docs.sqlalchemy.org/en/latest/core/engines.html
 CHILL_DATABASE_URI = "sqlite:///db"
+
+# Set the sqlite journal_mode
+# https://sqlite.org/pragma.html#pragma_journal_mode
+# Leave blank to not change
+SQLITE_JOURNAL_MODE = ""
 
 # If using the ROOT_FOLDER then you will need to set the PUBLIC_URL_PREFIX to
 # something other than '/'.
@@ -164,7 +171,7 @@ def main():
         initdb(args["--config"])
 
     if args["run"]:
-        run(args["--config"])
+        run(args["--config"], database_readonly=args.get("--readonly", False))
 
     if args["operate"]:
         operate(args["--config"])
@@ -179,7 +186,7 @@ def main():
         migrate(args["--config"])
 
     if args["serve"]:
-        serve(args["--config"])
+        serve(args["--config"], database_readonly=args.get("--readonly", False))
 
     if args["freeze"]:
         freeze(args["--config"], urls_file=args.get("--urls", None))
@@ -289,11 +296,28 @@ def migrate(config):
     with app.app_context():
         migrate1()
 
+def set_sqlite_journal_mode(app):
+
+    db_file = app.config.get("CHILL_DATABASE_URI")[len("sqlite:///"):]
+    journal_mode = app.config.get("SQLITE_JOURNAL_MODE")
+    if not journal_mode or not isinstance(journal_mode, str):
+        return
+
+    if not journal_mode.lower() in ("delete", "truncate" , "persist" , "memory" , "wal" , "off"):
+        return
+
+    if db_file and not db_file.startswith(":"):
+        # Need to set Write-Ahead Logging so multiple apps can work with the db
+        # concurrently.  https://sqlite.org/wal.html
+        app.logger.info("set journal mode to '{}' on db file: {}".format(journal_mode, db_file))
+        subprocess.run(["sqlite3", db_file, "pragma journal_mode={journal_mode}".format(journal_mode=journal_mode)])
 
 # bin/run
-def run(config):
+def run(config, database_readonly=False):
     "Start the web server in the foreground. Don't use for production."
-    app = make_app(config=config)
+    app = make_app(config=config, database_readonly=database_readonly)
+
+    set_sqlite_journal_mode(app)
 
     app.run(
         host=app.config.get("HOST", "127.0.0.1"),
@@ -303,11 +327,13 @@ def run(config):
 
 
 # bin/serve
-def serve(config):
+def serve(config, database_readonly=False):
     "Serve the app with Gevent"
     from gevent import pywsgi, signal
 
-    app = make_app(config=config)
+    app = make_app(config=config, database_readonly=database_readonly)
+
+    set_sqlite_journal_mode(app)
 
     host = app.config.get("HOST", "127.0.0.1")
     port = app.config.get("PORT", 5000)

@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from builtins import str, bytes
 import os
 import time
+import sqlite3
 
 from werkzeug.local import LocalProxy
 from flask import Flask, g, current_app, Blueprint, Markup
@@ -53,7 +54,21 @@ def connect_to_database():
     """
     Return the engine. Echo all sql statements if in DEBUG mode.
     """
-    return create_engine(current_app.config["CHILL_DATABASE_URI"])
+    def sqlite_readonly_connect():
+
+        db_file = current_app.config.get("CHILL_DATABASE_URI")[len('sqlite:///'):]
+        if db_file and not db_file.startswith(':'):
+            # Open the database connection in read only mode
+            return sqlite3.connect(
+                "file:{}?mode=ro".format(db_file), uri=True
+            )
+        else:
+            return sqlite3.connect(current_app.config.get("CHILL_DATABASE_URI"))
+
+    if current_app.config.get("database_readonly") and current_app.config.get("is_sqlite_database"):
+        return create_engine(current_app.config["CHILL_DATABASE_URI"], creator=sqlite_readonly_connect)
+    else:
+        return create_engine(current_app.config["CHILL_DATABASE_URI"])
 
 
 def get_db():
@@ -98,7 +113,7 @@ def multiple_directory_files_loader(*args):
     return d
 
 
-def make_app(config=None, **kw):
+def make_app(config=None, database_readonly=False, **kw):
     "factory to create the app"
 
     app = ChillFlask("chill")
@@ -108,7 +123,9 @@ def make_app(config=None, **kw):
             config if config[0] == os.sep else os.path.join(os.getcwd(), config)
         )
         app.config.from_pyfile(config_file)
-    app.config.update(kw)
+    app.config.update(kw, database_readonly=database_readonly)
+    is_sqlite_database = str(app.config.get("CHILL_DATABASE_URI")).startswith("sqlite://")
+    app.config["is_sqlite_database"] = is_sqlite_database
 
     cache.init_app(app)
 

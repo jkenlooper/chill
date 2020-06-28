@@ -37,9 +37,12 @@ def init_db():
 
     The current Chill migration version is added to the Chill table.
     """
+    hold_database_readonly_setting = current_app.config.get("database_readonly")
+    current_app.config["database_readonly"] = False
     with current_app.app_context():
         for filename in CHILL_CREATE_TABLE_FILES:
             db.execute(text(fetch_query_string(filename)))
+    current_app.config["database_readonly"] = hold_database_readonly_setting
 
 
 def rowify(l, description):

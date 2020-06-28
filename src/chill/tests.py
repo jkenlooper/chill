@@ -7,6 +7,7 @@ import os
 import json
 import logging
 
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql import text
 import yaml
 
@@ -27,6 +28,7 @@ from chill.yaml_chill_node import load_yaml, dump_yaml, ChillNode
 
 
 class ChillTestCase(unittest.TestCase):
+    database_readonly=False
     def setUp(self):
         self.debug = False
         self.tmp_template_dir = tempfile.mkdtemp()
@@ -39,6 +41,7 @@ class ChillTestCase(unittest.TestCase):
             DOCUMENT_FOLDER=self.tmp_template_dir,
             CACHE_NO_NULL_WARNING=True,
             DEBUG=self.debug,
+            database_readonly=self.database_readonly,
         )
         self.app.logger.setLevel(logging.DEBUG if self.debug else logging.CRITICAL)
 
@@ -73,6 +76,22 @@ class SimpleCheck(ChillTestCase):
 
                 # rv = c.get('/bill', follow_redirects=True)
                 # assert '?' in rv.data
+
+
+class SimpleCheckReadonly(ChillTestCase):
+    database_readonly=True
+    def test_db_is_readonly(self):
+        """Check usage of db"""
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+
+                with self.assertRaises(OperationalError) as err:
+                    db.execute(
+                        text("""insert into Node (name, value) values (:name, :value)"""),
+                        **{"name": "bill", "value": "?"}
+                    )
+                self.assertRegex(str(err.exception), 'attempt to write a readonly database')
 
 
 class Route(ChillTestCase):
