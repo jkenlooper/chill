@@ -48,7 +48,7 @@ setup(
         "Frozen-Flask",
         "Flask-Markdown",
         "future",
-        "psycopg2",
+        #"psycopg2", # Might switch to postgres in the future
         "sqlalchemy",
         "PyYAML",
         "gevent",
