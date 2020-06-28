@@ -305,14 +305,22 @@ def run(config):
 # bin/serve
 def serve(config):
     "Serve the app with Gevent"
-    from gevent.pywsgi import WSGIServer
+    from gevent import pywsgi, signal
 
     app = make_app(config=config)
 
     host = app.config.get("HOST", "127.0.0.1")
     port = app.config.get("PORT", 5000)
-    http_server = WSGIServer((host, port), app)
-    http_server.serve_forever()
+    app.logger.info("serving on {host}:{port}".format(**locals()))
+    http_server = pywsgi.WSGIServer((host, port), app)
+    def shutdown():
+        app.logger.info("Stopping Chill app")
+        http_server.stop(timeout=10)
+        exit(signal.SIGTERM)
+
+    signal(signal.SIGTERM, shutdown)
+    signal(signal.SIGINT, shutdown)
+    http_server.serve_forever(stop_timeout=10)
 
 
 # bin/freeze

@@ -51,7 +51,7 @@ setup(
         #"psycopg2", # Might switch to postgres in the future
         "sqlalchemy",
         "PyYAML",
-        "gevent",
+        "gevent==1.4.0",
         "docopt",
         #'pyselect', # Using pyselect within src/chill/ instead
         "MarkupSafe",
