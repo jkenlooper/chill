@@ -1,7 +1,7 @@
 # https://packaging.python.org/en/latest/distributing.html
 from setuptools import setup, find_packages
 
-__version__ = "0.8.0"  # Also set in src/chill/_version.py
+__version__ = "0.8.1"  # Also set in src/chill/_version.py
 
 setup(
     name="chill",
@@ -29,7 +29,7 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Natural Language :: English",
         "Operating System :: POSIX",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Internet :: WWW/HTTP :: Site Management",
         "Topic :: Internet :: WWW/HTTP :: WSGI",
         "Topic :: Software Development :: Build Tools",
@@ -42,7 +42,7 @@ setup(
     install_requires=[
         "setuptools",
         "docutils",
-        "Flask==1.0",
+        "Flask",
         "Jinja2",
         "Flask-Caching",
         "Frozen-Flask",
@@ -51,7 +51,7 @@ setup(
         #"psycopg2", # Might switch to postgres in the future
         "sqlalchemy",
         "PyYAML",
-        "gevent==1.4.0",
+        "gevent",
         "docopt",
         #'pyselect', # Using pyselect within src/chill/ instead
         "MarkupSafe",
