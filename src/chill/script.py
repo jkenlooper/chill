@@ -32,7 +32,8 @@ Subcommands:
     migrate - Perform a database migration from one version to the next.
 
 """
-from __future__ import print_function
+from gevent import monkey
+monkey.patch_all()
 
 from builtins import map
 import os
@@ -329,7 +330,8 @@ def run(config, database_readonly=False):
 # bin/serve
 def serve(config, database_readonly=False):
     "Serve the app with Gevent"
-    from gevent import pywsgi, signal
+    from gevent import pywsgi, signal_handler
+    import signal
 
     app = make_app(config=config, database_readonly=database_readonly)
 
@@ -344,8 +346,8 @@ def serve(config, database_readonly=False):
         http_server.stop(timeout=10)
         exit(signal.SIGTERM)
 
-    signal(signal.SIGTERM, shutdown)
-    signal(signal.SIGINT, shutdown)
+    signal_handler(signal.SIGTERM, shutdown)
+    signal_handler(signal.SIGINT, shutdown)
     http_server.serve_forever(stop_timeout=10)
 
 
