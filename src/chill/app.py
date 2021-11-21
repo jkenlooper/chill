@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from builtins import str, bytes
+from builtins import bytes
 import os
 import time
 import sqlite3
@@ -10,15 +10,9 @@ from flask.helpers import send_from_directory
 from flaskext.markdown import Markdown
 from jinja2 import FileSystemLoader
 from .cache import cache
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
-from sqlalchemy import event
 from babel import dates
 
 from . import shortcodes
-
-# from chill.resource import resource
-# from chill.page import page
 
 
 class ChillFlask(Flask):
@@ -50,44 +44,49 @@ class ChillFlask(Flask):
         )
 
 
-def connect_to_database():
-    """
-    Return the engine. Echo all sql statements if in DEBUG mode.
-    """
-    def sqlite_readonly_connect():
-
-        db_file = current_app.config.get("CHILL_DATABASE_URI")[len('sqlite:///'):]
-        if db_file and not db_file.startswith(':'):
-            # Open the database connection in read only mode
-            return sqlite3.connect(
-                "file:{}?mode=ro".format(db_file), uri=True
-            )
+def get_db(config):
+    db_file = config.get("CHILL_DATABASE_URI")[len('sqlite:///'):]
+    if db_file and not db_file.startswith(':'):
+        if not config.get("database_readonly"):
+            db = sqlite3.connect(db_file)
         else:
-            return sqlite3.connect(current_app.config.get("CHILL_DATABASE_URI"))
-
-    if current_app.config.get("database_readonly") and current_app.config.get("is_sqlite_database"):
-        return create_engine(current_app.config["CHILL_DATABASE_URI"], creator=sqlite_readonly_connect)
+            db = sqlite3.connect(
+                f"file:{db_file}?mode=ro", uri=True
+            )
     else:
-        return create_engine(current_app.config["CHILL_DATABASE_URI"])
+        db = sqlite3.connect(config.get("CHILL_DATABASE_URI"))
 
+    db.row_factory = sqlite3.Row
 
-def get_db():
-    db = getattr(g, "_database", None)
-    if db is None:
-        db = g._database = connect_to_database()
-        if str(db.url).startswith("sqlite://"):
-            # Enable foreign key support so 'on update' and 'on delete' actions
-            # will apply. This needs to be set for each db connection.
-            @event.listens_for(Engine, "connect")
-            def set_sqlite_pragma(dbapi_connection, connection_record):
-                cursor = dbapi_connection.cursor()
-                cursor.execute("PRAGMA foreign_keys=ON")
-                cursor.close()
+    # Enable foreign key support so 'on update' and 'on delete' actions
+    # will apply. This needs to be set for each db connection.
+    cur = db.cursor()
+    cur.execute("pragma foreign_keys = ON;")
+    db.commit()
+
+    # Check that journal_mode is set to wal
+    result = cur.execute("pragma journal_mode;").fetchone()
+    if result["journal_mode"] != "wal":
+        if not config.get("TESTING"):
+            raise sqlite3.IntegrityError("The pragma journal_mode is not set to wal.")
+        else:
+            pass
+            # logger.info("In TESTING mode. Ignoring requirement for wal journal_mode.")
+
+    cur.close()
 
     return db
 
 
-db = LocalProxy(get_db)
+def set_db():
+    db = getattr(g, "_database", None)
+    if db is None:
+        db = g._database = get_db(current_app.config)
+    return db
+
+
+print('local proxy')
+db = LocalProxy(set_db)
 
 
 def multiple_directory_files_loader(*args):
@@ -124,8 +123,6 @@ def make_app(config=None, database_readonly=False, **kw):
         )
         app.config.from_pyfile(config_file)
     app.config.update(kw, database_readonly=database_readonly)
-    is_sqlite_database = str(app.config.get("CHILL_DATABASE_URI")).startswith("sqlite://")
-    app.config["is_sqlite_database"] = is_sqlite_database
 
     cache.init_app(app)
 
@@ -193,7 +190,7 @@ def make_app(config=None, database_readonly=False, **kw):
     def teardown_db(exception):
         db = getattr(g, "_database", None)
         if db is not None:
-            db.dispose()
+            db.close()
 
     # STATIC_URL='http://cdn.example.com/whatever/works/'
     @app.context_processor

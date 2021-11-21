@@ -37,22 +37,25 @@ def init_db():
 
     The current Chill migration version is added to the Chill table.
     """
-    hold_database_readonly_setting = current_app.config.get("database_readonly")
-    current_app.config["database_readonly"] = False
+    #hold_database_readonly_setting = current_app.config.get("database_readonly")
+    #current_app.config["database_readonly"] = False
+    cur = db.cursor()
     with current_app.app_context():
         for filename in CHILL_CREATE_TABLE_FILES:
-            db.execute(text(fetch_query_string(filename)))
-    current_app.config["database_readonly"] = hold_database_readonly_setting
+            cur.execute(fetch_query_string(filename))
+    cur.close()
+    db.commit()
+    #current_app.config["database_readonly"] = hold_database_readonly_setting
 
 
-def rowify(l, description):
-    d = []
-    col_names = []
-    if l != None and description != None:
-        col_names = [x[0] for x in description]
-        for row in l:
-            d.append(dict(list(zip(col_names, row))))
-    return (d, col_names)
+# def rowify(l, description):
+#     d = []
+#     col_names = []
+#     if l != None and description != None:
+#         col_names = [x[0] for x in description]
+#         for row in l:
+#             d.append(dict(list(zip(col_names, row))))
+#     return (d, col_names)
 
 
 def _fetch_sql_string(file_name):
@@ -83,7 +86,8 @@ def fetch_query_string(file_name):
 def insert_node(**kw):
     "Insert a node with a name and optional value. Return the node id."
     with current_app.app_context():
-        result = db.execute(text(fetch_query_string("insert_node.sql")), **kw)
+        cur = db.cursor()
+        result = cur.execute(fetch_query_string("insert_node.sql"), kw)
         # TODO: support for postgres may require using a RETURNING id; sql
         # statement and using the inserted_primary_key?
         # node_id = result.inserted_primary_key
@@ -91,6 +95,8 @@ def insert_node(**kw):
         if not node_id:
             result = result.fetchall()
             node_id = result[0]["id"]
+        cur.close()
+        db.commit()
         return node_id
 
 
@@ -100,8 +106,11 @@ def insert_node_node(**kw):
     the parent and `target_node_id` is the child.
     """
     with current_app.app_context():
+        cur = db.cursor()
         insert_query(name="select_link_node_from_node.sql", node_id=kw.get("node_id"))
-        db.execute(text(fetch_query_string("insert_node_node.sql")), **kw)
+        cur.execute(fetch_query_string("insert_node_node.sql"), kw)
+        cur.close()
+        db.commit()
 
 
 def delete_node(**kw):
@@ -109,7 +118,10 @@ def delete_node(**kw):
     Delete a node by id.
     """
     with current_app.app_context():
-        db.execute(text(fetch_query_string("delete_node_for_id.sql")), **kw)
+        cur = db.cursor()
+        cur.execute(fetch_query_string("delete_node_for_id.sql"), kw)
+        cur.close()
+        db.commit()
 
 
 def select_node(**kw):
@@ -117,9 +129,12 @@ def select_node(**kw):
     Select node by id.
     """
     with current_app.app_context():
-        result = db.execute(
-            text(fetch_query_string("select_node_from_id.sql")), **kw
+        cur = db.cursor()
+        result = cur.execute(
+            fetch_query_string("select_node_from_id.sql"), kw
         ).fetchall()
+        cur.close()
+        db.commit()
         return result
 
 
@@ -133,25 +148,32 @@ def insert_route(**kw):
     binding = {"path": None, "node_id": None, "weight": None, "method": "GET"}
     binding.update(kw)
     with current_app.app_context():
-        db.execute(text(fetch_query_string("insert_route.sql")), **binding)
+        cur = db.cursor()
+        cur.execute(fetch_query_string("insert_route.sql"), binding)
+        cur.close()
+        db.commit()
 
 
 def add_template_for_node(name, node_id):
     "Set the template to use to display the node"
     with current_app.app_context():
-        db.execute(
-            text(fetch_query_string("insert_template.sql")), name=name, node_id=node_id
+        cur = db.cursor()
+        cur.execute(
+            fetch_query_string("insert_template.sql"), {"name":name, "node_id":node_id}
         )
-        result = db.execute(
-            text(fetch_query_string("select_template.sql")), name=name, node_id=node_id
+        db.commit()
+        result = cur.execute(
+            fetch_query_string("select_template.sql"), {"name":name, "node_id":node_id}
         ).fetchall()
         if result:
             template_id = result[0]["id"]
-            db.execute(
-                text(fetch_query_string("update_template_node.sql")),
-                template=template_id,
-                node_id=node_id,
+            cur.execute(
+                fetch_query_string("update_template_node.sql"),
+                {"template":template_id,
+                "node_id":node_id, }
             )
+        cur.close()
+        db.commit()
 
 
 def insert_query(**kw):
@@ -164,15 +186,18 @@ def insert_query(**kw):
     in Node table.
     """
     with current_app.app_context():
-        result = db.execute(
-            text(fetch_query_string("select_query_where_name.sql")), **kw
+        cur = db.cursor()
+        result = cur.execute(
+            fetch_query_string("select_query_where_name.sql"), kw
         ).fetchall()
         if result:
             kw["query_id"] = result[0]["id"]
         else:
-            result = db.execute(text(fetch_query_string("insert_query.sql")), **kw)
+            result = cur.execute(fetch_query_string("insert_query.sql"), kw)
             kw["query_id"] = result.lastrowid
             if not kw["query_id"]:
                 result = result.fetchall()
                 kw["query_id"] = result[0]["id"]
-        db.execute(text(fetch_query_string("insert_query_node.sql")), **kw)
+        cur.execute(fetch_query_string("insert_query_node.sql"), kw)
+        cur.close()
+        db.commit()

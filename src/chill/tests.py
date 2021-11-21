@@ -6,15 +6,13 @@ import tempfile
 import os
 import json
 import logging
+import sqlite3
 
-from sqlalchemy.exc import OperationalError
-from sqlalchemy.sql import text
 import yaml
 
-from chill.app import make_app, db
+from chill.app import make_app, db, get_db
 from chill.database import (
     init_db,
-    rowify,
     insert_node,
     insert_node_node,
     select_node,
@@ -30,7 +28,7 @@ from chill.yaml_chill_node import load_yaml, dump_yaml, ChillNode
 class ChillTestCase(unittest.TestCase):
     database_readonly=False
     def setUp(self):
-        self.debug = False
+        self.debug = True
         self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
         self.app = make_app(
@@ -41,6 +39,7 @@ class ChillTestCase(unittest.TestCase):
             DOCUMENT_FOLDER=self.tmp_template_dir,
             CACHE_NO_NULL_WARNING=True,
             DEBUG=self.debug,
+            TESTING=True,
             database_readonly=self.database_readonly,
         )
         self.app.logger.setLevel(logging.DEBUG if self.debug else logging.CRITICAL)
@@ -69,28 +68,37 @@ class SimpleCheck(ChillTestCase):
             with self.app.test_client() as c:
                 init_db()
 
-                db.execute(
-                    text("""insert into Node (name, value) values (:name, :value)"""),
-                    **{"name": "bill", "value": "?"}
+                cur = db.cursor()
+                cur.execute(
+                    """insert into Node (name, value) values (:name, :value)""",
+                    {"name": "bill", "value": "?"}
                 )
+                cur.close()
+                db.commit()
 
                 # rv = c.get('/bill', follow_redirects=True)
                 # assert '?' in rv.data
 
 
 class SimpleCheckReadonly(ChillTestCase):
-    database_readonly=True
     def test_db_is_readonly(self):
         """Check usage of db"""
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
 
-                with self.assertRaises(OperationalError) as err:
-                    db.execute(
-                        text("""insert into Node (name, value) values (:name, :value)"""),
-                        **{"name": "bill", "value": "?"}
+                # Get a new db connection that is readonly
+                self.app.config["database_readonly"] = True
+                db_ro = get_db(self.app.config)
+
+                with self.assertRaises(sqlite3.OperationalError) as err:
+                    cur = db_ro.cursor()
+                    cur.execute(
+                        """insert into Node (name, value) values (:name, :value)""",
+                        {"name": "bill", "value": "?"}
                     )
+                    cur.close()
+                    db_ro.commit()
                 self.assertRegex(str(err.exception), 'attempt to write a readonly database')
 
 
@@ -276,14 +284,17 @@ class SQL(ChillTestCase):
         """
         with self.app.app_context():
             init_db()
-            result = db.execute(
-                text(fetch_query_string("insert_node.sql")), name="a", value="apple"
+            cur = db.cursor()
+            result = cur.execute(
+                fetch_query_string("insert_node.sql"), {"name":"a", "value":"apple"}
             )
             a = result.lastrowid
 
-            result = db.execute(
-                text("select * from Node where id = :id;"), id=a
+            result = cur.execute(
+                "select * from Node where id = :id;", {"id":a}
             ).fetchall()
+            cur.close()
+            db.commit()
             assert len(result) == 1
             r = result[0]
             assert a == r["id"]
@@ -296,14 +307,17 @@ class SQL(ChillTestCase):
         """
         with self.app.app_context():
             init_db()
-            result = db.execute(
-                text(fetch_query_string("insert_node.sql")), name="a", value=u"Àрpĺè"
+            cur = db.cursor()
+            result = cur.execute(
+                fetch_query_string("insert_node.sql"), {"name":"a", "value":u"Àрpĺè"}
             )
             a = result.lastrowid
 
-            result = db.execute(
-                text("select * from Node where id = :id;"), id=a
+            result = cur.execute(
+                "select * from Node where id = :id;", {"id":a}
             ).fetchall()
+            cur.close()
+            db.commit()
             assert len(result) == 1
             r = result[0]
             assert a == r["id"]
@@ -327,17 +341,20 @@ class SQL(ChillTestCase):
             insert_node_node(node_id=a_id, target_node_id=d_id)
             insert_node_node(node_id=b_id, target_node_id=c_id)
 
-            result = db.execute(
-                text(fetch_query_string("select_link_node_from_node.sql")), node_id=a_id
+            cur = db.cursor()
+            result = cur.execute(
+                fetch_query_string("select_link_node_from_node.sql"), {"node_id":a_id}
             )
             result = [x["node_id"] for x in result]
             assert c_id in result
             assert d_id in result
             assert a_id not in result
 
-            result = db.execute(
-                text(fetch_query_string("select_link_node_from_node.sql")), node_id=b_id
+            result = cur.execute(
+                fetch_query_string("select_link_node_from_node.sql"), {"node_id":b_id}
             )
+            cur.close()
+            db.commit()
             result = [x["node_id"] for x in result]
             assert c_id in result
             assert d_id not in result
@@ -482,16 +499,17 @@ class SQL(ChillTestCase):
             c = insert_node(name="c", value=None)
             add_template_for_node("template_c.html", c)
 
-            result = db.execute(
-                text(fetch_query_string("select_template_from_node.sql")), node_id=a
+            cur = db.cursor()
+            result = cur.execute(
+                fetch_query_string("select_template_from_node.sql"), {"node_id":a}
             )
             result = [x["name"] for x in result]
             assert len(result) == 1
             assert result[0] == "template_a.html"
 
             # another node that uses the same template
-            result = db.execute(
-                text(fetch_query_string("select_template_from_node.sql")), node_id=aa
+            result = cur.execute(
+                fetch_query_string("select_template_from_node.sql"), {"node_id":aa}
             )
             result = [x["name"] for x in result]
             assert len(result) == 1
@@ -500,20 +518,23 @@ class SQL(ChillTestCase):
             # can overwrite what node is tied to what template
             add_template_for_node("template_over_a.html", a)
 
-            result = db.execute(
-                text(fetch_query_string("select_template_from_node.sql")), node_id=a
+            result = cur.execute(
+                fetch_query_string("select_template_from_node.sql"), {"node_id":a}
             )
             result = [x["name"] for x in result]
             assert len(result) == 1
             assert result[0] == "template_over_a.html"
 
             # this one still uses the other template
-            result = db.execute(
-                text(fetch_query_string("select_template_from_node.sql")), node_id=aa
+            result = cur.execute(
+                fetch_query_string("select_template_from_node.sql"), {"node_id":aa}
             )
             result = [x["name"] for x in result]
             assert len(result) == 1
             assert result[0] == "template_a.html"
+
+            cur.close()
+            db.commit()
 
     def test_delete_one_node(self):
         """
@@ -521,13 +542,14 @@ class SQL(ChillTestCase):
         """
         with self.app.app_context():
             init_db()
-            result = db.execute(
-                text(fetch_query_string("insert_node.sql")), name="a", value="apple"
+            cur = db.cursor()
+            result = cur.execute(
+                fetch_query_string("insert_node.sql"), {"name":"a", "value":"apple"}
             )
             a = result.lastrowid
 
-            result = db.execute(
-                text(fetch_query_string("select_node_from_id.sql")), node_id=a
+            result = cur.execute(
+                fetch_query_string("select_node_from_id.sql"), {"node_id":a}
             ).fetchall()
             assert len(result) == 1
             r = result[0]
@@ -538,10 +560,12 @@ class SQL(ChillTestCase):
             # now delete
             delete_node(node_id=a)
 
-            result = db.execute(
-                text(fetch_query_string("select_node_from_id.sql")), node_id=a
+            result = cur.execute(
+                fetch_query_string("select_node_from_id.sql"), {"node_id":a}
             ).fetchall()
             assert len(result) == 0
+            cur.close()
+            db.commit()
 
     def test_delete_node_with_link(self):
         """
@@ -560,16 +584,17 @@ class SQL(ChillTestCase):
             insert_node_node(node_id=a_id, target_node_id=d_id)
             insert_node_node(node_id=b_id, target_node_id=c_id)
 
-            result = db.execute(
-                text(fetch_query_string("select_link_node_from_node.sql")), node_id=a_id
+            cur = db.cursor()
+            result = cur.execute(
+                fetch_query_string("select_link_node_from_node.sql"), {"node_id":a_id}
             )
             result = [x["node_id"] for x in result]
             assert c_id in result
             assert d_id in result
             assert a_id not in result
 
-            result = db.execute(
-                text(fetch_query_string("select_link_node_from_node.sql")), node_id=b_id
+            result = cur.execute(
+                fetch_query_string("select_link_node_from_node.sql"), {"node_id":b_id}
             )
             result = [x["node_id"] for x in result]
             assert c_id in result
@@ -577,24 +602,26 @@ class SQL(ChillTestCase):
             assert a_id not in result
 
             # now delete (should use the 'on delete cascade' sql bit)
-            db.execute(text(fetch_query_string("delete_node_for_id.sql")), node_id=a_id)
+            cur.execute(fetch_query_string("delete_node_for_id.sql"), {"node_id":a_id})
 
-            result = db.execute(
-                text(fetch_query_string("select_node_from_id.sql")), node_id=a_id
+            result = cur.execute(
+                fetch_query_string("select_node_from_id.sql"), {"node_id":a_id}
             ).fetchall()
             assert len(result) == 0
 
-            result = db.execute(
-                text(fetch_query_string("select_link_node_from_node.sql")), node_id=a_id
+            result = cur.execute(
+                fetch_query_string("select_link_node_from_node.sql"), {"node_id":a_id}
             ).fetchall()
             assert len(result) == 0
 
-            result = db.execute(
-                text(fetch_query_string("select_node_node_from_node_id.sql")),
-                node_id=a_id,
+            result = cur.execute(
+                fetch_query_string("select_node_node_from_node_id.sql"),
+                {"node_id":a_id}
             ).fetchall()
 
             assert len(result) == 0
+            cur.close()
+            db.commit()
 
     def test_select_node(self):
         with self.app.app_context():
@@ -711,8 +738,8 @@ class Query(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                db.execute(
-                    text(
+                cur = db.cursor()
+                cur.execute(
                         """
                 create table PromoAttr (
                   node_id integer,
@@ -721,7 +748,6 @@ class Query(ChillTestCase):
                   description text
                   );
                 """
-                    )
                 )
 
                 page_id = insert_node(name="page1", value=None)
@@ -744,9 +770,9 @@ class Query(ChillTestCase):
 
                 for a in range(0, 100):
                     a_id = insert_node(name="promo", value=None)
-                    db.execute(
-                        text(fetch_query_string("insert_promoattr.sql")),
-                        **{
+                    cur.execute(
+                        fetch_query_string("insert_promoattr.sql"),
+                        {
                             "node_id": a_id,
                             "title": "promo %i" % a,
                             "description": "a" * a,
@@ -763,6 +789,8 @@ class Query(ChillTestCase):
                 assert set(expected["pageattr"].keys()) == set(
                     rv_json["pageattr"].keys()
                 )
+                cur.close()
+                db.commit()
 
 
 class Template(ChillTestCase):
@@ -1331,8 +1359,8 @@ class PostMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                db.execute(
-                    text(
+                cur = db.cursor()
+                cur.execute(
                         """
                 create table Llama (
                   llama_name varchar(255),
@@ -1340,8 +1368,9 @@ class PostMethod(ChillTestCase):
                   description text
                   );
                 """
-                    )
                 )
+                cur.close()
+                db.commit()
 
                 llamas_id = insert_node(name="llamas", value=None)
                 insert_route(
@@ -1407,8 +1436,8 @@ class PutMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                db.execute(
-                    text(
+                cur = db.cursor()
+                cur.execute(
                         """
                 create table Llama (
                   llama_name varchar(255),
@@ -1416,8 +1445,9 @@ class PutMethod(ChillTestCase):
                   description text
                   );
                 """
-                    )
                 )
+                cur.close()
+                db.commit()
 
                 llamas_id = insert_node(name="llamas", value=None)
                 insert_route(
@@ -1473,8 +1503,8 @@ class PatchMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                db.execute(
-                    text(
+                cur = db.cursor()
+                cur.execute(
                         """
                 create table Llama (
                   llama_name varchar(255),
@@ -1482,16 +1512,15 @@ class PatchMethod(ChillTestCase):
                   description text
                   );
                 """
-                    )
                 )
 
-                db.execute(
-                    text(
+                cur.execute(
                         """
                   insert into Llama (llama_name) values ('Pocky');
                 """
-                    )
                 )
+                cur.close()
+                db.commit()
 
                 llamas_id = insert_node(name="llamas", value=None)
                 insert_route(
@@ -1547,8 +1576,8 @@ class DeleteMethod(ChillTestCase):
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                db.execute(
-                    text(
+                cur = db.cursor()
+                cur.execute(
                         """
                 create table Llama (
                   llama_name varchar(255),
@@ -1556,16 +1585,15 @@ class DeleteMethod(ChillTestCase):
                   description text
                   );
                 """
-                    )
                 )
 
-                db.execute(
-                    text(
+                cur.execute(
                         """
                   insert into Llama (llama_name, location, description) values ('Docky', 'somewhere', 'damaged');
                 """
-                    )
                 )
+                cur.close()
+                db.commit()
 
                 select_llama = insert_node(name="llamas", value=None)
                 insert_route(
@@ -1773,8 +1801,8 @@ value: select_llama.sql
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
-                db.execute(
-                    text(
+                cur = db.cursor()
+                cur.execute(
                         """
                 create table Llama (
                   llama_name varchar(255),
@@ -1782,8 +1810,9 @@ value: select_llama.sql
                   description text
                   );
                 """
-                    )
                 )
+                cur.close()
+                db.commit()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2404,8 +2433,8 @@ value: get-list-of-animals.sql
             with self.app.test_client() as c:
                 init_db()
 
-                db.execute(
-                    text(
+                cur = db.cursor()
+                cur.execute(
                         """
                 create table Animal (
                   id integer,
@@ -2413,23 +2442,18 @@ value: get-list-of-animals.sql
                   description text
                   );
                 """
-                    )
                 )
-                db.execute(
-                    text(
+                cur.execute(
                         "insert into Animal (name, description) values ('horse', '4 legged furry thing');"
-                    )
                 )
-                db.execute(
-                    text(
+                cur.execute(
                         "insert into Animal (name, description) values ('llama', 'furry thing with four legs');"
-                    )
                 )
-                db.execute(
-                    text(
+                cur.execute(
                         "insert into Animal (name, description) values ('cow', 'a furry thing that also has 4 legs');"
-                    )
                 )
+                cur.close()
+                db.commit()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 

@@ -1,10 +1,11 @@
 from __future__ import absolute_import
-from sqlalchemy.exc import DatabaseError, StatementError
-from sqlalchemy.sql import text
+import sqlite3
+
 from flask import current_app, render_template
 
 from chill.app import db
-from .database import fetch_query_string, rowify
+from .database import fetch_query_string
+
 
 def _short_circuit(value=None):
     """
@@ -50,14 +51,16 @@ def _short_circuit(value=None):
             return value
 
 
-
 def _query(_node_id, value=None, **kw):
     "Look up value by using Query table"
     query_result = []
+    cur = db.cursor()
     try:
-        query_result = db.execute(text(fetch_query_string('select_query_from_node.sql')), **kw).fetchall()
-    except DatabaseError as err:
+        query_result = cur.execute(fetch_query_string('select_query_from_node.sql'), kw).fetchall()
+    except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
+        cur.close()
+        db.commit()
         return value
     #current_app.logger.debug("queries kw: %s", kw)
     #current_app.logger.debug("queries value: %s", value)
@@ -71,40 +74,47 @@ def _query(_node_id, value=None, **kw):
                     #current_app.logger.debug("query_name: %s", query_name)
                     #current_app.logger.debug("kw: %s", kw)
                     # Query string can be insert or select here
-                    #statement = text(fetch_query_string(query_name))
+                    #statement = fetch_query_string(query_name)
                     #params = [x.key for x in statement.params().get_children()]
                     #skw = {key: kw[key] for key in params}
-                    #result = db.execute(statement, **skw)
-                    result = db.execute(text(fetch_query_string(query_name)), **kw)
+                    #result = cur.execute(statement, **skw)
+                    result = cur.execute(fetch_query_string(query_name), kw)
                     #current_app.logger.debug("result query: %s", list(result.keys()))
-                except (DatabaseError, StatementError) as err:
+                except (sqlite3.DatabaseError, sqlite3.ProgrammingError) as err:
                     current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
-                if result and result.returns_rows:
+                if result:
                     result = result.fetchall()
                     #values.append(([[dict(zip(result.keys(), x)) for x in result]], result.keys()))
                     #values.append((result.fetchall(), result.keys()))
                     #current_app.logger.debug("fetchall: %s", values)
                     if len(result) == 0:
-                        values.append(([], []))
+                        values.append([{}])
                     else:
                         #current_app.logger.debug("result: %s", result)
                         # There may be more results, but only interested in the
-                        # first one. Use the older rowify method for now.
-                        # TODO: use case for rowify?
-                        values.append(rowify(result, [(x, None) for x in list(result[0].keys())]))
+                        # first one.
+                        ## Use the older rowify method for now.
+                        ## TODO: use case for rowify?
+                        #values.append(rowify(result, [(x, None) for x in list(result[0].keys())]))
+                        values.append([result[0]])
                         #current_app.logger.debug("fetchone: %s", values)
         value = values
     #current_app.logger.debug("value: %s", value)
+    cur.close()
+    db.commit()
     return value
+
 
 def _template(node_id, value=None):
     "Check if a template is assigned to it and render that with the value"
     result = []
     select_template_from_node = fetch_query_string('select_template_from_node.sql')
+    cur = db.cursor()
     try:
-        result = db.execute(text(select_template_from_node), node_id=node_id)
+        result = cur.execute(select_template_from_node, {"node_id": node_id})
         template_result = result.fetchone()
-        result.close()
+        cur.close()
+        db.commit()
         if template_result and template_result['name']:
             template = template_result['name']
 
@@ -112,11 +122,12 @@ def _template(node_id, value=None):
                 return render_template(template, **value)
             else:
                 return render_template(template, value=value)
-    except DatabaseError as err:
+    except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
     # No template assigned to this node so just return the value
     return value
+
 
 def render_node(_node_id, value=None, noderequest={}, **kw):
     "Recursively render a node's value"
@@ -126,8 +137,8 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
         #current_app.logger.debug("results: %s", results)
         if results:
             values = []
-            for (result, cols) in results:
-                if set(cols) == set(['node_id', 'name', 'value']):
+            for result in results:
+                if set(result[0].keys()) == set(['node_id', 'name', 'value']):
                     for subresult in result:
                         #if subresult.get('name') == kw.get('name'):
                             # This is a link node

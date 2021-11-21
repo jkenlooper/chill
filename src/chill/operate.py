@@ -18,10 +18,9 @@ from builtins import zip
 import os
 from glob import glob
 import re
+import sqlite3
 
 from yaml import safe_dump
-from sqlalchemy.exc import DatabaseError, StatementError
-from sqlalchemy.sql import text
 from flask import current_app
 from chill.pyselect import select
 from chill.app import db
@@ -40,6 +39,7 @@ from chill.database import (
 
 INVALID_NODE = -1
 
+
 def node_input():
     """
     Get a valid node id from the user.
@@ -53,6 +53,7 @@ def node_input():
         print('invalid node id: %s' % node)
     return node
 
+
 def existing_node_input():
     """
     Get an existing node id by name or id.
@@ -65,6 +66,7 @@ def existing_node_input():
     if not input_from_user:
         return node_id
 
+    cur = db.cursor()
     # int or str?
     try:
         parsed_input = int(input_from_user)
@@ -72,13 +74,13 @@ def existing_node_input():
         parsed_input = input_from_user
 
     if isinstance(parsed_input, int):
-        result = db.execute(text(fetch_query_string('select_node_from_id.sql')),
-                node_id=parsed_input).fetchall()
+        result = cur.execute(fetch_query_string('select_node_from_id.sql'),
+                {"node_id":parsed_input}).fetchall()
         if result:
             node_id = int(result[0]['node_id'])
     else:
-        result = db.execute(text(fetch_query_string('select_node_from_name.sql')),
-                node_name=parsed_input).fetchall()
+        result = cur.execute(fetch_query_string('select_node_from_name.sql'),
+                {"node_name":parsed_input}).fetchall()
         if result:
             if len(result) == 1:
                 print('Node id: {node_id}\nNode name: {name}'.format(**result[0]))
@@ -109,7 +111,10 @@ def existing_node_input():
                             node_id = INVALID_NODE
                             print('invalid node id: %s' % node)
 
+    cur.close()
+    db.commit()
     return node_id
+
 
 def render_value_for_node(node_id):
     """
@@ -118,16 +123,20 @@ def render_value_for_node(node_id):
     """
     value = None
     result = []
+    cur = db.cursor()
     try:
-        result = db.execute(text(fetch_query_string('select_node_from_id.sql')), node_id=node_id).fetchall()
-    except DatabaseError as err:
+        result = cur.execute(fetch_query_string('select_node_from_id.sql'), {"node_id":node_id}).fetchall()
+    except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
     if result:
         kw = dict(list(zip(list(result[0].keys()), list(result[0].values()))))
         value = render_node(node_id, noderequest={'_no_template':True}, **kw)
 
+    cur.close()
+    db.commit()
     return value
+
 
 def choose_query_file():
     print("Choose from the available query files:")
@@ -146,6 +155,7 @@ def choose_query_file():
     choices.sort()
     return select(choices)
 
+
 def purge_collection(keys):
     "Recursive purge of nodes with name and id"
     for key in keys:
@@ -158,6 +168,7 @@ def purge_collection(keys):
         delete_node(node_id=node_id)
         if isinstance(value, dict):
             purge_collection(list(value.keys()))
+
 
 def list_items_in_collection(keys):
     "List just the items in the collection."
@@ -260,6 +271,7 @@ def add_item_with_attributes_to_collection(collection_name, collection_node_id, 
         value = value if len(value) else None
         item_attr_node_id = insert_node(name=item_attr_name, value=value)
         insert_node_node(node_id=item_node_id, target_node_id=item_attr_node_id)
+
 
 def mode_new_collection():
     """
@@ -393,6 +405,7 @@ def mode_database_functions():
         else:
             pass
 
+
 def operate_menu():
     "Select between these operations on the database"
 
@@ -428,12 +441,15 @@ def operate_menu():
                     data[placeholder] = value
 
                 result = []
+                cur = db.cursor()
                 try:
-                    result = db.execute(text(sql), data)
-                except DatabaseError as err:
+                    result = cur.execute(sql, data)
+                except sqlite3.DatabaseError as err:
                     current_app.logger.error("DatabaseError: %s", err)
+                cur.close()
+                db.commit()
 
-                if result and result.returns_rows:
+                if result:
                     result = result.fetchall()
                     print(result)
                     if not result:

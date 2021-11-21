@@ -1,1 +1,13 @@
 #git+https://github.com/jkenlooper/pyselect#egg=pyselect
+Flask
+Jinja2
+Flask-Caching
+Frozen-Flask
+Flask-Markdown
+PyYAML
+cffi
+greenlet
+gevent
+docopt
+MarkupSafe
+babel

@@ -40,8 +40,6 @@ import os
 import subprocess
 import sqlite3
 
-from sqlalchemy.exc import DatabaseError, StatementError
-from sqlalchemy.sql import text
 from docopt import docopt
 from flask_frozen import Freezer
 
@@ -69,12 +67,8 @@ SITECFG = """
 #HOST = '127.0.0.1'
 #PORT = 5000
 
-# Valid SQLite URL forms are:
-#   sqlite:///:memory: (or, sqlite://)
-#   sqlite:///relative/path/to/file.db
-#   sqlite:////absolute/path/to/file.db
-# http://docs.sqlalchemy.org/en/latest/core/engines.html
-CHILL_DATABASE_URI = "sqlite:///db"
+# Path to sqlite3 database file
+CHILL_DATABASE_URI = "db"
 
 # Set the sqlite journal_mode
 # https://sqlite.org/pragma.html#pragma_journal_mode
@@ -355,9 +349,9 @@ def serve(config, database_readonly=False):
 def freeze(config, urls_file=None):
     """Freeze the application by creating a static version of it."""
     if urls_file:
-        app = make_app(config=config, URLS_FILE=urls_file)
+        app = make_app(config=config, URLS_FILE=urls_file, database_readonly=True)
     else:
-        app = make_app(config=config)
+        app = make_app(config=config, database_readonly=True)
     app.logger.info("freezing app to directory: %s" % app.config["FREEZER_DESTINATION"])
     freezer = Freezer(app)
 
@@ -388,11 +382,12 @@ def freeze(config, urls_file=None):
                         return ("public.index", {})
                     return ("public.uri_index", {"uri": url})
 
+        cur = db.cursor()
         try:
-            result = db.execute(
-                text(fetch_query_string("select_paths_to_freeze.sql"))
+            result = cur.execute(
+                fetch_query_string("select_paths_to_freeze.sql")
             ).fetchall()
-        except (DatabaseError, StatementError) as err:
+        except (sqlite3.Error) as err:
             app.logger.error("DatabaseError: %s", err)
             return []
         urls = [_f for _f in [cleanup_url(x[0]) for x in result] if _f]
@@ -407,6 +402,9 @@ def freeze(config, urls_file=None):
             f = open(urls_file, "r")
             urls.extend([_f for _f in map(cleanup_url, f.readlines()) if _f])
             f.close()
+
+        cur.close()
+        db.commit()
 
         return urls
 

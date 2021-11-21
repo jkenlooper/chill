@@ -2,12 +2,8 @@ from __future__ import absolute_import
 from builtins import str
 import os
 import os.path
+import sqlite3
 
-from sqlalchemy.sql import text
-from sqlalchemy.exc import (
-        DatabaseError,
-        OperationalError
-        )
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import HTTPException
 
@@ -18,7 +14,7 @@ from flask import (
 from flask.views import MethodView
 
 from chill.app import db
-from .database import fetch_query_string, rowify
+from .database import fetch_query_string
 from .api import render_node, _query
 from .cache import cache
 from . import shortcodes
@@ -33,9 +29,14 @@ def check_map(uri, url_root):
     # TODO: Building the Map each time this is called seems like it could be more effiecent.
     result = []
     try:
-        result = db.execute(text(fetch_query_string('select_route_where_dynamic.sql'))).fetchall()
-    except OperationalError as err:
+        cur = db.cursor()
+        result = cur.execute(fetch_query_string('select_route_where_dynamic.sql')).fetchall()
+        cur.close()
+        db.commit()
+    except sqlite3.OperationalError as err:
         current_app.logger.error("OperationalError: %s", err)
+        cur.close()
+        db.commit()
         return (None, None)
     if result:
         #routes = result.as_dict()
@@ -70,31 +71,29 @@ def node_from_uri(uri, method="GET"):
     rule_kw = {}
     select_node_from_route = fetch_query_string('select_node_from_route.sql')
 
-    result = []
+    result = None
+    cur = db.cursor()
     try:
-        result = db.execute(text(select_node_from_route), uri=uri, method=method).fetchall()
-    except DatabaseError as err:
+        result = cur.execute(select_node_from_route, {"uri":uri, "method":method}).fetchone()
+    except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
     #current_app.logger.debug('result: "{}", {}'.format(result, len(result)))
-    if not result or len(result) == 0:
+    if not result:
         # See if the uri matches any dynamic rules
         (rule, rule_kw) = check_map(uri, request.url_root)
         #current_app.logger.debug(rule)
         #current_app.logger.debug('rule: "%s"' % rule or '')
         if rule:
             try:
-                result = db.execute(text(select_node_from_route), uri=rule, method=method).fetchall()
-            except DatabaseError as err:
+                # Only one result for a getting a node from a unique path.
+                result = cur.execute(select_node_from_route, {"uri":rule, "method":method}).fetchone()
+            except sqlite3.DatabaseError as err:
                 current_app.logger.error("DatabaseError: %s", err)
 
-    if result:
-        #result = result.as_dict()
-        #(result, col_names) = rowify(result, c.description)
-
-        # Only one result for a getting a node from a unique path.
-        return (result[0], rule_kw)
-    return (None, rule_kw)
+    cur.close()
+    db.commit()
+    return (result, rule_kw)
 
 def skip_cache():
     """Skip the cache if request has Chill-Skip-Cache set"""
@@ -146,7 +145,7 @@ class PageView(MethodView):
         if rendered:
             if not isinstance(rendered, (str, str, int, float)):
                 # return a json string
-                return json.jsonify(rendered)
+                return json.jsonify(dict(rendered))
             return rendered
 
         # Nothing to show, so nothing found

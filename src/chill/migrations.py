@@ -1,9 +1,8 @@
 import sqlite3
 from flask import current_app
-from chill.app import make_app, db
+from chill.app import db
 from chill.database import (
         fetch_query_string,
-        rowify,
         )
 
 
@@ -11,50 +10,50 @@ def migrate1():
     "Migrate from version 0 to 1"
 
     initial = [
-    "create table Chill (version integer);",
-    "insert into Chill (version) values (1);",
-    "alter table SelectSQL rename to Query;",
-    "alter table Node add column template integer references Template (id) on delete set null;",
-    "alter table Node add column query integer references Query (id) on delete set null;"
+        "create table Chill (version integer);",
+        "insert into Chill (version) values (1);",
+        "alter table SelectSQL rename to Query;",
+        "alter table Node add column template integer references Template (id) on delete set null;",
+        "alter table Node add column query integer references Query (id) on delete set null;"
     ]
-
 
     cleanup = [
-    "drop table SelectSQL_Node;",
-    "drop table Template_Node;"
+        "drop table SelectSQL_Node;",
+        "drop table Template_Node;"
     ]
 
-    c = db.cursor()
+    cur = db.cursor()
     try:
-        c.execute("select version from Chill limit 1;")
+        cur.execute("select version from Chill limit 1;")
     except sqlite3.DatabaseError as err:
         pass
-    result = c.fetchone()
+    result = cur.fetchone()
     if result:
         version = result[0]
         if version == 1:
             current_app.logger.warn("Migration from version 0 to 1 is not needed.")
         else:
             current_app.logger.warn("Migration from version 0 to {0} is not supported.".format(version))
+        cur.close()
+        db.commit()
         return
 
     try:
         for query in initial:
-            c.execute(query)
+            cur.execute(query)
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
     try:
-        c.execute(fetch_query_string('select_all_nodes.sql'))
+        cur.execute(fetch_query_string('select_all_nodes.sql'))
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
-    result = c.fetchall()
+    result = cur.fetchall()
     if result:
-        (result, col_names) = rowify(result, c.description)
         for kw in result:
 
             try:
-                c.execute("""
+                cur.execute("""
                 update Node set template = (
                 select t.id from Template as t
                 join Template_Node as tn on ( tn.template_id = t.id )
@@ -67,7 +66,7 @@ def migrate1():
                 current_app.logger.error("DatabaseError: %s", err)
 
             try:
-                c.execute("""
+                cur.execute("""
                 update Node set query = (
                 select s.id from Query as s
                 join SelectSQL_Node as sn on ( sn.selectsql_id = s.id )
@@ -80,8 +79,9 @@ def migrate1():
                 current_app.logger.error("DatabaseError: %s", err)
     try:
         for query in cleanup:
-            c.execute(query)
+            cur.execute(query)
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s", err)
 
+    cur.close()
     db.commit()

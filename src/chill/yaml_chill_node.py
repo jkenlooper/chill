@@ -1,33 +1,31 @@
 import os
-import sqlite3
 
-from sqlalchemy.sql import text
 from flask import current_app
 import yaml
 
-from chill.app import make_app, db
+from chill.app import db
 from chill.database import (
-        init_db,
         insert_node,
         insert_node_node,
-        delete_node,
         select_node,
         insert_route,
         insert_query,
         add_template_for_node,
         fetch_query_string,
-        rowify,
         )
+
 
 def _is_sql_file(file_name):
     folder = current_app.config.get('THEME_SQL_FOLDER')
     file_path = os.path.join(folder, file_name)
     return os.path.isfile(file_path)
 
+
 def _is_template_file(file_name):
     folder = current_app.config.get('THEME_TEMPLATE_FOLDER')
     file_path = os.path.join(folder, file_name)
     return os.path.isfile(file_path)
+
 
 def _value_is_simple_string(value):
     if isinstance(value, str):
@@ -36,6 +34,7 @@ def _value_is_simple_string(value):
             return False
         else:
             return True
+
 
 def _add_node_to_parent(parent_node_id, name, value):
     node_has_template = False
@@ -88,9 +87,11 @@ def _add_node_to_parent(parent_node_id, name, value):
     if node_has_template:
         add_template_for_node(value.get('chill_template'), item_node_id)
 
+
 def _render_chill_node_value(node_id, root=False):
     # get the node
-    query_result = db.execute(text(fetch_query_string('select_query_from_node.sql')), {"node_id": node_id}).fetchall()
+    cur = db.cursor()
+    query_result = cur.execute(fetch_query_string('select_query_from_node.sql'), {"node_id": node_id}).fetchall()
     value = None
     if query_result:
         #current_app.logger.debug('render {node_id}'.format(node_id=node_id))
@@ -100,32 +101,32 @@ def _render_chill_node_value(node_id, root=False):
             raise NotImplementedError('TODO: Support for multiple queries found for a node.')
         for query_name in [x['name'] for x in query_result]:
             if query_name == 'select_link_node_from_node.sql':
-                link_nodes_result = db.execute(text(fetch_query_string('select_link_node_from_node.sql')), {"node_id": node_id}).fetchall()
+                link_nodes_result = cur.execute(fetch_query_string('select_link_node_from_node.sql'), {"node_id": node_id}).fetchall()
                 if link_nodes_result:
                     value = {}
-                    if len(link_nodes_result) > 1 and link_nodes_result[0].name == link_nodes_result[1].name:
+                    if len(link_nodes_result) > 1 and link_nodes_result[0]["name"] == link_nodes_result[1]["name"]:
                         value = []
                         for link_node in link_nodes_result:
                             item = {}
-                            item[link_node.name] = _render_chill_node_value(link_node.node_id)
+                            item[link_node["name"]] = _render_chill_node_value(link_node["node_id"])
                             value.append(item)
                     else:
                         for link_node in link_nodes_result:
-                            value[link_node.name] = _render_chill_node_value(link_node.node_id)
+                            value[link_node["name"]] = _render_chill_node_value(link_node["node_id"])
 
                 else:
                     node = select_node(node_id=node_id)[0]
-                    value = node.value
+                    value = node["value"]
             else:
                 value = query_name
     else:
         node = select_node(node_id=node_id)[0]
-        value = node.value
+        value = node["value"]
 
     if not root:
-        template_for_node_result = db.execute(text(fetch_query_string('select_template_from_node.sql')), {"node_id": node_id}).fetchone()
+        template_for_node_result = cur.execute(fetch_query_string('select_template_from_node.sql'), {"node_id": node_id}).fetchone()
         if template_for_node_result:
-            template_for_node = template_for_node_result.name
+            template_for_node = template_for_node_result["name"]
             chill_value = value
             value = {
                 'chill_template': template_for_node,
@@ -133,7 +134,10 @@ def _render_chill_node_value(node_id, root=False):
             if chill_value != None:
                 value['chill_value'] = chill_value
 
+    cur.close()
+    db.commit()
     return value
+
 
 class ChillNode(yaml.YAMLObject):
     yaml_loader = yaml.SafeLoader
@@ -246,14 +250,17 @@ class ChillNode(yaml.YAMLObject):
 def dump_yaml(yaml_file):
     "Dump chill database structure to ChillNode yaml objects."
 
-    result = db.execute(text(fetch_query_string('select_all_chill_nodes.sql'))).fetchall()
+    cur = db.cursor()
+    result = cur.execute(fetch_query_string('select_all_chill_nodes.sql')).fetchall()
+    cur.close()
+    db.commit()
 
     node_list = result
     chill_nodes = []
 
     for node in node_list:
-        if isinstance(node.path, str):
-            chill_node = ChillNode(name=node.name, node_id=node.node_id, value=node.value, template=node.template, query=node.query, path=node.path, method=node.method, weight=node.weight)
+        if isinstance(node["path"], str):
+            chill_node = ChillNode(name=node["name"], node_id=node["node_id"], value=node["value"], template=node["template"], query=node["query"], path=node["path"], method=node["method"], weight=node["weight"])
 
             chill_nodes.append(chill_node)
 
