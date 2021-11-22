@@ -28,7 +28,7 @@ from chill.yaml_chill_node import load_yaml, dump_yaml, ChillNode
 class ChillTestCase(unittest.TestCase):
     database_readonly=False
     def setUp(self):
-        self.debug = True
+        self.debug = False
         self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
         self.app = make_app(
@@ -176,8 +176,9 @@ class Route(ChillTestCase):
                 assert b"hello" == rv.data
                 rv = c.get("/1/", follow_redirects=True)
                 assert b"hello" == rv.data
-                rv = c.get("////1/", follow_redirects=True)
-                assert b"hello" == rv.data
+                # No longer supports this
+                #rv = c.get("////1/", follow_redirects=True)
+                #assert b"hello" == rv.data
                 rv = c.get("/1/index.html", follow_redirects=True)
                 assert b"hello" == rv.data
                 rv = c.get("/1/index.html/not", follow_redirects=True)
@@ -354,12 +355,12 @@ class SQL(ChillTestCase):
             result = cur.execute(
                 fetch_query_string("select_link_node_from_node.sql"), {"node_id":b_id}
             )
-            cur.close()
-            db.commit()
             result = [x["node_id"] for x in result]
             assert c_id in result
             assert d_id not in result
             assert a_id not in result
+            cur.close()
+            db.commit()
 
     def test_value(self):
         """
@@ -548,10 +549,12 @@ class SQL(ChillTestCase):
                 fetch_query_string("insert_node.sql"), {"name":"a", "value":"apple"}
             )
             a = result.lastrowid
+            db.commit()
 
             result = cur.execute(
                 fetch_query_string("select_node_from_id.sql"), {"node_id":a}
             ).fetchall()
+            db.commit()
             assert len(result) == 1
             r = result[0]
             assert a == r["node_id"]
@@ -604,6 +607,7 @@ class SQL(ChillTestCase):
 
             # now delete (should use the 'on delete cascade' sql bit)
             cur.execute(fetch_query_string("delete_node_for_id.sql"), {"node_id":a_id})
+            db.commit()
 
             result = cur.execute(
                 fetch_query_string("select_node_from_id.sql"), {"node_id":a_id}
@@ -750,6 +754,7 @@ class Query(ChillTestCase):
                   );
                 """
                 )
+                db.commit()
 
                 page_id = insert_node(name="page1", value=None)
                 insert_route(path="/page1/", node_id=page_id)
@@ -779,6 +784,7 @@ class Query(ChillTestCase):
                             "description": "a" * a,
                         }
                     )
+                    db.commit()
                     # wire the promo to it's attr
                     insert_query(name="select_promoattr.sql", node_id=a_id)
 

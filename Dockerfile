@@ -1,4 +1,5 @@
 FROM python:3.10.0-buster
+#FROM python:3.8.10-buster
 
 LABEL maintainer="Jake Hickenlooper jake@weboftomorrow.com"
 
@@ -36,9 +37,14 @@ RUN pip install -r requirements.txt
 # Install chill
 COPY . .
 RUN pip install -e .
+RUN python src/chill/tests.py
 
 WORKDIR /usr/run
 RUN chown -R chill:chill /usr/run
 USER chill
+
+# chill initdb
+# chill load --yaml chill-data.yaml
+# chill serve
 
 ENTRYPOINT ["chill"]

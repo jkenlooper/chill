@@ -14,7 +14,7 @@ from flask import (
 from flask.views import MethodView
 
 from chill.app import db
-from .database import fetch_query_string
+from .database import fetch_query_string, serialize_sqlite3_results
 from .api import render_node, _query
 from .cache import cache
 from . import shortcodes
@@ -145,7 +145,7 @@ class PageView(MethodView):
         if rendered:
             if not isinstance(rendered, (str, str, int, float)):
                 # return a json string
-                return json.jsonify(dict(rendered))
+                return json.jsonify(serialize_sqlite3_results(rendered))
             return rendered
 
         # Nothing to show, so nothing found

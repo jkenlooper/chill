@@ -11,11 +11,11 @@ setup(
     keywords="static website SQL sqlite Flask web framework",
     description="Database driven web application framework in Flask",
     long_description="""
-        This involves creating custom SQL queries to pull your data from your database
-        into your jinja2 HTML templates for your website.  Chill creates a static
-        version of the website or can run as a Flask app. Their are a few tables that
-        are specific to Chill in order to handle page routes and what SQL query should
-        be used and such.
+        This involves creating custom SQL queries to pull your data from an
+        sqlite3 database into jinja2 HTML templates for a website.  Chill
+        creates a static version of the website or can run as a Flask app. There
+        are a few tables that are specific to Chill in order to handle page
+        routes and what SQL query should be used and such.
     """,
     url="https://github.com/jkenlooper/chill",
     license="GPL",
@@ -30,6 +30,8 @@ setup(
         "Natural Language :: English",
         "Operating System :: POSIX",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Internet :: WWW/HTTP :: Site Management",
         "Topic :: Internet :: WWW/HTTP :: WSGI",
         "Topic :: Software Development :: Build Tools",
@@ -40,19 +42,18 @@ setup(
     zip_safe=False,
     test_suite="chill.tests",
     install_requires=[
-        "setuptools",
-        "docutils",
-        "Flask",
-        "Jinja2",
-        "Flask-Caching",
-        "Frozen-Flask",
-        "Flask-Markdown",
+        "Flask>=2,<3",
+        "Jinja2>=3",
+        "Flask-Caching>=1,<2",
+        "Frozen-Flask==0.18",
+        "Flask-Markdown==0.3",
         "PyYAML",
         "gevent",
-        "docopt",
-        #'pyselect', # Using pyselect within src/chill/ instead
-        "MarkupSafe",
+        "docopt==0.6.2",
+        # 'pyselect', # Using pyselect within src/chill/ instead
+        "MarkupSafe>=2,<3",
         "babel",
     ],
+    python_requires=">=3.8",
     entry_points={"console_scripts": ["chill = chill.script:main"]},
 )

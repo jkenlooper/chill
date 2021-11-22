@@ -1,10 +1,11 @@
 from __future__ import absolute_import
-from builtins import zip
 import os
-from sqlalchemy.sql import text
-from flask import current_app, g
+import json
+import sqlite3
+
+from flask import current_app
+
 from chill.app import db
-from .cache import cache
 
 CHILL_DROP_TABLE_FILES = (
     "drop_chill.sql",
@@ -37,25 +38,22 @@ def init_db():
 
     The current Chill migration version is added to the Chill table.
     """
-    #hold_database_readonly_setting = current_app.config.get("database_readonly")
-    #current_app.config["database_readonly"] = False
     cur = db.cursor()
     with current_app.app_context():
         for filename in CHILL_CREATE_TABLE_FILES:
             cur.execute(fetch_query_string(filename))
     cur.close()
     db.commit()
-    #current_app.config["database_readonly"] = hold_database_readonly_setting
 
 
-# def rowify(l, description):
-#     d = []
-#     col_names = []
-#     if l != None and description != None:
-#         col_names = [x[0] for x in description]
-#         for row in l:
-#             d.append(dict(list(zip(col_names, row))))
-#     return (d, col_names)
+class RowEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, sqlite3.Row):
+            return dict(map(lambda x: (x, obj[x]), obj.keys()))
+
+
+def serialize_sqlite3_results(results):
+    return json.loads(json.dumps(results, cls=RowEncoder))
 
 
 def _fetch_sql_string(file_name):
@@ -65,7 +63,7 @@ def _fetch_sql_string(file_name):
 
 def fetch_query_string(file_name):
     content = current_app.queries.get(file_name, None)
-    if content != None:
+    if content is not None:
         return content
     current_app.logger.info(
         "queries file: '%s' not available. Checking file system..." % file_name
@@ -194,10 +192,12 @@ def insert_query(**kw):
             kw["query_id"] = result[0]["id"]
         else:
             result = cur.execute(fetch_query_string("insert_query.sql"), kw)
+            db.commit()
             kw["query_id"] = result.lastrowid
             if not kw["query_id"]:
                 result = result.fetchall()
                 kw["query_id"] = result[0]["id"]
         cur.execute(fetch_query_string("insert_query_node.sql"), kw)
+        db.commit()
         cur.close()
         db.commit()

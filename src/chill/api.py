@@ -4,7 +4,7 @@ import sqlite3
 from flask import current_app, render_template
 
 from chill.app import db
-from .database import fetch_query_string
+from .database import fetch_query_string, serialize_sqlite3_results
 
 
 def _short_circuit(value=None):
@@ -17,6 +17,8 @@ def _short_circuit(value=None):
     Clean up by removing single item array and single key dict.
     ['abc'] -> 'abc'
     [['abc']] -> 'abc'
+    [{'abc':123}] -> {'abc':123}
+    [[{'abc':123}]] -> {'abc':123}
     [{'abc':123},{'def':456}] -> {'abc':123,'def':456}
     [{'abc':123},{'abc':456}] -> [{'abc':123},{'abc':456}] # skip for same set keys
     [[{'abc':123},{'abc':456}]] -> [{'abc':123},{'abc':456}]
@@ -62,24 +64,23 @@ def _query(_node_id, value=None, **kw):
         cur.close()
         db.commit()
         return value
-    #current_app.logger.debug("queries kw: %s", kw)
-    #current_app.logger.debug("queries value: %s", value)
-    #current_app.logger.debug("queries: %s", query_result)
+    # current_app.logger.debug("queries kw: %s", kw)
+    # current_app.logger.debug("queries value: %s", value)
+    # current_app.logger.debug("queries: %s", serialize_sqlite3_results(query_result))
     if query_result:
         values = []
         for query_name in [x['name'] for x in query_result]:
             if query_name:
                 result = []
                 try:
-                    #current_app.logger.debug("query_name: %s", query_name)
-                    #current_app.logger.debug("kw: %s", kw)
+                    current_app.logger.debug("query_name: %s", query_name)
+                    current_app.logger.debug("kw: %s", kw)
                     # Query string can be insert or select here
                     #statement = fetch_query_string(query_name)
                     #params = [x.key for x in statement.params().get_children()]
                     #skw = {key: kw[key] for key in params}
                     #result = cur.execute(statement, **skw)
                     result = cur.execute(fetch_query_string(query_name), kw)
-                    #current_app.logger.debug("result query: %s", list(result.keys()))
                 except (sqlite3.DatabaseError, sqlite3.ProgrammingError) as err:
                     current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
                 if result:
@@ -88,16 +89,12 @@ def _query(_node_id, value=None, **kw):
                     #values.append((result.fetchall(), result.keys()))
                     #current_app.logger.debug("fetchall: %s", values)
                     if len(result) == 0:
+                        current_app.logger.debug("result is empty")
+                        #values.append([{}])
                         values.append([{}])
                     else:
-                        #current_app.logger.debug("result: %s", result)
-                        # There may be more results, but only interested in the
-                        # first one.
-                        ## Use the older rowify method for now.
-                        ## TODO: use case for rowify?
-                        #values.append(rowify(result, [(x, None) for x in list(result[0].keys())]))
-                        values.append([result[0]])
-                        #current_app.logger.debug("fetchone: %s", values)
+                        current_app.logger.debug("result: %s", serialize_sqlite3_results(result))
+                        values.append(result)
         value = values
     #current_app.logger.debug("value: %s", value)
     cur.close()
@@ -107,6 +104,8 @@ def _query(_node_id, value=None, **kw):
 
 def _template(node_id, value=None):
     "Check if a template is assigned to it and render that with the value"
+    if value:
+        value = serialize_sqlite3_results(value)
     result = []
     select_template_from_node = fetch_query_string('select_template_from_node.sql')
     cur = db.cursor()
@@ -131,10 +130,10 @@ def _template(node_id, value=None):
 
 def render_node(_node_id, value=None, noderequest={}, **kw):
     "Recursively render a node's value"
-    if value == None:
+    if value is None:
         kw.update( noderequest )
         results = _query(_node_id, **kw)
-        #current_app.logger.debug("results: %s", results)
+        current_app.logger.debug("render_node results: %s", results)
         if results:
             values = []
             for result in results:
@@ -142,7 +141,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
                     for subresult in result:
                         #if subresult.get('name') == kw.get('name'):
                             # This is a link node
-                        #current_app.logger.debug("sub: %s", subresult)
+                        current_app.logger.debug("sub: %s", subresult)
                         name = subresult['name']
                         if noderequest.get('_no_template'):
                             # For debugging; append the node_id to the name
@@ -159,7 +158,9 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
             value = values
 
     value = _short_circuit(value)
+    # current_app.logger.debug(f"after sc: {value}")
     if not noderequest.get('_no_template'):
         value = _template(_node_id, value)
+        # current_app.logger.debug(f"after template: {value}")
 
     return value

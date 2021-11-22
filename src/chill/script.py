@@ -38,7 +38,6 @@ from builtins import map
 import os
 import subprocess
 import sqlite3
-import sys
 
 from docopt import docopt
 from flask_frozen import Freezer
@@ -283,10 +282,8 @@ def migrate(config):
 def set_sqlite_journal_mode(app):
 
     db_file = app.config.get("CHILL_DATABASE_URI")
-    print(app.config)
     journal_mode = app.config.get("SQLITE_JOURNAL_MODE")
     if not journal_mode or not isinstance(journal_mode, str):
-        print('no')
         return
 
     if not journal_mode.lower() in (
@@ -297,11 +294,9 @@ def set_sqlite_journal_mode(app):
         "wal",
         "off",
     ):
-        print(f"no {journal_mode}")
         return
 
     if db_file and not db_file.startswith(":"):
-        print(f"db_file {db_file}")
         # Need to set Write-Ahead Logging so multiple apps can work with the db
         # concurrently.  https://sqlite.org/wal.html
         app.logger.info(
