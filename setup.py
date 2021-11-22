@@ -1,7 +1,7 @@
 # https://packaging.python.org/en/latest/distributing.html
 from setuptools import setup, find_packages
 
-__version__ = "0.8.1"  # Also set in src/chill/_version.py
+__version__ = "0.9.0-alpha.1"  # Also set in src/chill/_version.py
 
 setup(
     name="chill",
@@ -47,9 +47,6 @@ setup(
         "Flask-Caching",
         "Frozen-Flask",
         "Flask-Markdown",
-        "future",
-        #"psycopg2", # Might switch to postgres in the future
-        "sqlalchemy",
         "PyYAML",
         "gevent",
         "docopt",

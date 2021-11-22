@@ -6,8 +6,10 @@
 /develop-eggs/
 /eggs/
 /include/
-/lib/
+/lib
+/lib64
 /local/
 /share/
 /src/chill.egg-info/
 /src/chill/__pycache/
+/pyvenv.cfg

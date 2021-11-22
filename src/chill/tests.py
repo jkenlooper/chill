@@ -32,7 +32,8 @@ class ChillTestCase(unittest.TestCase):
         self.tmp_template_dir = tempfile.mkdtemp()
         self.tmp_db = tempfile.NamedTemporaryFile(delete=False)
         self.app = make_app(
-            CHILL_DATABASE_URI="sqlite:///" + self.tmp_db.name,
+            CHILL_DATABASE_URI=self.tmp_db.name,
+            SQLITE_JOURNAL_MODE="wal",
             THEME_TEMPLATE_FOLDER=self.tmp_template_dir,
             THEME_SQL_FOLDER=self.tmp_template_dir,
             MEDIA_FOLDER=self.tmp_template_dir,

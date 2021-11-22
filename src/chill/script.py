@@ -3,7 +3,6 @@
 Usage: chill run [--config <file>] [--readonly]
        chill serve [--config <file>] [--readonly]
        chill freeze [--config <file>] [--urls <file>]
-       chill operate [--config <file>]
        chill init
        chill initdb [--config <file>]
        chill load [--config <file>] [--yaml <file>]
@@ -24,7 +23,6 @@ Subcommands:
     run     - Start the web server in the foreground. Don't use for production.
     serve   - Starts a daemon web server with Gevent.
     freeze  - Freeze the application by creating a static version of it.
-    operate - Interface to do simple operations on the database.
     init    - Initialize the current directory with base starting files and database.
     initdb  - Initialize Chill database tables only.
     load    - Load a yaml file that has ChillNode objects into the database.
@@ -33,12 +31,14 @@ Subcommands:
 
 """
 from gevent import monkey
+
 monkey.patch_all()
 
 from builtins import map
 import os
 import subprocess
 import sqlite3
+import sys
 
 from docopt import docopt
 from flask_frozen import Freezer
@@ -53,7 +53,6 @@ from chill.database import (
     add_template_for_node,
     fetch_query_string,
 )
-from chill.operate import operate_menu
 from chill.migrations import migrate1
 from chill.yaml_chill_node import load_yaml, dump_yaml
 from chill._version import __version__
@@ -73,7 +72,7 @@ CHILL_DATABASE_URI = "db"
 # Set the sqlite journal_mode
 # https://sqlite.org/pragma.html#pragma_journal_mode
 # Leave blank to not change
-SQLITE_JOURNAL_MODE = ""
+SQLITE_JOURNAL_MODE = "wal"
 
 # If using the ROOT_FOLDER then you will need to set the PUBLIC_URL_PREFIX to
 # something other than '/'.
@@ -156,7 +155,7 @@ CACHE_TYPE = "null"
 
 
 def main():
-    ""
+    """"""
     args = docopt(__doc__, version=__version__)
     # parse args and pass to run, server, etc.
     if args["init"]:
@@ -167,9 +166,6 @@ def main():
 
     if args["run"]:
         run(args["--config"], database_readonly=args.get("--readonly", False))
-
-    if args["operate"]:
-        operate(args["--config"])
 
     if args["load"]:
         load(args["--config"], yaml_file=args.get("--yaml", "chill-data.yaml"))
@@ -195,6 +191,7 @@ def initdb(config):
     "Initialize Chill database tables only."
 
     app = make_app(config=config)
+    set_sqlite_journal_mode(app)
 
     with app.app_context():
         app.logger.info("initializing database")
@@ -238,6 +235,7 @@ def init():
         f.close()
 
     app = make_app(config="site.cfg", DEBUG=True)
+    set_sqlite_journal_mode(app)
 
     with app.app_context():
         app.logger.info("initializing database")
@@ -253,16 +251,6 @@ def init():
             name="homepage_content", value="Cascading, Highly Irrelevant, Lost Llamas"
         )
         insert_node_node(node_id=homepage, target_node_id=homepage_content)
-
-
-def operate(config):
-    "Interface to do simple operations on the database."
-
-    app = make_app(config=config)
-
-    print("Operate Mode")
-    with app.app_context():
-        operate_menu()
 
 
 def load(config, yaml_file):
@@ -291,21 +279,42 @@ def migrate(config):
     with app.app_context():
         migrate1()
 
+
 def set_sqlite_journal_mode(app):
 
-    db_file = app.config.get("CHILL_DATABASE_URI")[len("sqlite:///"):]
+    db_file = app.config.get("CHILL_DATABASE_URI")
+    print(app.config)
     journal_mode = app.config.get("SQLITE_JOURNAL_MODE")
     if not journal_mode or not isinstance(journal_mode, str):
+        print('no')
         return
 
-    if not journal_mode.lower() in ("delete", "truncate" , "persist" , "memory" , "wal" , "off"):
+    if not journal_mode.lower() in (
+        "delete",
+        "truncate",
+        "persist",
+        "memory",
+        "wal",
+        "off",
+    ):
+        print(f"no {journal_mode}")
         return
 
     if db_file and not db_file.startswith(":"):
+        print(f"db_file {db_file}")
         # Need to set Write-Ahead Logging so multiple apps can work with the db
         # concurrently.  https://sqlite.org/wal.html
-        app.logger.info("set journal mode to '{}' on db file: {}".format(journal_mode, db_file))
-        subprocess.run(["sqlite3", db_file, "pragma journal_mode={journal_mode}".format(journal_mode=journal_mode)])
+        app.logger.info(
+            "set journal mode to '{}' on db file: {}".format(journal_mode, db_file)
+        )
+        subprocess.run(
+            [
+                "sqlite3",
+                db_file,
+                "pragma journal_mode={journal_mode}".format(journal_mode=journal_mode),
+            ]
+        )
+
 
 # bin/run
 def run(config, database_readonly=False):
@@ -335,6 +344,7 @@ def serve(config, database_readonly=False):
     port = app.config.get("PORT", 5000)
     app.logger.info("serving on {host}:{port}".format(**locals()))
     http_server = pywsgi.WSGIServer((host, port), app)
+
     def shutdown():
         app.logger.info("Stopping Chill app")
         http_server.stop(timeout=10)
@@ -355,20 +365,6 @@ def freeze(config, urls_file=None):
     app.logger.info("freezing app to directory: %s" % app.config["FREEZER_DESTINATION"])
     freezer = Freezer(app)
 
-    # @freezer.register_generator
-    # def index_page():
-    #    for (dirpath, dirnames, filenames) in os.walk(app.config['DATA_PATH'], topdown=True):
-    #        start = len(os.path.commonprefix((app.config['DATA_PATH'], dirpath)))
-    #        relative_path = dirpath[start+1:]
-    #        for dirname in dirnames:
-    #            yield ('page.index_page', {'uri': os.path.join(relative_path, dirname)})
-
-    # @freezer.register_generator
-    # def page_uri():
-    #    # uri_index will be used so just avoid showing a warning
-    #    return [
-    #            ('public.page_uri', {'uri': ''}),
-    #            ]
     @freezer.register_generator
     def uri_index():
         def cleanup_url(url):

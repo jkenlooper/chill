@@ -145,8 +145,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
                         #current_app.logger.debug("sub: %s", subresult)
                         name = subresult['name']
                         if noderequest.get('_no_template'):
-                            # For debugging or just simply viewing with the
-                            # operate script we append the node_id to the name
+                            # For debugging; append the node_id to the name
                             # of each. This doesn't work with templates.
                             name = "{0} ({1})".format(name, subresult['node_id'])
                         values.append( {name: render_node( subresult['node_id'], noderequest=noderequest, **subresult )} )

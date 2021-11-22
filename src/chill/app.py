@@ -45,7 +45,7 @@ class ChillFlask(Flask):
 
 
 def get_db(config):
-    db_file = config.get("CHILL_DATABASE_URI")[len('sqlite:///'):]
+    db_file = config.get("CHILL_DATABASE_URI")
     if db_file and not db_file.startswith(':'):
         if not config.get("database_readonly"):
             db = sqlite3.connect(db_file)
