@@ -8,8 +8,8 @@ loads all the data from a hierarchy of folders and inserts them into
 a database.  The idea here is to keep things rather simple and flexible.
 
 You can create a website using Chill and not even write any python code or SQL.  It
-comes with a built-in `chill operate` command which allows managing nodes,
-routes, templates, etc. in a database.  You can also manually edit your
+comes with a built-in `chill load` command which allows adding nodes,
+routes, templates, etc. in a database by reading yaml files.  You can also manually edit your
 database using whatever other tool works for you.  All Chill does is read from
 the database to determine what URL routes load the templates with the data.  It
 doesn't have a built-in admin web interface to do anything like a more complete
@@ -34,7 +34,7 @@ generate the output for a website.
 A Node is used to hold a value.  The value can be any bit of text that is
 displayed on the web page. The name attribute of a Node entry is how the
 template refers to that value.  If the value is null then the value is
-determined by the query attrbute.  In this way you can have one Node get the
+determined by the query attribute.  In this way you can have one Node get the
 value or result from running another query.
 
 ### URL Route registrations with Flask
@@ -74,9 +74,7 @@ a JSON string will be returned.
 Not all the data for a site needs to be in a database.  A document folder can
 be configured to store text files that a node can refer to.  The jinja2
 template can use the `readfile` filter to read the file and optionally pass it
-along to other filters like a markdown filter.  The `chill operate` command can
-be used to easily assign a node's value to the name of a document in the
-folder.
+along to other filters like a markdown filter.  
 
 ## routes
 more detail and examples

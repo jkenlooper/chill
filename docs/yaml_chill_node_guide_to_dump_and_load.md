@@ -1,8 +1,7 @@
 # Loading and Dumping of Chill Data as YAML files
 
 The `chill dump` and `chill load` scripts will dump and load the chill database as
-ChillNode objects in a yaml file.  This can be used as an alternative to
-manually doing things with the operate script.
+ChillNode objects in a yaml file.
 
 Dump to the `example-data.yaml` file while in a project folder with
 a site.cfg using this command:

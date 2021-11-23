@@ -39,12 +39,3 @@ the background.
 ```bash
 docker run -d --rm -p 8080:5000 -v $HOME/example-website/:/usr/run/ chill serve
 ```
-
-### Run operate sub command
-
-Same as using `chill operate`.  Here the `-it` option is used so the operate
-functions correctly since it needs user input.
-
-```bash
-docker run -it --rm -v $HOME/example-website/:/usr/run/ chill operate
-```
