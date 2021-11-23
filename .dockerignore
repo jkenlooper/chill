@@ -1,8 +1,9 @@
-# In case it was first built locally
-**/*.pyc
-**/chill.egg-info
-bin/
-build/
-dist/
-include/
-lib/
+*
+!/src/chill/*
+/src/chill/*.pyc
+/src/chill/**/*.pyc
+/src/chill/__pycache__
+!/requirements.txt
+!/LICENSE
+!/README.md
+!/setup.py

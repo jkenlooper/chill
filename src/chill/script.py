@@ -62,8 +62,10 @@ SITECFG = """
 # Chill.
 
 # Set the HOST to 0.0.0.0 for being an externally visible server.
-#HOST = '127.0.0.1'
-#PORT = 5000
+# Set the HOST to 127.0.0.1 for internal
+# TODO: HOST and PORT should come from the environment
+HOST = '0.0.0.0'
+PORT = 5000
 
 # Path to sqlite3 database file
 CHILL_DATABASE_URI = "db"
