@@ -50,7 +50,6 @@ setup(
         "PyYAML",
         "gevent",
         "docopt==0.6.2",
-        # 'pyselect', # Using pyselect within src/chill/ instead
         "MarkupSafe>=2,<3",
         "babel",
     ],

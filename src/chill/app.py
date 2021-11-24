@@ -85,7 +85,6 @@ def set_db():
     return db
 
 
-print('local proxy')
 db = LocalProxy(set_db)
 
 

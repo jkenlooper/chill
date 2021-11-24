@@ -30,7 +30,7 @@ WORKDIR /usr/src/chill
 VOLUME /usr/src/chill/src/chill
 COPY . .
 RUN /usr/src/chill-venv/bin/pip install --disable-pip-version-check --compile .
-#RUN /usr/src/chill-venv/bin/python src/chill/tests.py
+RUN /usr/src/chill-venv/bin/python src/chill/tests.py
 
 
 
