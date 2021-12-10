@@ -1,15 +1,21 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.3.0-labs
 
 FROM python:3.10.0-buster
 #FROM python:3.8.10-buster
 
 LABEL maintainer="Jake Hickenlooper jake@weboftomorrow.com"
 
-ENV DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get --yes update \
-  && apt-get --yes upgrade \
-  && apt-get --yes install --no-install-suggests --no-install-recommends \
+# Virtual environment
+WORKDIR /usr/src/chill-venv
+
+# Install chill dependencies
+COPY requirements.txt ./
+RUN <<INSTALL
+apt-get --yes update
+apt-get --yes upgrade
+apt-get --yes install --no-install-suggests --no-install-recommends \
   gcc \
   libffi-dev \
   libpython3-dev \
@@ -18,38 +24,34 @@ RUN apt-get --yes update \
   python3-venv \
   sqlite3
 
-# Virtual environment
-WORKDIR /usr/src/chill-venv
-COPY requirements.txt ./
-RUN python -m venv .
-RUN /usr/src/chill-venv/bin/pip install --upgrade pip wheel
-RUN /usr/src/chill-venv/bin/pip install --disable-pip-version-check -r requirements.txt
+python -m venv .
+/usr/src/chill-venv/bin/pip install --upgrade pip wheel
+/usr/src/chill-venv/bin/pip install --disable-pip-version-check -r requirements.txt
+
+# Create an unprivileged user.
+adduser chill --disabled-login --disabled-password --gecos ""
+INSTALL
 
 # Install chill
 WORKDIR /usr/src/chill
-VOLUME /usr/src/chill/src/chill
 COPY . .
-RUN /usr/src/chill-venv/bin/pip install --disable-pip-version-check --compile .
-RUN /usr/src/chill-venv/bin/python src/chill/tests.py
-
-
-
-# Create an unprivileged user.
-RUN adduser chill --disabled-login --disabled-password --gecos ""
+RUN <<CHILL
+/usr/src/chill-venv/bin/pip install --disable-pip-version-check --compile .
+/usr/src/chill-venv/bin/python src/chill/tests.py
+mkdir -p /home/chill/app
+chown -R chill:chill /home/chill/app
+CHILL
 
 WORKDIR /home/chill/app
-RUN chown -R chill:chill /home/chill/app
 USER chill
-RUN /usr/src/chill-venv/bin/chill init
-RUN /usr/src/chill-venv/bin/chill dump --yaml chill-data.yaml
-# TODO set HOST=0.0.0.0
+RUN <<EXAMPLE
+/usr/src/chill-venv/bin/chill init
+/usr/src/chill-venv/bin/chill dump --yaml chill-data.yaml
+EXAMPLE
 
 EXPOSE 5000
-VOLUME /home/chill/app
-#docker run -it --rm --mount "type=bind,src=$(pwd)/other,dst=/home/chill/app" chill
 
-#RUN /usr/src/chill-venv/bin/chill init
-#RUN /usr/src/chill-venv/bin/chill dump --yaml chill-data.yaml
+VOLUME /home/chill/app
 
 ENTRYPOINT ["/usr/src/chill-venv/bin/chill"]
 CMD ["serve"]
