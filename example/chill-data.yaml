@@ -1,0 +1,6 @@
+!ChillNode
+name: homepage
+route: /
+template: homepage.html
+value:
+  homepage_content: Cascading, Highly Irrelevant, Lost Llamas
