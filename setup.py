@@ -44,7 +44,6 @@ setup(
     install_requires=[
         "Flask>=2,<3",
         "Jinja2>=3",
-        "Flask-Caching>=1,<2",
         "Frozen-Flask==0.18",
         "Flask-Markdown==0.3",
         "PyYAML",

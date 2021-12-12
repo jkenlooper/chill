@@ -16,7 +16,6 @@ from flask.views import MethodView
 from chill.app import db
 from .database import fetch_query_string, serialize_sqlite3_results
 from .api import render_node, _query
-from .cache import cache
 from . import shortcodes
 
 #def get_map_adapter():
@@ -95,12 +94,6 @@ def node_from_uri(uri, method="GET"):
     db.commit()
     return (result, rule_kw)
 
-def skip_cache():
-    """Skip the cache if request has Chill-Skip-Cache set"""
-    if u'Chill-Skip-Cache' in request.headers:
-        return True
-
-    return False
 
 # The page blueprint has no static files or templates read from disk.
 #page = Blueprint('public', __name__, static_folder=os.path.join( os.getcwd(), current_app.config.get('CHILL_STATIC_DIR', 'static') ), template_folder=None)
@@ -118,7 +111,6 @@ class PageView(MethodView):
     When a node is retrieved (get) it renders that nodes value. (See `render_node`.)
     """
 
-    @cache.cached(unless=skip_cache)
     def get(self, uri=''):
         "For sql queries that start with 'SELECT ...'"
         (node, rule_kw) = node_from_uri(uri)
