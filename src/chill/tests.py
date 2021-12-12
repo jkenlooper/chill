@@ -1002,7 +1002,7 @@ class Filters(ChillTestCase):
 
     def test_timedelta_filter(self):
         """
-        The custom 'timedelta' jinja2 filter wraps around the babel format_timedelta.
+        The custom 'timedelta' jinja2 filter wraps around the humanize naturaltime method.
         """
         f = open(os.path.join(self.tmp_template_dir, "timedelta.html"), "w")
         f.write(

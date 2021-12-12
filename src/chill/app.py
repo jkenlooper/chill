@@ -11,6 +11,7 @@ from flaskext.markdown import Markdown
 from jinja2 import FileSystemLoader
 from .cache import cache
 from babel import dates
+from humanize import naturaltime
 
 from . import shortcodes
 
@@ -230,8 +231,8 @@ def make_app(config=None, database_readonly=False, **kw):
 
     @app.template_filter("timedelta")
     def timedelta(value):
-        "time delta"
-        return dates.format_timedelta(value)
+        "time delta using humanize.time.naturaltime()"
+        return naturaltime(value)
 
     # Add the markdown filter for the templates
     md = Markdown(app)

@@ -52,6 +52,7 @@ setup(
         "docopt==0.6.2",
         "MarkupSafe>=2,<3",
         "babel",
+        "humanize",
     ],
     python_requires=">=3.8",
     entry_points={"console_scripts": ["chill = chill.script:main"]},

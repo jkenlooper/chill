@@ -7,6 +7,7 @@ Flask-Markdown==0.3
 Frozen-Flask==0.18
 gevent==21.8.0
 greenlet==1.1.2
+humanize==3.13.1
 importlib-metadata==4.8.2
 itsdangerous==2.0.1
 Jinja2==3.0.3
