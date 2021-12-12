@@ -2,6 +2,9 @@
 
 FROM alpine:3.15.0@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300 as build
 
+LABEL maintainer="Jake Hickenlooper <jake@weboftomorrow.com>"
+
+
 ## Build dependencies
 WORKDIR /usr/local/src/chill-venv
 COPY requirements.txt ./
@@ -57,10 +60,10 @@ addgroup -g 2000 chill
 adduser -u 2000 -G chill -s /bin/sh -D chill
 # Create directory where running chill app source files will be.
 mkdir -p /home/chill/app
-chown -R chill:chill /home/chill/app
+chown -R chill:chill /home/chill
 # Create directory where running chill app database will be.
-mkdir -p "$(dirname $CHILL_DATABASE_URI)"
-chown -R chill:chill "$(dirname $CHILL_DATABASE_URI)"
+mkdir -p /var/lib/chill/sqlite3
+chown -R chill:chill /var/lib/chill
 CHILL_DEPENDENCIES
 
 USER chill
@@ -73,3 +76,11 @@ VOLUME /home/chill/app
 EXPOSE 5000
 
 CMD ["chill", "--help"]
+
+## Build and run example.
+# DOCKER_BUILDKIT=1 docker build -t chill:latest .
+# docker run -it --rm \
+#   -p 5000:5000 \
+#   --mount "type=volume,src=chill_app_example,dst=/home/chill/app" \
+#   --mount "type=volume,src=chill_db_example,dst=/var/lib/chill/sqlite3" \
+#   chill:latest

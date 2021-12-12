@@ -1,16 +1,15 @@
 # syntax=docker/dockerfile:1.3.0-labs
 
-from chill
+from chill:latest
 
 WORKDIR /home/chill/app
 
-COPY . ./
+COPY --chown=chill:chill site.cfg chill-data.yaml ./
 RUN <<APP
 chill initdb || printf ''
 chill load --yaml chill-data.yaml || printf ''
 APP
 
-VOLUME /var/lib/chill/sqlite3
-VOLUME /home/chill/app
+COPY --chown=chill:chill . ./
 
 CMD ["chill", "serve"]
