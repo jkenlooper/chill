@@ -31,7 +31,9 @@ BUILD_DEPENDENCIES
 
 COPY . ./
 RUN <<CHILL
+set -o errexit
 /usr/local/src/chill-venv/bin/pip install --disable-pip-version-check --compile .
+/usr/local/src/chill-venv/bin/python src/chill/tests.py
 ln -s /usr/local/src/chill-venv/bin/chill /usr/local/bin/chill
 export PATH=/usr/local/bin:$PATH
 /usr/local/bin/chill --version
@@ -75,7 +77,7 @@ VOLUME /home/chill/app
 # Default port for chill application is 5000
 EXPOSE 5000
 
-CMD ["chill", "--help"]
+CMD ["/usr/local/src/chill-venv/bin/python", "/usr/local/src/chill-venv/src/chill/tests.py"]
 
 ## Build and run example.
 # DOCKER_BUILDKIT=1 docker build -t chill:latest .

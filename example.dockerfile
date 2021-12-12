@@ -1,9 +1,8 @@
 # syntax=docker/dockerfile:1.3.0-labs
 
 FROM python:3.10.0-buster
+#FROM python:3.9.9-buster
 #FROM python:3.8.10-buster
-
-LABEL maintainer="Jake Hickenlooper jake@weboftomorrow.com"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -26,7 +25,7 @@ apt-get --yes install --no-install-suggests --no-install-recommends \
 
 python -m venv .
 /usr/src/chill-venv/bin/pip install --upgrade pip wheel
-/usr/src/chill-venv/bin/pip install --disable-pip-version-check -r requirements.txt
+/usr/src/chill-venv/bin/pip install --disable-pip-version-check --compile -r requirements.txt
 
 # Create an unprivileged user.
 adduser chill --disabled-login --disabled-password --gecos ""
@@ -36,6 +35,7 @@ INSTALL
 WORKDIR /usr/src/chill
 COPY . .
 RUN <<CHILL
+set -o errexit
 /usr/src/chill-venv/bin/pip install --disable-pip-version-check --compile .
 /usr/src/chill-venv/bin/python src/chill/tests.py
 mkdir -p /home/chill/app
@@ -51,7 +51,7 @@ EXAMPLE
 
 EXPOSE 5000
 
+VOLUME /var/lib/chill/sqlite3
 VOLUME /home/chill/app
 
-ENTRYPOINT ["/usr/src/chill-venv/bin/chill"]
-CMD ["serve"]
+CMD ["/usr/local/src/chill-venv/bin/python", "/usr/local/src/chill-venv/src/chill/tests.py"]
