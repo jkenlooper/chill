@@ -4,6 +4,7 @@ import json
 import sqlite3
 
 from flask import current_app
+from werkzeug.security import safe_join
 
 from chill.app import db
 
@@ -57,7 +58,7 @@ def serialize_sqlite3_results(results):
 
 
 def _fetch_sql_string(file_name):
-    with current_app.open_resource(os.path.join("queries", file_name), mode="r") as f:
+    with current_app.open_resource(safe_join("queries", file_name), mode="r") as f:
         return f.read()
 
 
@@ -72,7 +73,7 @@ def fetch_query_string(file_name):
     # folder = current_app.config.get('THEME_SQL_FOLDER', '')
     # file_path = os.path.join(os.path.abspath('.'), folder, file_name)
     folder = current_app.config.get("THEME_SQL_FOLDER")
-    file_path = os.path.join(folder, file_name)
+    file_path = safe_join(folder, file_name)
     if os.path.isfile(file_path):
         with open(file_path, "r") as f:
             return f.read()
