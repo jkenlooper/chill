@@ -216,9 +216,8 @@ def init():
     "Initialize the current directory with base starting files and database."
 
     if not os.path.exists("site.cfg"):
-        f = open("site.cfg", "w")
-        f.write(SITECFG)
-        f.close()
+        with open("site.cfg", "w") as f:
+            f.write(SITECFG)
 
     try:
         os.mkdir("queries")
@@ -232,21 +231,20 @@ def init():
 
     htmlfile = os.path.join("templates", "homepage.html")
     if not os.path.exists(htmlfile):
-        f = open(htmlfile, "w")
-        f.write(
+        with open(htmlfile, "w") as f:
+            f.write(
+                """
+    <!doctype html>
+    <html>
+        <head>
+            <title>Chill</title>
+        </head>
+        <body>
+            <p>{{ homepage_content }}</p>
+        </body>
+    </html>
             """
-<!doctype html>
-<html>
-    <head>
-        <title>Chill</title>
-    </head>
-    <body>
-        <p>{{ homepage_content }}</p>
-    </body>
-</html>
-        """
-        )
-        f.close()
+            )
 
     app = make_app(config="site.cfg", DEBUG=True)
     set_sqlite_journal_mode(app)
@@ -409,9 +407,8 @@ def freeze(config, urls_file=None):
                 if urls_file[0] == os.sep
                 else os.path.join(os.getcwd(), urls_file)
             )
-            f = open(urls_file, "r")
-            urls.extend([_f for _f in map(cleanup_url, f.readlines()) if _f])
-            f.close()
+            with open(urls_file, "r") as f:
+                urls.extend([_f for _f in map(cleanup_url, f.readlines()) if _f])
 
         cur.close()
         db.commit()

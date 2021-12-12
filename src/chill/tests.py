@@ -401,13 +401,12 @@ class SQL(ChillTestCase):
     def test_noderequest(self):
         """
         """
-        f = open(os.path.join(self.tmp_template_dir, "select_pagenames.sql"), "w")
-        f.write(
-            """
-          select 'yup' as test where :pagename in ('apple', 'pear', 'grapes');
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "select_pagenames.sql"), "w") as f:
+            f.write(
+                """
+              select 'yup' as test where :pagename in ('apple', 'pear', 'grapes');
+              """
+            )
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
@@ -432,13 +431,12 @@ class SQL(ChillTestCase):
     def test_noderequest_args(self):
         """
         """
-        f = open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w")
-        f.write(
-            """
-          select :llama as llama;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
+            f.write(
+                """
+              select :llama as llama;
+              """
+            )
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
@@ -463,13 +461,12 @@ class SQL(ChillTestCase):
     def test_noderequest_cookies(self):
         """
         """
-        f = open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w")
-        f.write(
-            """
-          select :llama as llama;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
+            f.write(
+                """
+              select :llama as llama;
+              """
+            )
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
@@ -659,13 +656,12 @@ class Query(ChillTestCase):
         """
         """
 
-        f = open(os.path.join(self.tmp_template_dir, "simple.sql"), "w")
-        f.write(
-            """
-          select 'yup' as a, 'pretty' as b, 'darn' as c, 'simple' as d;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "simple.sql"), "w") as f:
+            f.write(
+                """
+              select 'yup' as a, 'pretty' as b, 'darn' as c, 'simple' as d;
+              """
+            )
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
@@ -681,41 +677,36 @@ class Query(ChillTestCase):
                 assert "yup" == simple_json["a"]
 
     def test_rules(self):
-        f = open(os.path.join(self.tmp_template_dir, "insert_promoattr.sql"), "w")
-        f.write(
-            """
-          insert into PromoAttr (node_id, title, description) values (:node_id, :title, :description);
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "select_promoattr.sql"), "w")
-        f.write(
-            """
-          select * from PromoAttr where node_id = :node_id;
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "select_promos.sql"), "w")
-        f.write(
-            """
-          select id as node_id, * from Node where name = 'promo' order by id limit 2 offset 13;
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "select_mainmenu.sql"), "w")
-        f.write(
-            """
-          select name as link from Node where name like 'page_' order by link;
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "select_pageattr.sql"), "w")
-        f.write(
-            """
-          select 'example title' as title, 'a description of the page' as description;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "insert_promoattr.sql"), "w") as f:
+            f.write(
+                """
+              insert into PromoAttr (node_id, title, description) values (:node_id, :title, :description);
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_promoattr.sql"), "w") as f:
+            f.write(
+                """
+              select * from PromoAttr where node_id = :node_id;
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_promos.sql"), "w") as f:
+            f.write(
+                """
+              select id as node_id, * from Node where name = 'promo' order by id limit 2 offset 13;
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_mainmenu.sql"), "w") as f:
+            f.write(
+                """
+              select name as link from Node where name like 'page_' order by link;
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_pageattr.sql"), "w") as f:
+            f.write(
+                """
+              select 'example title' as title, 'a description of the page' as description;
+              """
+            )
 
         expected = {
             "mainmenu": [{"link": "page1"}, {"link": "page2"}, {"link": "page3"}],
@@ -804,42 +795,39 @@ class Template(ChillTestCase):
     def test_some_template(self):
         """
         """
-        f = open(os.path.join(self.tmp_template_dir, "base.html"), "w")
-        f.write(
-            """
-          <!doctype html>
-          <html><head><title>test</title></head>
-          <body>
-          <div>{% block content %}{% endblock %}</div>
-          </body>
-          </html>
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "base.html"), "w") as f:
+            f.write(
+                """
+              <!doctype html>
+              <html><head><title>test</title></head>
+              <body>
+              <div>{% block content %}{% endblock %}</div>
+              </body>
+              </html>
+              """
+            )
 
-        f = open(os.path.join(self.tmp_template_dir, "template_a.html"), "w")
-        f.write(
-            """
-          {% extends "base.html" %}
-          {% block content %}
-          <h1>template_a</h1>
-          {{ value }}
-          {% endblock %}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "template_a.html"), "w") as f:
+            f.write(
+                """
+              {% extends "base.html" %}
+              {% block content %}
+              <h1>template_a</h1>
+              {{ value }}
+              {% endblock %}
+              """
+            )
 
-        f = open(os.path.join(self.tmp_template_dir, "template_b.html"), "w")
-        f.write(
-            """
-          {% extends "base.html" %}
-          {% block content %}
-          <h1>template_b</h1>
-          {{ value }}
-          {% endblock %}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "template_b.html"), "w") as f:
+            f.write(
+                """
+              {% extends "base.html" %}
+              {% block content %}
+              <h1>template_b</h1>
+              {{ value }}
+              {% endblock %}
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -878,22 +866,20 @@ class Template(ChillTestCase):
     def test_some_unicode_as_value_in_template(self):
         """
         """
-        f = open(os.path.join(self.tmp_template_dir, "template_unicode.html"), "w")
-        f.write(
-            """
-          <h1>template_unicode</h1>
-          {{ isit|safe }}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "template_unicode.html"), "w") as f:
+            f.write(
+                """
+              <h1>template_unicode</h1>
+              {{ isit|safe }}
+              """
+            )
 
-        f = open(os.path.join(self.tmp_template_dir, "isit.html"), "w")
-        f.write(
-            """
-            <div>template with a unicode {{ value }}</div>
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "isit.html"), "w") as f:
+            f.write(
+                """
+                <div>template with a unicode {{ value }}</div>
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -914,26 +900,24 @@ class Template(ChillTestCase):
     def test_dict(self):
         """
         """
-        f = open(os.path.join(self.tmp_template_dir, "llama.html"), "w")
-        f.write(
-            """
-          <!doctype html>
-          <html><head><title>llama</title></head>
-          <body>
-          <h1>template for llama_name</h1>
-          {{ llama_name }}
-          </body>
-          </html>
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w")
-        f.write(
-            """
-          select :llama_name as llama_name;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "llama.html"), "w") as f:
+            f.write(
+                """
+              <!doctype html>
+              <html><head><title>llama</title></head>
+              <body>
+              <h1>template for llama_name</h1>
+              {{ llama_name }}
+              </body>
+              </html>
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
+            f.write(
+                """
+              select :llama_name as llama_name;
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -953,13 +937,12 @@ class Template(ChillTestCase):
         """
         Check that the chill_now timestamp is available for templates to use
         """
-        f = open(os.path.join(self.tmp_template_dir, "chill_now.html"), "w")
-        f.write(
-            """
-          {% if chill_now %}timestamp: {{ chill_now }}{% endif %}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "chill_now.html"), "w") as f:
+            f.write(
+                """
+              {% if chill_now %}timestamp: {{ chill_now }}{% endif %}
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -980,13 +963,12 @@ class Filters(ChillTestCase):
         The custom 'datetime' jinja2 filter converts a timestamp to a formatted
         date string.
         """
-        f = open(os.path.join(self.tmp_template_dir, "datetime.html"), "w")
-        f.write(
-            """
-          {% set timestamp=1576122368 %}date and time:  {{ timestamp|datetime('y-MM-dd') }}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "datetime.html"), "w") as f:
+            f.write(
+                """
+              {% set timestamp=1576122368 %}date and time:  {{ timestamp|datetime('y-MM-dd') }}
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1004,13 +986,12 @@ class Filters(ChillTestCase):
         """
         The custom 'timedelta' jinja2 filter wraps around the humanize naturaltime method.
         """
-        f = open(os.path.join(self.tmp_template_dir, "timedelta.html"), "w")
-        f.write(
-            """
-          {% set timesince=847 %}time since:  {{ timesince|timedelta }}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "timedelta.html"), "w") as f:
+            f.write(
+                """
+              {% set timesince=847 %}time since:  {{ timesince|timedelta }}
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1030,24 +1011,22 @@ class Documents(ChillTestCase):
         """
         The custom 'readfile' jinja2 filter reads the file from the DOCUMENT_FOLDER.
         """
-        f = open(os.path.join(self.tmp_template_dir, "imasimplefile.txt"), "w")
-        f.write(
-            """
-          Hello, this is just a file.
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "imasimplefile.txt"), "w") as f:
+            f.write(
+                """
+              Hello, this is just a file.
+              """
+            )
 
-        f = open(os.path.join(self.tmp_template_dir, "template.html"), "w")
-        f.write(
-            """
-          <h1>template</h1>
-          {{ simplefilename }}
-          <br>
-          {{ simplefilename|readfile }}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "template.html"), "w") as f:
+            f.write(
+                """
+              <h1>template</h1>
+              {{ simplefilename }}
+              <br>
+              {{ simplefilename|readfile }}
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1065,27 +1044,23 @@ class Documents(ChillTestCase):
         """
         The custom 'readfile' jinja2 filter reads the file with unicode characters from the DOCUMENT_FOLDER.
         """
-        f = open(
-            os.path.join(self.tmp_template_dir, "imasimplefilewithunicode.txt"), "w"
-        )
-        f.write(
-            """
-          Hello, this is an Àрpĺè.
-          [chill route /cat/picture/ ]
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "imasimplefilewithunicode.txt"), "w") as f:
+            f.write(
+                """
+              Hello, this is an Àрpĺè.
+              [chill route /cat/picture/ ]
+              """
+            )
 
-        f = open(os.path.join(self.tmp_template_dir, "template.html"), "w")
-        f.write(
-            """
-          <h1>template</h1>
-          {{ simplefilename }}
-          <br>
-          {{ simplefilename|readfile|safe|shortcodes }}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "template.html"), "w") as f:
+            f.write(
+                """
+              <h1>template</h1>
+              {{ simplefilename }}
+              <br>
+              {{ simplefilename|readfile|safe|shortcodes }}
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1172,17 +1147,15 @@ A <a href="http://example.com">link</a>.</p>
 </ol>
 <p>The rain---not the reign---in
 Spain.</p>"""
-        f = open(os.path.join(self.tmp_template_dir, "imasimplefile.md"), "w")
-        f.write(md)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "imasimplefile.md"), "w") as f:
+            f.write(md)
 
-        f = open(os.path.join(self.tmp_template_dir, "template.html"), "w")
-        f.write(
-            """
-          {{ simplefilename|readfile|markdown }}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "template.html"), "w") as f:
+            f.write(
+                """
+              {{ simplefilename|readfile|markdown }}
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1203,20 +1176,19 @@ class ShortcodeRoute(ChillTestCase):
     def test_route(self):
         "Expand the route shortcode"
 
-        f = open(os.path.join(self.tmp_template_dir, "simple.html"), "w")
-        f.write(
-            """
-          <!doctype html>
-          <html><head><title>test</title></head>
-          <body>
-          <div>
-          {{ cat|shortcodes }}
-          </div>
-          </body>
-          </html>
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "simple.html"), "w") as f:
+            f.write(
+                """
+              <!doctype html>
+              <html><head><title>test</title></head>
+              <body>
+              <div>
+              {{ cat|shortcodes }}
+              </div>
+              </body>
+              </html>
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1249,20 +1221,19 @@ class ShortcodeRoute(ChillTestCase):
     def test_route_with_unicode(self):
         "Expand the route shortcode with unicode contents"
 
-        f = open(os.path.join(self.tmp_template_dir, "simple.html"), "w")
-        f.write(
-            """
-          <!doctype html>
-          <html><head><title>test</title></head>
-          <body>
-          <div>
-          {{ cat|shortcodes }}
-          </div>
-          </body>
-          </html>
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "simple.html"), "w") as f:
+            f.write(
+                """
+              <!doctype html>
+              <html><head><title>test</title></head>
+              <body>
+              <div>
+              {{ cat|shortcodes }}
+              </div>
+              </body>
+              </html>
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1298,20 +1269,19 @@ class ShortcodePageURI(ChillTestCase):
     def test_page_uri(self):
         "Expand the page_uri shortcode"
 
-        f = open(os.path.join(self.tmp_template_dir, "simple.html"), "w")
-        f.write(
-            """
-          <!doctype html>
-          <html><head><title>test</title></head>
-          <body>
-          <div>
-          {{ cat|shortcodes }}
-          </div>
-          </body>
-          </html>
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "simple.html"), "w") as f:
+            f.write(
+                """
+              <!doctype html>
+              <html><head><title>test</title></head>
+              <body>
+              <div>
+              {{ cat|shortcodes }}
+              </div>
+              </body>
+              </html>
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1347,35 +1317,31 @@ class PostMethod(ChillTestCase):
     def test_a(self):
         """
         """
-        f = open(os.path.join(self.tmp_template_dir, "insert_llama.sql"), "w")
-        f.write(
-            """
-          insert into Llama (llama_name, location, description) values (:llama_name, :location, :description);
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w")
-        f.write(
-            """
-          select * from Llama
-          where llama_name = :llama_name;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "insert_llama.sql"), "w") as f:
+            f.write(
+                """
+              insert into Llama (llama_name, location, description) values (:llama_name, :location, :description);
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
+            f.write(
+                """
+              select * from Llama
+              where llama_name = :llama_name;
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
                 cur = db.cursor()
-                cur.execute(
-                        """
+                cur.execute("""
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
-                """
-                )
+                """)
                 cur.close()
                 db.commit()
 
@@ -1424,21 +1390,19 @@ class PutMethod(ChillTestCase):
     def test_a(self):
         """
         """
-        f = open(os.path.join(self.tmp_template_dir, "insert_llama.sql"), "w")
-        f.write(
-            """
-          insert into Llama (llama_name, location, description) values (:llama_name, :location, :description);
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w")
-        f.write(
-            """
-          select * from Llama
-          where llama_name = :llama_name;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "insert_llama.sql"), "w") as f:
+            f.write(
+                """
+              insert into Llama (llama_name, location, description) values (:llama_name, :location, :description);
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
+            f.write(
+                """
+              select * from Llama
+              where llama_name = :llama_name;
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1491,41 +1455,35 @@ class PatchMethod(ChillTestCase):
     def test_a(self):
         """
         """
-        f = open(os.path.join(self.tmp_template_dir, "update_llama.sql"), "w")
-        f.write(
-            """
-          update Llama set location = :location, description = :description where llama_name = :llama_name;
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w")
-        f.write(
-            """
-          select * from Llama
-          where llama_name = :llama_name;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "update_llama.sql"), "w") as f:
+            f.write(
+                """
+              update Llama set location = :location, description = :description where llama_name = :llama_name;
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
+            f.write(
+                """
+              select * from Llama
+              where llama_name = :llama_name;
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
                 cur = db.cursor()
-                cur.execute(
-                        """
+                cur.execute("""
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
-                """
-                )
+                """)
 
-                cur.execute(
-                        """
+                cur.execute("""
                   insert into Llama (llama_name) values ('Pocky');
-                """
-                )
+                """)
                 cur.close()
                 db.commit()
 
@@ -1564,21 +1522,19 @@ class DeleteMethod(ChillTestCase):
     def test_a(self):
         """
         """
-        f = open(os.path.join(self.tmp_template_dir, "delete_llama.sql"), "w")
-        f.write(
-            """
-          Delete from Llama where llama_name = :llama_name;
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w")
-        f.write(
-            """
-          select * from Llama
-          where llama_name = :llama_name;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "delete_llama.sql"), "w") as f:
+            f.write(
+                """
+              Delete from Llama where llama_name = :llama_name;
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
+            f.write(
+                """
+              select * from Llama
+              where llama_name = :llama_name;
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1663,9 +1619,8 @@ value: "simple string value"
             "ChillNode(name='simple_value_at_route', value='simple string value', template=None, route='/simple/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1701,9 +1656,8 @@ value: "another string value"
             "ChillNode(name='another_value_at_route', value='another string value', template=None, route='/another/')",
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1739,13 +1693,11 @@ value: get-total-count.sql
             "ChillNode(name='query_value_at_route', value='get-total-count.sql', template=None, route='/total-count/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
-        f = open(os.path.join(self.tmp_template_dir, "get-total-count.sql"), "w")
-        f.write("""select 26 as count;""")
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "get-total-count.sql"), "w") as f:
+            f.write("""select 26 as count;""")
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1785,25 +1737,22 @@ value: select_llama.sql
             "ChillNode(name='llamas', value='select_llama.sql', template=None, route='/api/llamas/name/<llama_name>/')",
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
-        f = open(os.path.join(self.tmp_template_dir, "insert_llama.sql"), "w")
-        f.write(
-            """
-          insert into Llama (llama_name, location, description) values (:llama_name, :location, :description);
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w")
-        f.write(
-            """
-          select * from Llama
-          where llama_name = :llama_name;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "insert_llama.sql"), "w") as f:
+            f.write(
+                """
+              insert into Llama (llama_name, location, description) values (:llama_name, :location, :description);
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
+            f.write(
+                """
+              select * from Llama
+              where llama_name = :llama_name;
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1867,18 +1816,16 @@ value: "simple"
             "ChillNode(name='simple_value_at_route', value='simple', template='test.html', route='/simple-template/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
-        f = open(os.path.join(self.tmp_template_dir, "test.html"), "w")
-        f.write(
-            """
-          <h1>test template</h1>
-          {{ value }}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test.html"), "w") as f:
+            f.write(
+                """
+              <h1>test template</h1>
+              {{ value }}
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1910,9 +1857,8 @@ value:
             "ChillNode(name='page', value={'content': 'hello'}, template=None, route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1944,9 +1890,8 @@ value:
             "ChillNode(name='page', value={'content': 'hello'}, template=None, route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -1975,9 +1920,8 @@ route: /
 value: Yes
         """
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2005,9 +1949,8 @@ value:
     content: yes
         """
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2036,9 +1979,8 @@ value:
     - no
         """
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2065,9 +2007,8 @@ value:
         chill_value: Yes
         """
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2095,9 +2036,8 @@ value: None
             "ChillNode(name='page', value='None', template=None, route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2129,9 +2069,8 @@ value:
             "ChillNode(name='page', value={'content': 'hello', 'title': 'a title here'}, template=None, route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2168,9 +2107,8 @@ value:
             "ChillNode(name='page', value=[{'value': 'a is for aardvark'}, {'value': 'b is for bat'}, {'value': 'c is for cat'}, {'value': '1234'}, {'value': 'Yes'}, {'value': 'No'}], template=None, route='/list/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2214,9 +2152,8 @@ value:
             "ChillNode(name='page', value=[{'value': 'a is for aardvark'}, {'value': {'page': {'bottom': 'No', 'menu': [{'menu': 'one'}, {'menu': 'two'}], 'top': 'Yes'}}}, {'value': 'c is for cat'}, {'value': '1234'}], template=None, route='/list/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2270,9 +2207,8 @@ value:
             "ChillNode(name='page', value={'page': {'content': 'an-example-doc.html', 'description': 'Description would go here and can be multiple lines.\\n', 'menu': {'footer': {'one': 'kitten', 'three': 'tadpole', 'two': 'puppy'}, 'one': 'cat', 'two': 'dog'}, 'menu2': {'footer': {'one': 'kitten', 'three': 'tadpole', 'two': 'puppy'}, 'one': 'cat', 'two': 'dog'}, 'title': 'a title here'}}, template=None, route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2312,25 +2248,21 @@ value:
             "ChillNode(name='page', value={'best': 'get-best-animal.sql', 'simple': 'simple.sql', 'total_count': 'get-total-count.sql'}, template=None, route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
-        f = open(os.path.join(self.tmp_template_dir, "get-total-count.sql"), "w")
-        f.write("""select 26 as value;""")
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "get-total-count.sql"), "w") as f:
+            f.write("""select 26 as value;""")
 
-        f = open(os.path.join(self.tmp_template_dir, "get-best-animal.sql"), "w")
-        f.write("""select 'kangaroo' as value;""")
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "get-best-animal.sql"), "w") as f:
+            f.write("""select 'kangaroo' as value;""")
 
-        f = open(os.path.join(self.tmp_template_dir, "simple.sql"), "w")
-        f.write(
-            """
-          select 'yup' as a, 'pretty' as b, 'darn' as c, 'simple' as d;
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "simple.sql"), "w") as f:
+            f.write(
+                """
+              select 'yup' as a, 'pretty' as b, 'darn' as c, 'simple' as d;
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2377,17 +2309,14 @@ value:
             "ChillNode(name='page', value={'page': {'description': 'Description would go here and can be multiple lines.\\n', 'menu': {'footer': {'best': 'get-best-animal.sql', 'one': 'kitten', 'three': 'tadpole', 'two': 'puppy'}, 'one': 'cat', 'two': 'dog'}, 'title': 'a title here', 'total_count': 'get-total-count.sql'}}, template=None, route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
-        f = open(os.path.join(self.tmp_template_dir, "get-total-count.sql"), "w")
-        f.write("""select 26 as value;""")
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "get-total-count.sql"), "w") as f:
+            f.write("""select 26 as value;""")
 
-        f = open(os.path.join(self.tmp_template_dir, "get-best-animal.sql"), "w")
-        f.write("""select 'kangaroo' as value;""")
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "get-best-animal.sql"), "w") as f:
+            f.write("""select 'kangaroo' as value;""")
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2428,13 +2357,11 @@ value: get-list-of-animals.sql
             "ChillNode(name='page', value='get-list-of-animals.sql', template=None, route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
-        f = open(os.path.join(self.tmp_template_dir, "get-list-of-animals.sql"), "w")
-        f.write("""select name, description from Animal;""")
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "get-list-of-animals.sql"), "w") as f:
+            f.write("""select name, description from Animal;""")
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2491,18 +2418,16 @@ value:
             "ChillNode(name='page', value={'content': {'chill_template': 'hello.html', 'chill_value': 'hello'}}, template=None, route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
-        f = open(os.path.join(self.tmp_template_dir, "hello.html"), "w")
-        f.write(
-            """
-          <h1>greeting template</h1>
-          {{ value }}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "hello.html"), "w") as f:
+            f.write(
+                """
+              <h1>greeting template</h1>
+              {{ value }}
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2534,17 +2459,15 @@ value:
             "ChillNode(name='page', value={'content': {'chill_template': 'hello.html'}}, template=None, route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
-        f = open(os.path.join(self.tmp_template_dir, "hello.html"), "w")
-        f.write(
-            """
-          <h1>greeting template</h1>
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "hello.html"), "w") as f:
+            f.write(
+                """
+              <h1>greeting template</h1>
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
@@ -2589,51 +2512,45 @@ value:
             "ChillNode(name='page', value={'content': {'chill_template': 'hello.html', 'chill_value': [{'content': {'item': {'chill_template': 'one.html', 'chill_value': 'one'}}}, {'content': {'item': {'chill_template': 'two.html', 'chill_value': 'two'}}}, {'content': {'item': {'chill_template': 'three.html', 'chill_value': [{'item': {'subitem': 'thr'}}, {'item': {'subitem': 'ee'}}]}}}]}}, template='page.html', route='/')"
         ]
 
-        f = open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w")
-        f.write(yaml_content)
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
+            f.write(yaml_content)
 
-        f = open(os.path.join(self.tmp_template_dir, "page.html"), "w")
-        f.write(
-            """
-          page
-          {{ content|safe }}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "page.html"), "w") as f:
+            f.write(
+                """
+              page
+              {{ content|safe }}
+              """
+            )
 
-        f = open(os.path.join(self.tmp_template_dir, "hello.html"), "w")
-        f.write(
-            """
-          <h1>greeting template</h1>
-          {% for item in value %}
-          {{ item.content.item|safe }}
-          {% endfor %}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "hello.html"), "w") as f:
+            f.write(
+                """
+              <h1>greeting template</h1>
+              {% for item in value %}
+              {{ item.content.item|safe }}
+              {% endfor %}
+              """
+            )
 
-        f = open(os.path.join(self.tmp_template_dir, "one.html"), "w")
-        f.write(
-            """
-            <span>First</span> {{ value }}
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "two.html"), "w")
-        f.write(
-            """
-            <span>Second</span> {{ value }}
-          """
-        )
-        f.close()
-        f = open(os.path.join(self.tmp_template_dir, "three.html"), "w")
-        f.write(
-            """
-            <span>Third</span> {% for item in value -%} {{ item.item.subitem }}{%- endfor %}
-          """
-        )
-        f.close()
+        with open(os.path.join(self.tmp_template_dir, "one.html"), "w") as f:
+            f.write(
+                """
+                <span>First</span> {{ value }}
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "two.html"), "w") as f:
+            f.write(
+                """
+                <span>Second</span> {{ value }}
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "three.html"), "w") as f:
+            f.write(
+                """
+                <span>Third</span> {% for item in value -%} {{ item.item.subitem }}{%- endfor %}
+              """
+            )
 
         with self.app.app_context():
             with self.app.test_client() as c:
