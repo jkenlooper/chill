@@ -26,7 +26,8 @@ from chill.yaml_chill_node import load_yaml, dump_yaml, ChillNode
 
 
 class ChillTestCase(unittest.TestCase):
-    database_readonly=False
+    database_readonly = False
+
     def setUp(self):
         self.debug = False
         self.tmp_template_dir = tempfile.mkdtemp()
@@ -72,7 +73,7 @@ class SimpleCheck(ChillTestCase):
                 cur = db.cursor()
                 cur.execute(
                     """insert into Node (name, value) values (:name, :value)""",
-                    {"name": "bill", "value": "?"}
+                    {"name": "bill", "value": "?"},
                 )
                 cur.close()
                 db.commit()
@@ -96,11 +97,13 @@ class SimpleCheckReadonly(ChillTestCase):
                     cur = db_ro.cursor()
                     cur.execute(
                         """insert into Node (name, value) values (:name, :value)""",
-                        {"name": "bill", "value": "?"}
+                        {"name": "bill", "value": "?"},
                     )
                     cur.close()
                     db_ro.commit()
-                self.assertRegex(str(err.exception), 'attempt to write a readonly database')
+                self.assertRegex(
+                    str(err.exception), "attempt to write a readonly database"
+                )
 
 
 class Route(ChillTestCase):
@@ -177,8 +180,8 @@ class Route(ChillTestCase):
                 rv = c.get("/1/", follow_redirects=True)
                 assert b"hello" == rv.data
                 # No longer supports this
-                #rv = c.get("////1/", follow_redirects=True)
-                #assert b"hello" == rv.data
+                # rv = c.get("////1/", follow_redirects=True)
+                # assert b"hello" == rv.data
                 rv = c.get("/1/index.html", follow_redirects=True)
                 assert b"hello" == rv.data
                 rv = c.get("/1/index.html/not", follow_redirects=True)
@@ -288,12 +291,12 @@ class SQL(ChillTestCase):
             init_db()
             cur = db.cursor()
             result = cur.execute(
-                fetch_query_string("insert_node.sql"), {"name":"a", "value":"apple"}
+                fetch_query_string("insert_node.sql"), {"name": "a", "value": "apple"}
             )
             a = result.lastrowid
 
             result = cur.execute(
-                "select * from Node where id = :id;", {"id":a}
+                "select * from Node where id = :id;", {"id": a}
             ).fetchall()
             cur.close()
             db.commit()
@@ -311,12 +314,12 @@ class SQL(ChillTestCase):
             init_db()
             cur = db.cursor()
             result = cur.execute(
-                fetch_query_string("insert_node.sql"), {"name":"a", "value":u"Àрpĺè"}
+                fetch_query_string("insert_node.sql"), {"name": "a", "value": u"Àрpĺè"}
             )
             a = result.lastrowid
 
             result = cur.execute(
-                "select * from Node where id = :id;", {"id":a}
+                "select * from Node where id = :id;", {"id": a}
             ).fetchall()
             cur.close()
             db.commit()
@@ -345,7 +348,7 @@ class SQL(ChillTestCase):
 
             cur = db.cursor()
             result = cur.execute(
-                fetch_query_string("select_link_node_from_node.sql"), {"node_id":a_id}
+                fetch_query_string("select_link_node_from_node.sql"), {"node_id": a_id}
             )
             result = [x["node_id"] for x in result]
             assert c_id in result
@@ -353,7 +356,7 @@ class SQL(ChillTestCase):
             assert a_id not in result
 
             result = cur.execute(
-                fetch_query_string("select_link_node_from_node.sql"), {"node_id":b_id}
+                fetch_query_string("select_link_node_from_node.sql"), {"node_id": b_id}
             )
             result = [x["node_id"] for x in result]
             assert c_id in result
@@ -363,8 +366,7 @@ class SQL(ChillTestCase):
             db.commit()
 
     def test_value(self):
-        """
-        """
+        """ """
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
@@ -381,8 +383,7 @@ class SQL(ChillTestCase):
                 assert b"apple" in rv.data
 
     def test_unicode_value(self):
-        """
-        """
+        """ """
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
@@ -399,9 +400,10 @@ class SQL(ChillTestCase):
                 assert bytes(b"\u00c0\u0440p\u013a\u00e8") in rv.data
 
     def test_noderequest(self):
-        """
-        """
-        with open(os.path.join(self.tmp_template_dir, "select_pagenames.sql"), "w") as f:
+        """ """
+        with open(
+            os.path.join(self.tmp_template_dir, "select_pagenames.sql"), "w"
+        ) as f:
             f.write(
                 """
               select 'yup' as test where :pagename in ('apple', 'pear', 'grapes');
@@ -429,8 +431,7 @@ class SQL(ChillTestCase):
                 assert b"yup" in rv.data
 
     def test_noderequest_args(self):
-        """
-        """
+        """ """
         with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
             f.write(
                 """
@@ -459,8 +460,7 @@ class SQL(ChillTestCase):
                 assert b"chuck" not in rv.data
 
     def test_noderequest_cookies(self):
-        """
-        """
+        """ """
         with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
             f.write(
                 """
@@ -500,7 +500,7 @@ class SQL(ChillTestCase):
 
             cur = db.cursor()
             result = cur.execute(
-                fetch_query_string("select_template_from_node.sql"), {"node_id":a}
+                fetch_query_string("select_template_from_node.sql"), {"node_id": a}
             )
             result = [x["name"] for x in result]
             assert len(result) == 1
@@ -508,7 +508,7 @@ class SQL(ChillTestCase):
 
             # another node that uses the same template
             result = cur.execute(
-                fetch_query_string("select_template_from_node.sql"), {"node_id":aa}
+                fetch_query_string("select_template_from_node.sql"), {"node_id": aa}
             )
             result = [x["name"] for x in result]
             assert len(result) == 1
@@ -518,7 +518,7 @@ class SQL(ChillTestCase):
             add_template_for_node("template_over_a.html", a)
 
             result = cur.execute(
-                fetch_query_string("select_template_from_node.sql"), {"node_id":a}
+                fetch_query_string("select_template_from_node.sql"), {"node_id": a}
             )
             result = [x["name"] for x in result]
             assert len(result) == 1
@@ -526,7 +526,7 @@ class SQL(ChillTestCase):
 
             # this one still uses the other template
             result = cur.execute(
-                fetch_query_string("select_template_from_node.sql"), {"node_id":aa}
+                fetch_query_string("select_template_from_node.sql"), {"node_id": aa}
             )
             result = [x["name"] for x in result]
             assert len(result) == 1
@@ -543,13 +543,13 @@ class SQL(ChillTestCase):
             init_db()
             cur = db.cursor()
             result = cur.execute(
-                fetch_query_string("insert_node.sql"), {"name":"a", "value":"apple"}
+                fetch_query_string("insert_node.sql"), {"name": "a", "value": "apple"}
             )
             a = result.lastrowid
             db.commit()
 
             result = cur.execute(
-                fetch_query_string("select_node_from_id.sql"), {"node_id":a}
+                fetch_query_string("select_node_from_id.sql"), {"node_id": a}
             ).fetchall()
             db.commit()
             assert len(result) == 1
@@ -562,7 +562,7 @@ class SQL(ChillTestCase):
             delete_node(node_id=a)
 
             result = cur.execute(
-                fetch_query_string("select_node_from_id.sql"), {"node_id":a}
+                fetch_query_string("select_node_from_id.sql"), {"node_id": a}
             ).fetchall()
             assert len(result) == 0
             cur.close()
@@ -587,7 +587,7 @@ class SQL(ChillTestCase):
 
             cur = db.cursor()
             result = cur.execute(
-                fetch_query_string("select_link_node_from_node.sql"), {"node_id":a_id}
+                fetch_query_string("select_link_node_from_node.sql"), {"node_id": a_id}
             )
             result = [x["node_id"] for x in result]
             assert c_id in result
@@ -595,7 +595,7 @@ class SQL(ChillTestCase):
             assert a_id not in result
 
             result = cur.execute(
-                fetch_query_string("select_link_node_from_node.sql"), {"node_id":b_id}
+                fetch_query_string("select_link_node_from_node.sql"), {"node_id": b_id}
             )
             result = [x["node_id"] for x in result]
             assert c_id in result
@@ -603,22 +603,22 @@ class SQL(ChillTestCase):
             assert a_id not in result
 
             # now delete (should use the 'on delete cascade' sql bit)
-            cur.execute(fetch_query_string("delete_node_for_id.sql"), {"node_id":a_id})
+            cur.execute(fetch_query_string("delete_node_for_id.sql"), {"node_id": a_id})
             db.commit()
 
             result = cur.execute(
-                fetch_query_string("select_node_from_id.sql"), {"node_id":a_id}
+                fetch_query_string("select_node_from_id.sql"), {"node_id": a_id}
             ).fetchall()
             assert len(result) == 0
 
             result = cur.execute(
-                fetch_query_string("select_link_node_from_node.sql"), {"node_id":a_id}
+                fetch_query_string("select_link_node_from_node.sql"), {"node_id": a_id}
             ).fetchall()
             assert len(result) == 0
 
             result = cur.execute(
                 fetch_query_string("select_node_node_from_node_id.sql"),
-                {"node_id":a_id}
+                {"node_id": a_id},
             ).fetchall()
 
             assert len(result) == 0
@@ -638,8 +638,7 @@ class SQL(ChillTestCase):
 
 class Query(ChillTestCase):
     def test_empty(self):
-        """
-        """
+        """ """
         with self.app.app_context():
             with self.app.test_client() as c:
                 init_db()
@@ -653,8 +652,7 @@ class Query(ChillTestCase):
                 assert 404 == rv.status_code
 
     def test_simple(self):
-        """
-        """
+        """ """
 
         with open(os.path.join(self.tmp_template_dir, "simple.sql"), "w") as f:
             f.write(
@@ -677,13 +675,17 @@ class Query(ChillTestCase):
                 assert "yup" == simple_json["a"]
 
     def test_rules(self):
-        with open(os.path.join(self.tmp_template_dir, "insert_promoattr.sql"), "w") as f:
+        with open(
+            os.path.join(self.tmp_template_dir, "insert_promoattr.sql"), "w"
+        ) as f:
             f.write(
                 """
               insert into PromoAttr (node_id, title, description) values (:node_id, :title, :description);
               """
             )
-        with open(os.path.join(self.tmp_template_dir, "select_promoattr.sql"), "w") as f:
+        with open(
+            os.path.join(self.tmp_template_dir, "select_promoattr.sql"), "w"
+        ) as f:
             f.write(
                 """
               select * from PromoAttr where node_id = :node_id;
@@ -736,7 +738,7 @@ class Query(ChillTestCase):
                 init_db()
                 cur = db.cursor()
                 cur.execute(
-                        """
+                    """
                 create table PromoAttr (
                   node_id integer,
                   abc integer,
@@ -773,7 +775,7 @@ class Query(ChillTestCase):
                             "node_id": a_id,
                             "title": "promo %i" % a,
                             "description": "a" * a,
-                        }
+                        },
                     )
                     db.commit()
                     # wire the promo to it's attr
@@ -793,8 +795,7 @@ class Query(ChillTestCase):
 
 class Template(ChillTestCase):
     def test_some_template(self):
-        """
-        """
+        """ """
         with open(os.path.join(self.tmp_template_dir, "base.html"), "w") as f:
             f.write(
                 """
@@ -864,9 +865,10 @@ class Template(ChillTestCase):
                 assert b"template_b" in rv.data
 
     def test_some_unicode_as_value_in_template(self):
-        """
-        """
-        with open(os.path.join(self.tmp_template_dir, "template_unicode.html"), "w") as f:
+        """ """
+        with open(
+            os.path.join(self.tmp_template_dir, "template_unicode.html"), "w"
+        ) as f:
             f.write(
                 """
               <h1>template_unicode</h1>
@@ -898,8 +900,7 @@ class Template(ChillTestCase):
                 assert u"Àрpĺè" in rv.data.decode("utf-8")
 
     def test_dict(self):
-        """
-        """
+        """ """
         with open(os.path.join(self.tmp_template_dir, "llama.html"), "w") as f:
             f.write(
                 """
@@ -1044,7 +1045,9 @@ class Documents(ChillTestCase):
         """
         The custom 'readfile' jinja2 filter reads the file with unicode characters from the DOCUMENT_FOLDER.
         """
-        with open(os.path.join(self.tmp_template_dir, "imasimplefilewithunicode.txt"), "w") as f:
+        with open(
+            os.path.join(self.tmp_template_dir, "imasimplefilewithunicode.txt"), "w"
+        ) as f:
             f.write(
                 """
               Hello, this is an Àрpĺè.
@@ -1315,8 +1318,7 @@ class ShortcodePageURI(ChillTestCase):
 
 class PostMethod(ChillTestCase):
     def test_a(self):
-        """
-        """
+        """ """
         with open(os.path.join(self.tmp_template_dir, "insert_llama.sql"), "w") as f:
             f.write(
                 """
@@ -1335,13 +1337,15 @@ class PostMethod(ChillTestCase):
             with self.app.test_client() as c:
                 init_db()
                 cur = db.cursor()
-                cur.execute("""
+                cur.execute(
+                    """
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
-                """)
+                """
+                )
                 cur.close()
                 db.commit()
 
@@ -1388,8 +1392,7 @@ class PostMethod(ChillTestCase):
 
 class PutMethod(ChillTestCase):
     def test_a(self):
-        """
-        """
+        """ """
         with open(os.path.join(self.tmp_template_dir, "insert_llama.sql"), "w") as f:
             f.write(
                 """
@@ -1409,7 +1412,7 @@ class PutMethod(ChillTestCase):
                 init_db()
                 cur = db.cursor()
                 cur.execute(
-                        """
+                    """
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
@@ -1453,8 +1456,7 @@ class PutMethod(ChillTestCase):
 
 class PatchMethod(ChillTestCase):
     def test_a(self):
-        """
-        """
+        """ """
         with open(os.path.join(self.tmp_template_dir, "update_llama.sql"), "w") as f:
             f.write(
                 """
@@ -1473,17 +1475,21 @@ class PatchMethod(ChillTestCase):
             with self.app.test_client() as c:
                 init_db()
                 cur = db.cursor()
-                cur.execute("""
+                cur.execute(
+                    """
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
                   description text
                   );
-                """)
+                """
+                )
 
-                cur.execute("""
+                cur.execute(
+                    """
                   insert into Llama (llama_name) values ('Pocky');
-                """)
+                """
+                )
                 cur.close()
                 db.commit()
 
@@ -1520,8 +1526,7 @@ class PatchMethod(ChillTestCase):
 
 class DeleteMethod(ChillTestCase):
     def test_a(self):
-        """
-        """
+        """ """
         with open(os.path.join(self.tmp_template_dir, "delete_llama.sql"), "w") as f:
             f.write(
                 """
@@ -1541,7 +1546,7 @@ class DeleteMethod(ChillTestCase):
                 init_db()
                 cur = db.cursor()
                 cur.execute(
-                        """
+                    """
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
@@ -1551,7 +1556,7 @@ class DeleteMethod(ChillTestCase):
                 )
 
                 cur.execute(
-                        """
+                    """
                   insert into Llama (llama_name, location, description) values ('Docky', 'somewhere', 'damaged');
                 """
                 )
@@ -1759,7 +1764,7 @@ value: select_llama.sql
                 init_db()
                 cur = db.cursor()
                 cur.execute(
-                        """
+                    """
                 create table Llama (
                   llama_name varchar(255),
                   location varchar(255),
@@ -2360,7 +2365,9 @@ value: get-list-of-animals.sql
         with open(os.path.join(self.tmp_template_dir, "test-data.yaml"), "w") as f:
             f.write(yaml_content)
 
-        with open(os.path.join(self.tmp_template_dir, "get-list-of-animals.sql"), "w") as f:
+        with open(
+            os.path.join(self.tmp_template_dir, "get-list-of-animals.sql"), "w"
+        ) as f:
             f.write("""select name, description from Animal;""")
 
         with self.app.app_context():
@@ -2369,7 +2376,7 @@ value: get-list-of-animals.sql
 
                 cur = db.cursor()
                 cur.execute(
-                        """
+                    """
                 create table Animal (
                   id integer,
                   name varchar(30),
@@ -2378,13 +2385,13 @@ value: get-list-of-animals.sql
                 """
                 )
                 cur.execute(
-                        "insert into Animal (name, description) values ('horse', '4 legged furry thing');"
+                    "insert into Animal (name, description) values ('horse', '4 legged furry thing');"
                 )
                 cur.execute(
-                        "insert into Animal (name, description) values ('llama', 'furry thing with four legs');"
+                    "insert into Animal (name, description) values ('llama', 'furry thing with four legs');"
                 )
                 cur.execute(
-                        "insert into Animal (name, description) values ('cow', 'a furry thing that also has 4 legs');"
+                    "insert into Animal (name, description) values ('cow', 'a furry thing that also has 4 legs');"
                 )
                 cur.close()
                 db.commit()
