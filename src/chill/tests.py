@@ -1008,6 +1008,42 @@ class Filters(ChillTestCase):
 
 
 class Documents(ChillTestCase):
+    def test_reading_in_a_document_without_setting_document_folder(self):
+        """
+        The custom 'readfile' jinja2 filter shows the file name if the DOCUMENT_FOLDER is not set.
+        """
+        with open(os.path.join(self.tmp_template_dir, "imasimplefile.txt"), "w") as f:
+            f.write(
+                """
+              Hello, this is just a file.
+              """
+            )
+
+        with open(os.path.join(self.tmp_template_dir, "template.html"), "w") as f:
+            f.write(
+                """
+              <h1>template</h1>
+              {{ simplefilename }}
+              <br>
+              {{ simplefilename|readfile }}
+              """
+            )
+
+        # Unset the DOCUMENT_FOLDER
+        self.app.config["DOCUMENT_FOLDER"] = None
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                init_db()
+                a = insert_node(name="simplefilename", value="imasimplefile.txt")
+                apage = insert_node(name="apage", value=None)
+                insert_node_node(node_id=apage, target_node_id=a)
+                insert_route(path="/a/", node_id=apage)
+                add_template_for_node("template.html", apage)
+
+                rv = c.get("/a/", follow_redirects=True)
+                assert b"imasimplefile.txt" in rv.data
+
     def test_reading_in_a_document(self):
         """
         The custom 'readfile' jinja2 filter reads the file from the DOCUMENT_FOLDER.

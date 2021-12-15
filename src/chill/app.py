@@ -259,9 +259,12 @@ def make_app(config=None, database_readonly=False, **kw):
                 # py2 and py3 compat
                 content = bytes(f.read(), "utf-8").decode("utf-8")
             return content
+        else:
+            app.logger.warning("The DOCUMENT_FOLDER setting in site.cfg is not set to a value. Can't use 'readfile' filter.")
+            return filename
 
         app.logger.warn(
-            "jinja2 filter 'readfile' can't find file: '{0}'".format(filename)
+            f"jinja2 filter 'readfile' can't find file: '{filename}' at DOCUMENT_FOLDER path: {document_folder}"
         )
         return filename
 
