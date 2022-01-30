@@ -2,7 +2,7 @@
 
 FROM alpine:3.15.0@sha256:21a3deaa0d32a8057914f36584b5288d2e5ecc984380bc0118285c70fa8c9300 as build
 
-LABEL maintainer="Jake Hickenlooper <jake@weboftomorrow.com>"
+LABEL org.opencontainers.image.authors="Jake Hickenlooper <jake@weboftomorrow.com>"
 
 
 ## Build dependencies
@@ -77,12 +77,14 @@ VOLUME /home/chill/app
 # Default port for chill application is 5000
 EXPOSE 5000
 
-CMD ["/usr/local/src/chill-venv/bin/python", "/usr/local/src/chill-venv/src/chill/tests.py"]
+ENTRYPOINT ["/usr/local/src/chill-venv/bin/chill"]
+
+CMD ["--help"]
 
 ## Build and run example.
 # DOCKER_BUILDKIT=1 docker build -t chill:latest .
 # docker run -it --rm \
-#   -p 5000:5000 \
+#   -p 8080:5000 \
 #   --mount "type=volume,src=chill_app_example,dst=/home/chill/app" \
 #   --mount "type=volume,src=chill_db_example,dst=/var/lib/chill/sqlite3" \
 #   chill:latest
