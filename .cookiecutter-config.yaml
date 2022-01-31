@@ -1,0 +1,4 @@
+default_context:
+  slugname: "chill"
+  targets: "docs src"
+  code_formatter_directory: "code-formatter"

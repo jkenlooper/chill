@@ -1,7 +1,5 @@
 *.swp
 *.pyc
-.gitignore
-.installed.cfg
 /bin/
 /develop-eggs/
 /eggs/

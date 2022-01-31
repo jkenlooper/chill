@@ -1,0 +1,10 @@
+## Using defaults https://prettier.io/docs/en/options.html
+
+# trailingComma: "none"
+# arrowParens: "avoid"
+#
+# overrides:
+#   - files: "*.js"
+#     options:
+#       semi: true
+#       singleQuote: false
