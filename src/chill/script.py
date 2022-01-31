@@ -322,9 +322,9 @@ def set_sqlite_journal_mode(app):
                 "pragma journal_mode={journal_mode}".format(journal_mode=journal_mode),
             ],
             capture_output=True,
-            check=True
+            check=True,
         )
-        app.logger.info(' '.join(set_journal_mode_output.args))
+        app.logger.info(" ".join(set_journal_mode_output.args))
         app.logger.info(set_journal_mode_output.stdout.decode())
 
 

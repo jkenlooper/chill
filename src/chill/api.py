@@ -58,7 +58,9 @@ def _query(_node_id, value=None, **kw):
     query_result = []
     cur = db.cursor()
     try:
-        query_result = cur.execute(fetch_query_string('select_query_from_node.sql'), kw).fetchall()
+        query_result = cur.execute(
+            fetch_query_string("select_query_from_node.sql"), kw
+        ).fetchall()
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         cur.close()
@@ -69,34 +71,38 @@ def _query(_node_id, value=None, **kw):
     # current_app.logger.debug("queries: %s", serialize_sqlite3_results(query_result))
     if query_result:
         values = []
-        for query_name in [x['name'] for x in query_result]:
+        for query_name in [x["name"] for x in query_result]:
             if query_name:
                 result = []
                 try:
                     current_app.logger.debug("query_name: %s", query_name)
                     current_app.logger.debug("kw: %s", kw)
                     # Query string can be insert or select here
-                    #statement = fetch_query_string(query_name)
-                    #params = [x.key for x in statement.params().get_children()]
-                    #skw = {key: kw[key] for key in params}
-                    #result = cur.execute(statement, **skw)
+                    # statement = fetch_query_string(query_name)
+                    # params = [x.key for x in statement.params().get_children()]
+                    # skw = {key: kw[key] for key in params}
+                    # result = cur.execute(statement, **skw)
                     result = cur.execute(fetch_query_string(query_name), kw)
                 except (sqlite3.DatabaseError, sqlite3.ProgrammingError) as err:
-                    current_app.logger.error("DatabaseError (%s) %s: %s", query_name, kw, err)
+                    current_app.logger.error(
+                        "DatabaseError (%s) %s: %s", query_name, kw, err
+                    )
                 if result:
                     result = result.fetchall()
-                    #values.append(([[dict(zip(result.keys(), x)) for x in result]], result.keys()))
-                    #values.append((result.fetchall(), result.keys()))
-                    #current_app.logger.debug("fetchall: %s", values)
+                    # values.append(([[dict(zip(result.keys(), x)) for x in result]], result.keys()))
+                    # values.append((result.fetchall(), result.keys()))
+                    # current_app.logger.debug("fetchall: %s", values)
                     if len(result) == 0:
                         current_app.logger.debug("result is empty")
-                        #values.append([{}])
+                        # values.append([{}])
                         values.append([{}])
                     else:
-                        current_app.logger.debug("result: %s", serialize_sqlite3_results(result))
+                        current_app.logger.debug(
+                            "result: %s", serialize_sqlite3_results(result)
+                        )
                         values.append(result)
         value = values
-    #current_app.logger.debug("value: %s", value)
+    # current_app.logger.debug("value: %s", value)
     cur.close()
     db.commit()
     return value
@@ -107,15 +113,15 @@ def _template(node_id, value=None):
     if value:
         value = serialize_sqlite3_results(value)
     result = []
-    select_template_from_node = fetch_query_string('select_template_from_node.sql')
+    select_template_from_node = fetch_query_string("select_template_from_node.sql")
     cur = db.cursor()
     try:
         result = cur.execute(select_template_from_node, {"node_id": node_id})
         template_result = result.fetchone()
         cur.close()
         db.commit()
-        if template_result and template_result['name']:
-            template = template_result['name']
+        if template_result and template_result["name"]:
+            template = template_result["name"]
 
             if isinstance(value, dict):
                 return render_template(template, **value)
@@ -131,35 +137,43 @@ def _template(node_id, value=None):
 def render_node(_node_id, value=None, noderequest={}, **kw):
     "Recursively render a node's value"
     if value is None:
-        kw.update( noderequest )
+        kw.update(noderequest)
         results = _query(_node_id, **kw)
         current_app.logger.debug("render_node results: %s", results)
         if results:
             values = []
             for result in results:
-                if set(result[0].keys()) == set(['node_id', 'name', 'value']):
+                if set(result[0].keys()) == set(["node_id", "name", "value"]):
                     for subresult in result:
-                        #if subresult.get('name') == kw.get('name'):
-                            # This is a link node
+                        # if subresult.get('name') == kw.get('name'):
+                        # This is a link node
                         current_app.logger.debug("sub: %s", subresult)
-                        name = subresult['name']
-                        if noderequest.get('_no_template'):
+                        name = subresult["name"]
+                        if noderequest.get("_no_template"):
                             # For debugging; append the node_id to the name
                             # of each. This doesn't work with templates.
-                            name = "{0} ({1})".format(name, subresult['node_id'])
-                        values.append( {name: render_node( subresult['node_id'], noderequest=noderequest, **subresult )} )
-                #elif 'node_id' and 'name' in cols:
+                            name = "{0} ({1})".format(name, subresult["node_id"])
+                        values.append(
+                            {
+                                name: render_node(
+                                    subresult["node_id"],
+                                    noderequest=noderequest,
+                                    **subresult
+                                )
+                            }
+                        )
+                # elif 'node_id' and 'name' in cols:
                 #    for subresult in result:
                 #        current_app.logger.debug("sub2: %s", subresult)
                 #        values.append( {subresult.get('name'): render_node( subresult.get('node_id'), **subresult )} )
                 else:
-                    values.append( result )
+                    values.append(result)
 
             value = values
 
     value = _short_circuit(value)
     # current_app.logger.debug(f"after sc: {value}")
-    if not noderequest.get('_no_template'):
+    if not noderequest.get("_no_template"):
         value = _template(_node_id, value)
         # current_app.logger.debug(f"after template: {value}")
 

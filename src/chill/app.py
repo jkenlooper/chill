@@ -46,13 +46,11 @@ class ChillFlask(Flask):
 
 def get_db(config):
     db_file = config.get("CHILL_DATABASE_URI")
-    if db_file and not db_file.startswith(':'):
+    if db_file and not db_file.startswith(":"):
         if not config.get("database_readonly"):
             db = sqlite3.connect(db_file)
         else:
-            db = sqlite3.connect(
-                f"file:{db_file}?mode=ro", uri=True
-            )
+            db = sqlite3.connect(f"file:{db_file}?mode=ro", uri=True)
     else:
         db = sqlite3.connect(config.get("CHILL_DATABASE_URI"))
 
@@ -260,7 +258,9 @@ def make_app(config=None, database_readonly=False, **kw):
                 content = bytes(f.read(), "utf-8").decode("utf-8")
             return content
         else:
-            app.logger.warning("The DOCUMENT_FOLDER setting in site.cfg is not set to a value. Can't use 'readfile' filter.")
+            app.logger.warning(
+                "The DOCUMENT_FOLDER setting in site.cfg is not set to a value. Can't use 'readfile' filter."
+            )
             return filename
 
         app.logger.warn(

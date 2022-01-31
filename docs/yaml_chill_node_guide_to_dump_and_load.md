@@ -11,8 +11,8 @@ chill dump --config site.cfg --yaml example-data.yaml
 ```
 
 Depending on the existing database, it will output a YAML file with all the
-chill data needed in order to load back into the database.  Note that it doesn't
-keep track of any node ids in the YAML file.  Duplicate routes and nodes will be
+chill data needed in order to load back into the database. Note that it doesn't
+keep track of any node ids in the YAML file. Duplicate routes and nodes will be
 added if the YAML file is loaded back into a database that already has the chill
 data.
 

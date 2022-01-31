@@ -31,6 +31,7 @@ docker run -it --rm \
 ```
 
 Or replace the entrypoint with `sh` and try the `chill` app that way.
+
 ```bash
 docker run -it --rm \
   -p 8080:5000 \

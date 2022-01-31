@@ -158,18 +158,22 @@ def add_template_for_node(name, node_id):
     with current_app.app_context():
         cur = db.cursor()
         cur.execute(
-            fetch_query_string("insert_template.sql"), {"name":name, "node_id":node_id}
+            fetch_query_string("insert_template.sql"),
+            {"name": name, "node_id": node_id},
         )
         db.commit()
         result = cur.execute(
-            fetch_query_string("select_template.sql"), {"name":name, "node_id":node_id}
+            fetch_query_string("select_template.sql"),
+            {"name": name, "node_id": node_id},
         ).fetchall()
         if result:
             template_id = result[0]["id"]
             cur.execute(
                 fetch_query_string("update_template_node.sql"),
-                {"template":template_id,
-                "node_id":node_id, }
+                {
+                    "template": template_id,
+                    "node_id": node_id,
+                },
             )
         cur.close()
         db.commit()
