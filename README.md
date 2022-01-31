@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/jkenlooper/chill.svg?branch=mustached-rival)](https://travis-ci.org/jkenlooper/chill)
-
 # Cascading, Highly Irrelevant, Lost Llamas
 
 *Or, just chill.*  This is a **database driven web application framework in
@@ -21,14 +19,19 @@ the page.
 
 Chill can be installed via pip.
 ```bash
-pip install chill
+python3 -m pip install chill
 ```
 
 Or from within this cloned project; install with pip in editable mode.  It is
-recommended to setup a virtual environment first with `virtualenv . -p python3`
-command.
+recommended to setup a virtual environment first.
+
 ```bash
-pip install -e .
+# Create a python virtual environment in the project directory and activate it.
+python3 -m venv .
+source ./bin/activate
+
+# Install chill in editable mode
+python3 -m pip install -e .
 ```
 
 This will create a script called `chill`.  Type `chill --help` for help on using
@@ -36,7 +39,7 @@ it.  It will need a config file and such.  I recommend creating an empty
 directory and running `chill init` within it.  That will create a `site.cfg`
 config file and the bare minimum to show a homepage.  Run the 
 `chill run --config site.cfg` 
-and visit http://localhost:5000 with your browser.
+and visit http://localhost:5000/ with your browser.
 
 ## Quick start
 
@@ -44,8 +47,8 @@ Run the `chill init` script in an empty directory and it will create a minimal
 starting point for using Chill. The `site.cfg` created will have comments on each
 configuration value.  The `chill run --config site.cfg` will run the app in the
 foreground at the http://localhost:5000/ URL. Notice that the script also
-creates a sqlite database in that directory.  This database is what the script
-uses to display the pages in a site.
+creates a sqlite database file (default file name is 'db') in that directory.
+This database file is what chill uses to display the pages in a site.
 
 **Review the docs for more.** Some helpful guides and such are in the
 [docs/](docs/) folder.  The [tests.py](src/chill/tests.py) file within the chill
@@ -67,10 +70,6 @@ the name 'chill'.  Also, llamas are cool and have two 'l's like chill.
     A web developer's website about web development
 * [Awesome Mud Works](http://awesomemudworks.com/) -
     Pottery studio in Salt Lake City, Utah
-
-A cookiecutter for making a _chill_ website also exists.  Checkout the
-[cookiecutter-website](https://github.com/jkenlooper/cookiecutter-website/)
-project to get started.
 
 ## Docker
 
