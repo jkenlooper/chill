@@ -77,3 +77,13 @@ I've included a `Dockerfile` which can be used when creating a container for
 chill.  See the 
 [guide on using chill with docker](docs/docker-container-usage.md).
 
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+Please make sure to update tests as appropriate.
+
+## License
+
+[GNU Lesser General Public License v3.0](https://choosealicense.com/licenses/lgpl-3.0/)
