@@ -1,14 +1,14 @@
 # `chill` Code Formatter
 
 Reformats any code that is newer than files in
-`./code-formatter/.last-modified/`
+`./.code-formatter/.last-modified/`
 
 The below command will run [Prettier](https://prettier.io/) and
 [Black](https://black.readthedocs.io/en/stable/) on the target directories.
 
 ```bash
 # Run this makefile from the top level of the project:
-make format -f ./code-formatter/code-formatter.mk
+make format -f ./.code-formatter/code-formatter.mk
 ```
 
 ## Updating Generated Files

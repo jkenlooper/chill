@@ -1,7 +1,7 @@
 {
   "name": "chill-code-formatter",
   "//template_file_comment": "This file was generated from the code-formatter directory in https://github.com/jkenlooper/cookiecutters . Any modifications needed to this file should be done on that originating file.",
-  "version": "0.0.2-alpha.1",
+  "version": "0.0.2-beta.1",
   "private": true,
   "scripts": {
     "format": "./format.sh",
