@@ -15,8 +15,8 @@ software also needs to maintain it's appreciation of llamas.
 
 To sum up:
 
-* Simple - The learning curve to use `chill` is not steep
-* Database Driven - Let the database do what it's good at
-* Programming Language Agnostic - It is not required to author any code
-    in order to use `chill` for a website
-* Llamas - They're great, right?
+- Simple - The learning curve to use `chill` is not steep
+- Database Driven - Let the database do what it's good at
+- Programming Language Agnostic - It is not required to author any code
+  in order to use `chill` for a website
+- Llamas - They're great, right?
