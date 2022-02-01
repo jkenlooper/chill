@@ -87,9 +87,6 @@ def insert_node(**kw):
     with current_app.app_context():
         cur = db.cursor()
         result = cur.execute(fetch_query_string("insert_node.sql"), kw)
-        # TODO: support for postgres may require using a RETURNING id; sql
-        # statement and using the inserted_primary_key?
-        # node_id = result.inserted_primary_key
         node_id = result.lastrowid
         if not node_id:
             result = result.fetchall()
