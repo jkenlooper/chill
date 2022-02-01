@@ -18,7 +18,7 @@ setup(
         routes and what SQL query should be used and such.
     """,
     url="https://github.com/jkenlooper/chill",
-    license="GPL",
+    license="LGPLv3+",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
@@ -26,7 +26,7 @@ setup(
         "Framework :: Flask",
         "Intended Audience :: Developers",
         "Intended Audience :: Information Technology",
-        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+        "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
         "Natural Language :: English",
         "Operating System :: POSIX",
         "Programming Language :: Python :: 3.8",
