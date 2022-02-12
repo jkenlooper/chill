@@ -13,6 +13,7 @@ import yaml
 from chill.app import make_app, db, get_db
 from chill.database import (
     init_db,
+    drop_db,
     insert_node,
     insert_node_node,
     select_node,
@@ -634,6 +635,64 @@ class SQL(ChillTestCase):
             assert result["value"] == "test"
             assert result["name"] == "simple"
             assert result["node_id"] == simple_id
+
+    def test_drop_chill_tables(self):
+        with self.app.app_context():
+            init_db()
+            simple_id = insert_node(name="simple", value="test")
+            result = select_node(node_id=simple_id)[0]
+
+            cur = db.cursor()
+            cur.execute("""
+                create table Test (
+                    id integer primary key,
+                    favorite_number integer not null,
+                    age integer not null
+                    );
+                """)
+            cur.execute(
+                """
+                insert into Test (
+                    favorite_number,
+                    age
+                    ) values (
+                    :favorite_number,
+                    :age
+                    );
+                """, {"favorite_number": 5, "age": 37}
+            )
+            db.commit()
+            result_test_table = cur.execute(
+                """
+                select * from Test where favorite_number = :favorite_number;
+                """, {"favorite_number": 5}
+            ).fetchall()
+            self.app.logger.debug(len(result_test_table))
+            r = result_test_table[0]
+            assert 37 == r["age"]
+
+            assert set(result.keys()) == set(["name", "value", "node_id"])
+            assert result["value"] == "test"
+            assert result["name"] == "simple"
+            assert result["node_id"] == simple_id
+
+            drop_db()
+            result_test_table = cur.execute(
+                """
+                select * from Test where favorite_number = :favorite_number;
+                """, {"favorite_number": 5}
+            ).fetchall()
+            r = result_test_table[0]
+            assert 37 == r["age"]
+
+            with self.assertRaises(sqlite3.OperationalError) as err:
+                # Chill database tables should be dropped, so this would return
+                # an error.
+                result = select_node(node_id=simple_id)[0]
+            self.app.logger.debug(err.exception)
+            self.assertRegex(
+                str(err.exception), "no such table: Node"
+            )
 
 
 class Query(ChillTestCase):

@@ -47,6 +47,24 @@ def init_db():
     db.commit()
 
 
+def drop_db():
+    """Drop all tables that Chill uses.
+    Deletes the following tables from the database:
+    Chill
+    Node
+    Node_Node
+    Route
+    Query
+    Template
+    """
+    cur = db.cursor()
+    with current_app.app_context():
+        for filename in CHILL_DROP_TABLE_FILES:
+            cur.execute(fetch_query_string(filename))
+    cur.close()
+    db.commit()
+
+
 class RowEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, sqlite3.Row):

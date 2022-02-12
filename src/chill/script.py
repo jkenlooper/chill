@@ -5,6 +5,7 @@ Usage: chill run [--config <file>] [--readonly]
        chill freeze [--config <file>] [--urls <file>]
        chill init
        chill initdb [--config <file>]
+       chill dropdb [--config <file>]
        chill load [--config <file>] [--yaml <file>]
        chill dump [--config <file>] [--yaml <file>]
        chill migrate [--config <file>]
@@ -25,6 +26,7 @@ Subcommands:
     freeze  - Freeze the application by creating a static version of it.
     init    - Initialize the current directory with base starting files and database.
     initdb  - Initialize Chill database tables only.
+    dropdb  - Deletes Chill database tables only.
     load    - Load a yaml file that has ChillNode objects into the database.
     dump    - Create a yaml file of ChillNode objects from the database.
     migrate - Perform a database migration from one version to the next.
@@ -45,6 +47,7 @@ from flask_frozen import Freezer
 from chill.app import make_app, db
 from chill.database import (
     init_db,
+    drop_db,
     insert_node,
     insert_node_node,
     insert_route,
@@ -178,6 +181,9 @@ def main():
     if args["initdb"]:
         initdb(args["--config"])
 
+    if args["dropdb"]:
+        dropdb(args["--config"])
+
     if args["run"]:
         run(args["--config"], database_readonly=args.get("--readonly", False))
 
@@ -210,6 +216,17 @@ def initdb(config):
     with app.app_context():
         app.logger.info("initializing database")
         init_db()
+
+
+def dropdb(config):
+    "Deletes Chill database tables only."
+
+    app = make_app(config=config)
+    set_sqlite_journal_mode(app)
+
+    with app.app_context():
+        app.logger.info("Removing Chill database tables: Chill, Node, Node_Node, Route, Query, Template.")
+        drop_db()
 
 
 def init():
