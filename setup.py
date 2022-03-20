@@ -1,22 +1,21 @@
 # https://packaging.python.org/en/latest/distributing.html
 from setuptools import setup, find_packages
+import pathlib
 
+
+here = pathlib.Path(__file__).parent.resolve()
 __version__ = "0.9.0-alpha.3"  # Also set in src/chill/_version.py
+long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
     name="chill",
     version=__version__,
     author="Jake Hickenlooper",
     author_email="jake@weboftomorrow.com",
-    keywords="static website SQL sqlite Flask web framework",
+    keywords="static website generator SQL sqlite Flask web framework",
     description="Database driven web application framework in Flask",
-    long_description="""
-        This involves creating custom SQL queries to pull your data from an
-        sqlite3 database into jinja2 HTML templates for a website.  Chill
-        creates a static version of the website or can run as a Flask app. There
-        are a few tables that are specific to Chill in order to handle page
-        routes and what SQL query should be used and such.
-    """,
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     url="https://github.com/jkenlooper/chill",
     license="LGPLv3+",
     classifiers=[
@@ -53,6 +52,6 @@ setup(
         "babel",
         "humanize",
     ],
-    python_requires=">=3.8",
+    python_requires='>=3.8, <4',
     entry_points={"console_scripts": ["chill = chill.script:main"]},
 )

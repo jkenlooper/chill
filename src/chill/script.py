@@ -166,7 +166,7 @@ THEME_TEMPLATE_FOLDER = getenv("CHILL_THEME_TEMPLATE_FOLDER", default="templates
 # For creating a stand-alone static website that you can upload without
 # requiring an app to run it. This will use Frozen-Flask.
 # The path to the static/frozen website will be put.
-#FREEZER_DESTINATION = getenv("CHILL_FREEZER_DESTINATION", default="frozen")
+FREEZER_DESTINATION = getenv("CHILL_FREEZER_DESTINATION", default="frozen")
 #FREEZER_BASE_URL = getenv("CHILL_FREEZER_BASE_URL", default="//{HOSTNAME}/").format(**locals())
 """
 
