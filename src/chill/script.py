@@ -43,8 +43,9 @@ import sqlite3
 from docopt import docopt
 from flask_frozen import Freezer
 
-from chill.app import make_app, db
+from chill.app import make_app
 from chill.database import (
+    get_db,
     init_db,
     drop_db,
     insert_node,
@@ -214,7 +215,9 @@ def initdb(config):
 
     with app.app_context():
         app.logger.info("initializing database")
-        init_db()
+        db = get_db()
+        with db:
+            init_db()
 
 
 def dropdb(config):
@@ -225,7 +228,9 @@ def dropdb(config):
 
     with app.app_context():
         app.logger.info("Removing Chill database tables: Chill, Node, Node_Node, Route, Query, Template.")
-        drop_db()
+        db = get_db()
+        with db:
+            drop_db()
 
 
 def init():
@@ -267,18 +272,20 @@ def init():
 
     with app.app_context():
         app.logger.info("initializing database")
-        init_db()
+        db = get_db()
+        with db:
+            init_db()
 
-        homepage = insert_node(name="homepage", value=None)
-        insert_route(path="/", node_id=homepage)
-        insert_query(name="select_link_node_from_node.sql", node_id=homepage)
+            homepage = insert_node(name="homepage", value=None)
+            insert_route(path="/", node_id=homepage)
+            insert_query(name="select_link_node_from_node.sql", node_id=homepage)
 
-        add_template_for_node("homepage.html", homepage)
+            add_template_for_node("homepage.html", homepage)
 
-        homepage_content = insert_node(
-            name="homepage_content", value="Cascading, Highly Irrelevant, Lost Llamas"
-        )
-        insert_node_node(node_id=homepage, target_node_id=homepage_content)
+            homepage_content = insert_node(
+                name="homepage_content", value="Cascading, Highly Irrelevant, Lost Llamas"
+            )
+            insert_node_node(node_id=homepage, target_node_id=homepage_content)
 
 
 def load(config, yaml_file):
@@ -406,6 +413,7 @@ def freeze(config, urls_file=None):
                         return ("public.index", {})
                     return ("public.uri_index", {"uri": url})
 
+        db = get_db()
         cur = db.cursor()
         try:
             result = cur.execute(
@@ -427,7 +435,6 @@ def freeze(config, urls_file=None):
                 urls.extend([_f for _f in map(cleanup_url, f.readlines()) if _f])
 
         cur.close()
-        db.commit()
 
         return urls
 

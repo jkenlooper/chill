@@ -1,9 +1,7 @@
 import os
 import time
-import sqlite3
 
-from werkzeug.local import LocalProxy
-from flask import Flask, g, current_app, Blueprint, Markup
+from flask import Flask, Blueprint, Markup
 from flask.helpers import send_from_directory
 from flaskext.markdown import Markdown
 from jinja2 import FileSystemLoader
@@ -11,6 +9,7 @@ from babel import dates
 from humanize import naturaltime
 
 from chill import shortcodes
+from chill import database
 
 
 class ChillFlask(Flask):
@@ -40,48 +39,6 @@ class ChillFlask(Flask):
         return send_from_directory(
             self.config["THEME_STATIC_FOLDER"], filename, cache_timeout=cache_timeout
         )
-
-
-def get_db(config):
-    db_file = config.get("CHILL_DATABASE_URI")
-    if db_file and not db_file.startswith(":"):
-        if not config.get("database_readonly"):
-            db = sqlite3.connect(db_file)
-        else:
-            db = sqlite3.connect(f"file:{db_file}?mode=ro", uri=True)
-    else:
-        db = sqlite3.connect(config.get("CHILL_DATABASE_URI"))
-
-    db.row_factory = sqlite3.Row
-
-    # Enable foreign key support so 'on update' and 'on delete' actions
-    # will apply. This needs to be set for each db connection.
-    cur = db.cursor()
-    cur.execute("pragma foreign_keys = ON;")
-    db.commit()
-
-    # Check that journal_mode is set to wal
-    result = cur.execute("pragma journal_mode;").fetchone()
-    if result["journal_mode"] != "wal":
-        if not config.get("TESTING"):
-            raise sqlite3.IntegrityError("The pragma journal_mode is not set to wal.")
-        else:
-            pass
-            # logger.info("In TESTING mode. Ignoring requirement for wal journal_mode.")
-
-    cur.close()
-
-    return db
-
-
-def set_db():
-    db = getattr(g, "_database", None)
-    if db is None:
-        db = g._database = get_db(current_app.config)
-    return db
-
-
-db = LocalProxy(set_db)
 
 
 def multiple_directory_files_loader(*args):
@@ -179,11 +136,8 @@ def make_app(config=None, database_readonly=False, **kw):
     # Set the jinja2 template folder eith fallback for app.template_folder
     app.jinja_env.loader = FileSystemLoader(app.config.get("THEME_TEMPLATE_FOLDER"))
 
-    @app.teardown_appcontext
-    def teardown_db(exception):
-        db = getattr(g, "_database", None)
-        if db is not None:
-            db.close()
+    app.logger.debug("Database init_app")
+    database.init_app(app)
 
     # STATIC_URL='http://cdn.example.com/whatever/works/'
     @app.context_processor

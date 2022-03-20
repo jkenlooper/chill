@@ -3,8 +3,8 @@ import os
 from flask import current_app
 import yaml
 
-from chill.app import db
 from chill.database import (
+    get_db,
     insert_node,
     insert_node_node,
     select_node,
@@ -48,7 +48,7 @@ def _add_node_to_parent(parent_node_id, name, value):
     elif isinstance(value, dict) and set(value.keys()).issubset(
         {"chill_template", "chill_value"}
     ):
-        if value.get("chill_template") == None:
+        if value.get("chill_template") is None:
             _add_node_to_parent(parent_node_id, name, value.get("chill_value"))
             return
         else:
@@ -96,6 +96,7 @@ def _add_node_to_parent(parent_node_id, name, value):
 
 def _render_chill_node_value(node_id, root=False):
     # get the node
+    db = get_db()
     cur = db.cursor()
     query_result = cur.execute(
         fetch_query_string("select_query_from_node.sql"), {"node_id": node_id}
@@ -157,7 +158,6 @@ def _render_chill_node_value(node_id, root=False):
                 value["chill_value"] = chill_value
 
     cur.close()
-    db.commit()
     return value
 
 
@@ -183,17 +183,17 @@ class ChillNode(yaml.YAMLObject):
         weight=None,
     ):
         self.name = name
-        if value != None:
+        if value is not None:
             self.value = value
-        if template != None:
+        if template is not None:
             self.template = template
-        if query != None:
+        if query is not None:
             if query == "select_link_node_from_node.sql":
                 self.value = _render_chill_node_value(node_id, root=True)
             else:
                 self.value = query
 
-        if path != None:
+        if path is not None:
             if (
                 isinstance(path, str)
                 and method in (None, "GET")
@@ -202,9 +202,9 @@ class ChillNode(yaml.YAMLObject):
                 self.route = path
             else:
                 route = {"path": path}
-                if method != None:
+                if method is not None:
                     route["method"] = method
-                if weight != None and weight != "":
+                if weight is not None and weight != "":
                     route["weight"] = weight
                 self.route = route
 
@@ -223,82 +223,86 @@ class ChillNode(yaml.YAMLObject):
         elif isinstance(self.value, int) or isinstance(self.value, float):
             value = str(self.value)
 
-        # Insert the chill_node
-        chill_node = insert_node(name=self.name, value=value)
+        # Use context manager to automatically call db.commit() when successful,
+        # otherwise db.rollback() is called.
+        db = get_db()
+        with db:
+            # Insert the chill_node
+            chill_node = insert_node(name=self.name, value=value)
 
-        # Set the route
-        if self.route:
-            if isinstance(self.route, str):
-                insert_route(
-                    path=self.route, node_id=chill_node, weight=None, method="GET"
-                )
-            elif isinstance(self.route, dict):
-                route_path = self.route.get("path", None)
-                if route_path == None:
-                    raise TypeError("A path must be set for a route")
-                elif not isinstance(route_path, str):
-                    raise TypeError("A path must be a string value")
-                route_weight = self.route.get("weight", None)
-                route_method = self.route.get("method", "GET")
-                if route_weight != None and not isinstance(route_weight, int):
-                    raise TypeError("route weight value needs to be integer if defined")
-                if isinstance(route_method, str) and route_method.upper() not in (
-                    "GET",
-                    "POST",
-                    "PUT",
-                    "DELETE",
-                    "PATCH",
-                ):
-                    raise TypeError(
-                        "route method value needs to be 'GET', 'POST', 'PUT', 'DELETE', or 'PATCH' if defined"
+            # Set the route
+            if self.route:
+                if isinstance(self.route, str):
+                    insert_route(
+                        path=self.route, node_id=chill_node, weight=None, method="GET"
                     )
-                elif not isinstance(route_method, str):
-                    raise TypeError(
-                        "route method value needs to be 'GET', 'POST', 'PUT', 'DELETE', or 'PATCH' if defined"
+                elif isinstance(self.route, dict):
+                    route_path = self.route.get("path", None)
+                    if route_path == None:
+                        raise TypeError("A path must be set for a route")
+                    elif not isinstance(route_path, str):
+                        raise TypeError("A path must be a string value")
+                    route_weight = self.route.get("weight", None)
+                    route_method = self.route.get("method", "GET")
+                    if route_weight != None and not isinstance(route_weight, int):
+                        raise TypeError("route weight value needs to be integer if defined")
+                    if isinstance(route_method, str) and route_method.upper() not in (
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "PATCH",
+                    ):
+                        raise TypeError(
+                            "route method value needs to be 'GET', 'POST', 'PUT', 'DELETE', or 'PATCH' if defined"
+                        )
+                    elif not isinstance(route_method, str):
+                        raise TypeError(
+                            "route method value needs to be 'GET', 'POST', 'PUT', 'DELETE', or 'PATCH' if defined"
+                        )
+                    insert_route(
+                        path=self.route["path"],
+                        node_id=chill_node,
+                        weight=route_weight,
+                        method=route_method.upper(),
                     )
-                insert_route(
-                    path=self.route["path"],
-                    node_id=chill_node,
-                    weight=route_weight,
-                    method=route_method.upper(),
-                )
 
-            else:
-                raise TypeError("route value other then str or dict not supported")
-
-        # Set the template
-        if self.template:
-            if isinstance(self.template, str):
-                if _is_template_file(self.template):
-                    add_template_for_node(name=self.template, node_id=chill_node)
                 else:
-                    raise TypeError(
-                        "template value must be a path to a file in template folder"
-                    )
-            else:
-                raise TypeError("template value must be a string")
+                    raise TypeError("route value other then str or dict not supported")
 
-        # Set the query if value is not simple string
-        if not value:
-            if isinstance(self.value, str) and _is_sql_file(self.value):
-                insert_query(name=self.value, node_id=chill_node)
+            # Set the template
+            if self.template:
+                if isinstance(self.template, str):
+                    if _is_template_file(self.template):
+                        add_template_for_node(name=self.template, node_id=chill_node)
+                    else:
+                        raise TypeError(
+                            "template value must be a path to a file in template folder"
+                        )
+                else:
+                    raise TypeError("template value must be a string")
 
-            elif isinstance(self.value, dict):
-                if set(self.value.keys()).issubset({"chill_template", "chill_value"}):
-                    raise TypeError(
-                        "chill_template or chill_value should not be set at the top ChillNode value."
-                    )
-                for item_name in self.value.keys():
-                    item_value = self.value.get(item_name)
-                    _add_node_to_parent(chill_node, item_name, item_value)
+            # Set the query if value is not simple string
+            if not value:
+                if isinstance(self.value, str) and _is_sql_file(self.value):
+                    insert_query(name=self.value, node_id=chill_node)
 
-            elif isinstance(self.value, list):
-                for item_value in self.value:
-                    _add_node_to_parent(chill_node, "value", item_value)
-            elif self.value == None:
-                pass
-            else:
-                raise TypeError("unsupported value type. Use only dict, or list.")
+                elif isinstance(self.value, dict):
+                    if set(self.value.keys()).issubset({"chill_template", "chill_value"}):
+                        raise TypeError(
+                            "chill_template or chill_value should not be set at the top ChillNode value."
+                        )
+                    for item_name in self.value.keys():
+                        item_value = self.value.get(item_name)
+                        _add_node_to_parent(chill_node, item_name, item_value)
+
+                elif isinstance(self.value, list):
+                    for item_value in self.value:
+                        _add_node_to_parent(chill_node, "value", item_value)
+                elif self.value == None:
+                    pass
+                else:
+                    raise TypeError("unsupported value type. Use only dict, or list.")
 
     def __repr__(self):
         return "%s(name=%r, value=%r, template=%r, route=%r)" % (
@@ -312,11 +316,10 @@ class ChillNode(yaml.YAMLObject):
 
 def dump_yaml(yaml_file):
     "Dump chill database structure to ChillNode yaml objects."
-
+    db = get_db()
     cur = db.cursor()
     result = cur.execute(fetch_query_string("select_all_chill_nodes.sql")).fetchall()
     cur.close()
-    db.commit()
 
     node_list = result
     chill_nodes = []

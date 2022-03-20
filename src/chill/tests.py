@@ -9,8 +9,10 @@ import sqlite3
 
 import yaml
 
-from chill.app import make_app, db, get_db
+from chill.app import make_app
 from chill.database import (
+    get_db,
+    close_db,
     init_db,
     drop_db,
     insert_node,
@@ -67,16 +69,17 @@ class SimpleCheck(ChillTestCase):
     def test_db(self):
         """Check usage of db"""
         with self.app.app_context():
-            with self.app.test_client() as c:
-                init_db()
+            with self.app.test_client():
+                db = get_db()
+                with db:
+                    init_db()
 
-                cur = db.cursor()
-                cur.execute(
-                    """insert into Node (name, value) values (:name, :value)""",
-                    {"name": "bill", "value": "?"},
-                )
-                cur.close()
-                db.commit()
+                    cur = db.cursor()
+                    cur.execute(
+                        """insert into Node (name, value) values (:name, :value)""",
+                        {"name": "bill", "value": "?"},
+                    )
+                    cur.close()
 
                 # rv = c.get('/bill', follow_redirects=True)
                 # assert '?' in rv.data
@@ -86,41 +89,48 @@ class SimpleCheckReadonly(ChillTestCase):
     def test_db_is_readonly(self):
         """Check usage of db"""
         with self.app.app_context():
-            with self.app.test_client() as c:
-                init_db()
+            with self.app.test_client():
+                db = get_db()
+                with db:
+                    init_db()
 
                 # Get a new db connection that is readonly
+                close_db()
                 self.app.config["database_readonly"] = True
-                db_ro = get_db(self.app.config)
-
-                with self.assertRaises(sqlite3.OperationalError) as err:
-                    cur = db_ro.cursor()
-                    cur.execute(
-                        """insert into Node (name, value) values (:name, :value)""",
-                        {"name": "bill", "value": "?"},
+                db_ro = get_db()
+                with db_ro:
+                    with self.assertRaises(sqlite3.OperationalError) as err:
+                        cur = db_ro.cursor()
+                        cur.execute(
+                            """insert into Node (name, value) values (:name, :value)""",
+                            {"name": "bill", "value": "?"},
+                        )
+                        cur.close()
+                    self.assertRegex(
+                        str(err.exception), "attempt to write a readonly database"
                     )
-                    cur.close()
-                    db_ro.commit()
-                self.assertRegex(
-                    str(err.exception), "attempt to write a readonly database"
-                )
 
 
 class Route(ChillTestCase):
     def test_paths(self):
         with self.app.app_context():
-            init_db()
+            db = get_db()
+            with db:
+                init_db()
+                self.app.logger.debug(db.execute("select * from Node;").fetchall())
+                top_id = insert_node(name="top", value="hello")
+                self.app.logger.debug(db.execute("select * from Node;").fetchall())
+                self.app.logger.debug(f"top_id {top_id}")
 
-            top_id = insert_node(name="top", value="hello")
-            insert_route(path="/", node_id=top_id)
+                insert_route(path="/", node_id=top_id)
 
-            one_id = insert_node(name="one", value="1")
-            insert_route(path="/one/", node_id=one_id)
-            two_id = insert_node(name="two", value="2")
-            insert_route(path="/one/two/", node_id=two_id)
-            three_id = insert_node(name="three", value="3")
-            insert_route(path="/one/two/three/", node_id=three_id)
-            insert_route(path="/one/two/other_three/", node_id=three_id)
+                one_id = insert_node(name="one", value="1")
+                insert_route(path="/one/", node_id=one_id)
+                two_id = insert_node(name="two", value="2")
+                insert_route(path="/one/two/", node_id=two_id)
+                three_id = insert_node(name="three", value="3")
+                insert_route(path="/one/two/three/", node_id=three_id)
+                insert_route(path="/one/two/other_three/", node_id=three_id)
 
             with self.app.test_client() as c:
 
@@ -166,10 +176,11 @@ class Route(ChillTestCase):
 
     def test_single_rule(self):
         with self.app.app_context():
-            init_db()
-
-            id = insert_node(name="top", value="hello")
-            insert_route(path="/<int:count>/", node_id=id)
+            db = get_db()
+            with db:
+                init_db()
+                id = insert_node(name="top", value="hello")
+                insert_route(path="/<int:count>/", node_id=id)
 
             with self.app.test_client() as c:
 
@@ -189,12 +200,13 @@ class Route(ChillTestCase):
 
     def test_multiple_rules(self):
         with self.app.app_context():
-            init_db()
-
-            id = insert_node(name="fruit", value="fruit")
-            insert_route(path="/fruit/<anything>/", node_id=id)
-            id = insert_node(name="vegetables", value="vegetables")
-            insert_route(path="/vegetables/<anything>/", node_id=id)
+            db = get_db()
+            with db:
+                init_db()
+                id = insert_node(name="fruit", value="fruit")
+                insert_route(path="/fruit/<anything>/", node_id=id)
+                id = insert_node(name="vegetables", value="vegetables")
+                insert_route(path="/vegetables/<anything>/", node_id=id)
 
             with self.app.test_client() as c:
 
@@ -209,14 +221,15 @@ class Route(ChillTestCase):
 
     def test_weight(self):
         with self.app.app_context():
-            init_db()
-
-            id = insert_node(name="a", value="a")
-            insert_route(path="/<path:anything>/", node_id=id, weight=1)
-            id = insert_node(name="aardvark", value="aardvark")
-            insert_route(path="/animals/<anything>/", node_id=id, weight=1)
-            id = insert_node(name="b", value="b")
-            insert_route(path="/<path:something>/", node_id=id, weight=2)
+            db = get_db()
+            with db:
+                init_db()
+                id = insert_node(name="a", value="a")
+                insert_route(path="/<path:anything>/", node_id=id, weight=1)
+                id = insert_node(name="aardvark", value="aardvark")
+                insert_route(path="/animals/<anything>/", node_id=id, weight=1)
+                id = insert_node(name="b", value="b")
+                insert_route(path="/<path:something>/", node_id=id, weight=2)
 
             with self.app.test_client() as c:
 
@@ -236,10 +249,11 @@ class Route(ChillTestCase):
         route that matches, but has no method match
         """
         with self.app.app_context():
-            init_db()
-
-            llama_id = insert_node(name="llama", value="1234")
-            insert_route(path="/llama/", node_id=llama_id)
+            db = get_db()
+            with db:
+                init_db()
+                llama_id = insert_node(name="llama", value="1234")
+                insert_route(path="/llama/", node_id=llama_id)
 
             with self.app.test_client() as c:
 
@@ -288,18 +302,20 @@ class SQL(ChillTestCase):
         Add a node
         """
         with self.app.app_context():
-            init_db()
-            cur = db.cursor()
-            result = cur.execute(
-                fetch_query_string("insert_node.sql"), {"name": "a", "value": "apple"}
-            )
-            a = result.lastrowid
+            db = get_db()
+            with db:
+                init_db()
+                cur = db.cursor()
+                result = cur.execute(
+                    fetch_query_string("insert_node.sql"), {"name": "a", "value": "apple"}
+                )
+                a = result.lastrowid
 
             result = cur.execute(
                 "select * from Node where id = :id;", {"id": a}
             ).fetchall()
             cur.close()
-            db.commit()
+
             assert len(result) == 1
             r = result[0]
             assert a == r["id"]
@@ -311,18 +327,20 @@ class SQL(ChillTestCase):
         Add a node with a unicode value
         """
         with self.app.app_context():
-            init_db()
-            cur = db.cursor()
-            result = cur.execute(
-                fetch_query_string("insert_node.sql"), {"name": "a", "value": u"Àрpĺè"}
-            )
-            a = result.lastrowid
+            db = get_db()
+            with db:
+                init_db()
+                cur = db.cursor()
+                result = cur.execute(
+                    fetch_query_string("insert_node.sql"), {"name": "a", "value": u"Àрpĺè"}
+                )
+                a = result.lastrowid
 
             result = cur.execute(
                 "select * from Node where id = :id;", {"id": a}
             ).fetchall()
             cur.close()
-            db.commit()
+
             assert len(result) == 1
             r = result[0]
             assert a == r["id"]
@@ -334,17 +352,19 @@ class SQL(ChillTestCase):
         Link to any node
         """
         with self.app.app_context():
-            init_db()
-            a_id = insert_node(name="a", value=None)
-            b_id = insert_node(name="b", value=None)
-            c_id = insert_node(name="c", value="c")
-            d_id = insert_node(name="d", value="d")
+            db = get_db()
+            with db:
+                init_db()
+                a_id = insert_node(name="a", value=None)
+                b_id = insert_node(name="b", value=None)
+                c_id = insert_node(name="c", value="c")
+                d_id = insert_node(name="d", value="d")
 
-            # a -> c, b -> c
-            # a -> d
-            insert_node_node(node_id=a_id, target_node_id=c_id)
-            insert_node_node(node_id=a_id, target_node_id=d_id)
-            insert_node_node(node_id=b_id, target_node_id=c_id)
+                # a -> c, b -> c
+                # a -> d
+                insert_node_node(node_id=a_id, target_node_id=c_id)
+                insert_node_node(node_id=a_id, target_node_id=d_id)
+                insert_node_node(node_id=b_id, target_node_id=c_id)
 
             cur = db.cursor()
             result = cur.execute(
@@ -363,19 +383,19 @@ class SQL(ChillTestCase):
             assert d_id not in result
             assert a_id not in result
             cur.close()
-            db.commit()
 
     def test_value(self):
         """ """
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
+                    a_id = insert_node(name="a", value=None)
+                    insert_route(path="/", node_id=a_id)
 
-                a_id = insert_node(name="a", value=None)
-                insert_route(path="/", node_id=a_id)
-
-                content = insert_node(name="content", value="apple")
-                insert_node_node(node_id=a_id, target_node_id=content)
+                    content = insert_node(name="content", value="apple")
+                    insert_node_node(node_id=a_id, target_node_id=content)
 
                 rv = c.get("/", follow_redirects=True)
                 assert 200 == rv.status_code
@@ -386,13 +406,14 @@ class SQL(ChillTestCase):
         """ """
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
+                    a_id = insert_node(name="a", value=None)
+                    insert_route(path="/", node_id=a_id)
 
-                a_id = insert_node(name="a", value=None)
-                insert_route(path="/", node_id=a_id)
-
-                content = insert_node(name="content", value=u"Àрpĺè")
-                insert_node_node(node_id=a_id, target_node_id=content)
+                    content = insert_node(name="content", value=u"Àрpĺè")
+                    insert_node_node(node_id=a_id, target_node_id=content)
 
                 rv = c.get("/", follow_redirects=True)
                 assert 200 == rv.status_code
@@ -411,14 +432,15 @@ class SQL(ChillTestCase):
             )
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
+                    page = insert_node(name="page", value=None)
+                    insert_route(path="/page/<pagename>/", node_id=page)
 
-                page = insert_node(name="page", value=None)
-                insert_route(path="/page/<pagename>/", node_id=page)
-
-                pagenames = insert_node(name="pagenames", value=None)
-                insert_node_node(node_id=page, target_node_id=pagenames)
-                insert_query(name="select_pagenames.sql", node_id=pagenames)
+                    pagenames = insert_node(name="pagenames", value=None)
+                    insert_node_node(node_id=page, target_node_id=pagenames)
+                    insert_query(name="select_pagenames.sql", node_id=pagenames)
 
                 rv = c.get("/page/cucumber/", follow_redirects=True)
                 assert 200 == rv.status_code
@@ -440,14 +462,15 @@ class SQL(ChillTestCase):
             )
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
+                    page = insert_node(name="page", value=None)
+                    insert_route(path="/page/", node_id=page)
 
-                page = insert_node(name="page", value=None)
-                insert_route(path="/page/", node_id=page)
-
-                llama = insert_node(name="llama", value=None)
-                insert_node_node(node_id=page, target_node_id=llama)
-                insert_query(name="select_llama.sql", node_id=llama)
+                    llama = insert_node(name="llama", value=None)
+                    insert_node_node(node_id=page, target_node_id=llama)
+                    insert_query(name="select_llama.sql", node_id=llama)
 
                 rv = c.get("/page/?llama=chuck", follow_redirects=True)
                 assert 200 == rv.status_code
@@ -469,14 +492,15 @@ class SQL(ChillTestCase):
             )
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
+                    page = insert_node(name="page", value=None)
+                    insert_route(path="/page/", node_id=page)
 
-                page = insert_node(name="page", value=None)
-                insert_route(path="/page/", node_id=page)
-
-                llama = insert_node(name="llama", value=None)
-                insert_node_node(node_id=page, target_node_id=llama)
-                insert_query(name="select_llama.sql", node_id=llama)
+                    llama = insert_node(name="llama", value=None)
+                    insert_node_node(node_id=page, target_node_id=llama)
+                    insert_query(name="select_llama.sql", node_id=llama)
 
                 c.set_cookie("localhost", "llama", "chuck")
 
@@ -487,16 +511,17 @@ class SQL(ChillTestCase):
 
     def test_template(self):
         with self.app.app_context():
-            init_db()
-
-            a = insert_node(name="a", value=None)
-            add_template_for_node("template_a.html", a)
-            aa = insert_node(name="aa", value=None)
-            add_template_for_node("template_a.html", aa)
-            b = insert_node(name="b", value=None)
-            add_template_for_node("template_b.html", b)
-            c = insert_node(name="c", value=None)
-            add_template_for_node("template_c.html", c)
+            db = get_db()
+            with db:
+                init_db()
+                a = insert_node(name="a", value=None)
+                add_template_for_node("template_a.html", a)
+                aa = insert_node(name="aa", value=None)
+                add_template_for_node("template_a.html", aa)
+                b = insert_node(name="b", value=None)
+                add_template_for_node("template_b.html", b)
+                c = insert_node(name="c", value=None)
+                add_template_for_node("template_c.html", c)
 
             cur = db.cursor()
             result = cur.execute(
@@ -514,8 +539,9 @@ class SQL(ChillTestCase):
             assert len(result) == 1
             assert result[0] == "template_a.html"
 
-            # can overwrite what node is tied to what template
-            add_template_for_node("template_over_a.html", a)
+            with db:
+                # can overwrite what node is tied to what template
+                add_template_for_node("template_over_a.html", a)
 
             result = cur.execute(
                 fetch_query_string("select_template_from_node.sql"), {"node_id": a}
@@ -533,57 +559,58 @@ class SQL(ChillTestCase):
             assert result[0] == "template_a.html"
 
             cur.close()
-            db.commit()
 
     def test_delete_one_node(self):
         """
         Delete a node
         """
         with self.app.app_context():
-            init_db()
-            cur = db.cursor()
-            result = cur.execute(
-                fetch_query_string("insert_node.sql"), {"name": "a", "value": "apple"}
-            )
-            a = result.lastrowid
-            db.commit()
+            db = get_db()
+            with db:
+                init_db()
+                cur = db.cursor()
+                result = cur.execute(
+                    fetch_query_string("insert_node.sql"), {"name": "a", "value": "apple"}
+                )
+                a = result.lastrowid
 
             result = cur.execute(
                 fetch_query_string("select_node_from_id.sql"), {"node_id": a}
             ).fetchall()
-            db.commit()
             assert len(result) == 1
             r = result[0]
             assert a == r["node_id"]
             assert "a" == r["name"]
             assert "apple" == r["value"]
 
-            # now delete
-            delete_node(node_id=a)
+            with db:
+                # now delete
+                delete_node(node_id=a)
 
             result = cur.execute(
                 fetch_query_string("select_node_from_id.sql"), {"node_id": a}
             ).fetchall()
             assert len(result) == 0
             cur.close()
-            db.commit()
 
     def test_delete_node_with_link(self):
         """
         Delete a node also will delete from link
         """
         with self.app.app_context():
-            init_db()
-            a_id = insert_node(name="a", value=None)
-            b_id = insert_node(name="b", value=None)
-            c_id = insert_node(name="c", value="c")
-            d_id = insert_node(name="d", value="d")
+            db = get_db()
+            with db:
+                init_db()
+                a_id = insert_node(name="a", value=None)
+                b_id = insert_node(name="b", value=None)
+                c_id = insert_node(name="c", value="c")
+                d_id = insert_node(name="d", value="d")
 
-            # a -> c, b -> c
-            # a -> d
-            insert_node_node(node_id=a_id, target_node_id=c_id)
-            insert_node_node(node_id=a_id, target_node_id=d_id)
-            insert_node_node(node_id=b_id, target_node_id=c_id)
+                # a -> c, b -> c
+                # a -> d
+                insert_node_node(node_id=a_id, target_node_id=c_id)
+                insert_node_node(node_id=a_id, target_node_id=d_id)
+                insert_node_node(node_id=b_id, target_node_id=c_id)
 
             cur = db.cursor()
             result = cur.execute(
@@ -602,9 +629,9 @@ class SQL(ChillTestCase):
             assert d_id not in result
             assert a_id not in result
 
-            # now delete (should use the 'on delete cascade' sql bit)
-            cur.execute(fetch_query_string("delete_node_for_id.sql"), {"node_id": a_id})
-            db.commit()
+            with db:
+                # now delete (should use the 'on delete cascade' sql bit)
+                cur.execute(fetch_query_string("delete_node_for_id.sql"), {"node_id": a_id})
 
             result = cur.execute(
                 fetch_query_string("select_node_from_id.sql"), {"node_id": a_id}
@@ -623,12 +650,13 @@ class SQL(ChillTestCase):
 
             assert len(result) == 0
             cur.close()
-            db.commit()
 
     def test_select_node(self):
         with self.app.app_context():
-            init_db()
-            simple_id = insert_node(name="simple", value="test")
+            db = get_db()
+            with db:
+                init_db()
+                simple_id = insert_node(name="simple", value="test")
             result = select_node(node_id=simple_id)[0]
             assert set(result.keys()) == set(["name", "value", "node_id"])
             assert result["value"] == "test"
@@ -637,30 +665,31 @@ class SQL(ChillTestCase):
 
     def test_drop_chill_tables(self):
         with self.app.app_context():
-            init_db()
-            simple_id = insert_node(name="simple", value="test")
-            result = select_node(node_id=simple_id)[0]
+            db = get_db()
+            with db:
+                init_db()
+                simple_id = insert_node(name="simple", value="test")
+                result = select_node(node_id=simple_id)[0]
 
-            cur = db.cursor()
-            cur.execute("""
-                create table Test (
-                    id integer primary key,
-                    favorite_number integer not null,
-                    age integer not null
-                    );
-                """)
-            cur.execute(
-                """
-                insert into Test (
-                    favorite_number,
-                    age
-                    ) values (
-                    :favorite_number,
-                    :age
-                    );
-                """, {"favorite_number": 5, "age": 37}
-            )
-            db.commit()
+                cur = db.cursor()
+                cur.execute("""
+                    create table Test (
+                        id integer primary key,
+                        favorite_number integer not null,
+                        age integer not null
+                        );
+                    """)
+                cur.execute(
+                    """
+                    insert into Test (
+                        favorite_number,
+                        age
+                        ) values (
+                        :favorite_number,
+                        :age
+                        );
+                    """, {"favorite_number": 5, "age": 37}
+                )
             result_test_table = cur.execute(
                 """
                 select * from Test where favorite_number = :favorite_number;
@@ -675,7 +704,8 @@ class SQL(ChillTestCase):
             assert result["name"] == "simple"
             assert result["node_id"] == simple_id
 
-            drop_db()
+            with db:
+                drop_db()
             result_test_table = cur.execute(
                 """
                 select * from Test where favorite_number = :favorite_number;
@@ -699,11 +729,13 @@ class Query(ChillTestCase):
         """ """
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                # Not setting a value for a node
-                four_id = insert_node(name="empty", value=None)
-                insert_route(path="/empty/", node_id=four_id)
+                    # Not setting a value for a node
+                    four_id = insert_node(name="empty", value=None)
+                    insert_route(path="/empty/", node_id=four_id)
 
                 # When no value is set and no Query or Template is set
                 rv = c.get("/empty", follow_redirects=True)
@@ -720,12 +752,14 @@ class Query(ChillTestCase):
             )
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                simple_id = insert_node(name="simple", value=None)
-                insert_query(name="simple.sql", node_id=simple_id)
+                    simple_id = insert_node(name="simple", value=None)
+                    insert_query(name="simple.sql", node_id=simple_id)
 
-                insert_route(path="/simple/", node_id=simple_id)
+                    insert_route(path="/simple/", node_id=simple_id)
 
                 rv = c.get("/simple", follow_redirects=True)
                 assert 200 == rv.status_code
@@ -793,51 +827,56 @@ class Query(ChillTestCase):
         }
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
-                cur = db.cursor()
-                cur.execute(
-                    """
-                create table PromoAttr (
-                  node_id integer,
-                  abc integer,
-                  title varchar(255),
-                  description text
-                  );
-                """
-                )
-                db.commit()
-
-                page_id = insert_node(name="page1", value=None)
-                insert_route(path="/page1/", node_id=page_id)
-
-                pageattr_id = insert_node(name="pageattr", value=None)
-                insert_node_node(node_id=page_id, target_node_id=pageattr_id)
-                insert_query(name="select_pageattr.sql", node_id=pageattr_id)
-
-                mainmenu_id = insert_node(name="mainmenu", value=None)
-                insert_node_node(node_id=page_id, target_node_id=mainmenu_id)
-                insert_query(name="select_mainmenu.sql", node_id=mainmenu_id)
-                # Add some other pages that will be shown in menu as just links
-                insert_node(name="page2", value=None)
-                insert_node(name="page3", value=None)
-
-                promos_id = insert_node(name="promos", value=None)
-                insert_node_node(node_id=page_id, target_node_id=promos_id)
-                insert_query(name="select_promos.sql", node_id=promos_id)
-
-                for a in range(0, 100):
-                    a_id = insert_node(name="promo", value=None)
+                db = get_db()
+                with db:
+                    init_db()
+                    cur = db.cursor()
                     cur.execute(
-                        fetch_query_string("insert_promoattr.sql"),
-                        {
-                            "node_id": a_id,
-                            "title": "promo %i" % a,
-                            "description": "a" * a,
-                        },
+                        """
+                    create table PromoAttr (
+                      node_id integer,
+                      abc integer,
+                      title varchar(255),
+                      description text
+                      );
+                    """
                     )
-                    db.commit()
-                    # wire the promo to it's attr
-                    insert_query(name="select_promoattr.sql", node_id=a_id)
+
+                    page_id = insert_node(name="page1", value=None)
+                    insert_route(path="/page1/", node_id=page_id)
+
+                    pageattr_id = insert_node(name="pageattr", value=None)
+                    insert_node_node(node_id=page_id, target_node_id=pageattr_id)
+                    insert_query(name="select_pageattr.sql", node_id=pageattr_id)
+
+                    mainmenu_id = insert_node(name="mainmenu", value=None)
+                    insert_node_node(node_id=page_id, target_node_id=mainmenu_id)
+                    insert_query(name="select_mainmenu.sql", node_id=mainmenu_id)
+                    # Add some other pages that will be shown in menu as just links
+                    insert_node(name="page2", value=None)
+                    insert_node(name="page3", value=None)
+
+                    promos_id = insert_node(name="promos", value=None)
+                    insert_node_node(node_id=page_id, target_node_id=promos_id)
+                    insert_query(name="select_promos.sql", node_id=promos_id)
+
+                    for a in range(0, 100):
+                        a_id = insert_node(name="promo", value=None)
+                        cur.execute(
+                            fetch_query_string("insert_promoattr.sql"),
+                            {
+                                "node_id": a_id,
+                                "title": "promo %i" % a,
+                                "description": "a" * a,
+                            },
+                        )
+                        # wire the promo to it's attr
+                        insert_query(name="select_promoattr.sql", node_id=a_id)
+                    cur.close()
+
+                # Get a new db connection that is readonly
+                # self.app.config["database_readonly"] = True
+                # db_ro = get_db(self.app.config)
 
                 rv = c.get("/page1", follow_redirects=True)
                 self.app.logger.debug("data: %s", rv.data.decode("utf-8"))
@@ -847,8 +886,6 @@ class Query(ChillTestCase):
                 assert set(expected["pageattr"].keys()) == set(
                     rv_json["pageattr"].keys()
                 )
-                cur.close()
-                db.commit()
 
 
 class Template(ChillTestCase):
@@ -890,33 +927,37 @@ class Template(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                test_id = insert_node(name="test one", value="testing one")
-                insert_route(path="/test/1/", node_id=test_id)
-                add_template_for_node("template_a.html", test_id)
+                    test_id = insert_node(name="test one", value="testing one")
+                    insert_route(path="/test/1/", node_id=test_id)
+                    add_template_for_node("template_a.html", test_id)
 
                 rv = c.get("/test/1", follow_redirects=True)
                 assert b"testing one" in rv.data
 
-                a_id = insert_node(name="a", value="apple")
-                insert_route(path="/fruit/a/", node_id=a_id)
-                add_template_for_node("template_a.html", a_id)
+                with db:
+                    a_id = insert_node(name="a", value="apple")
+                    insert_route(path="/fruit/a/", node_id=a_id)
+                    add_template_for_node("template_a.html", a_id)
 
                 rv = c.get("/fruit/a", follow_redirects=True)
                 assert b"apple" in rv.data
                 assert b"template_a" in rv.data
 
-                b_id = insert_node(name="b", value="banana")
-                add_template_for_node("template_b.html", b_id)
-                o_id = insert_node(name="orange", value="orange")
-                add_template_for_node("template_b.html", o_id)
+                with db:
+                    b_id = insert_node(name="b", value="banana")
+                    add_template_for_node("template_b.html", b_id)
+                    o_id = insert_node(name="orange", value="orange")
+                    add_template_for_node("template_b.html", o_id)
 
-                eggplant_id = insert_node(name="eggplant", value="eggplant")
-                add_template_for_node("template_b.html", eggplant_id)
+                    eggplant_id = insert_node(name="eggplant", value="eggplant")
+                    add_template_for_node("template_b.html", eggplant_id)
 
-                # overwrite ( fruit/a use to be set to template_a.html )
-                add_template_for_node("template_b.html", a_id)
+                    # overwrite ( fruit/a use to be set to template_a.html )
+                    add_template_for_node("template_b.html", a_id)
 
                 rv = c.get("/fruit/a", follow_redirects=True)
                 assert b"apple" in rv.data
@@ -943,16 +984,18 @@ class Template(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                test_id = insert_node(name="page", value=None)
-                insert_route(path="/test/1/", node_id=test_id)
-                add_template_for_node("template_unicode.html", test_id)
+                    test_id = insert_node(name="page", value=None)
+                    insert_route(path="/test/1/", node_id=test_id)
+                    add_template_for_node("template_unicode.html", test_id)
 
-                isit = insert_node(name="isit", value=u"Àрpĺè")
-                add_template_for_node("isit.html", isit)
+                    isit = insert_node(name="isit", value=u"Àрpĺè")
+                    add_template_for_node("isit.html", isit)
 
-                insert_node_node(node_id=test_id, target_node_id=isit)
+                    insert_node_node(node_id=test_id, target_node_id=isit)
 
                 rv = c.get("/test/1/", follow_redirects=True)
                 assert u"Àрpĺè" in rv.data.decode("utf-8")
@@ -980,12 +1023,14 @@ class Template(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                a = insert_node(name="a", value=None)
-                insert_route(path="/a/<llama_name>/", node_id=a)
-                insert_query(name="select_llama.sql", node_id=a)
-                add_template_for_node("llama.html", a)
+                    a = insert_node(name="a", value=None)
+                    insert_route(path="/a/<llama_name>/", node_id=a)
+                    insert_query(name="select_llama.sql", node_id=a)
+                    add_template_for_node("llama.html", a)
 
                 rv = c.get("/a/chuck/", follow_redirects=True)
                 assert b"chuck" in rv.data
@@ -1005,11 +1050,13 @@ class Template(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                a = insert_node(name="a", value=None)
-                insert_route(path="/a/", node_id=a)
-                add_template_for_node("chill_now.html", a)
+                    a = insert_node(name="a", value=None)
+                    insert_route(path="/a/", node_id=a)
+                    add_template_for_node("chill_now.html", a)
 
                 rv = c.get("/a/", follow_redirects=True)
                 # self.app.logger.debug(rv.data)
@@ -1031,11 +1078,13 @@ class Filters(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                a = insert_node(name="a", value=None)
-                insert_route(path="/a/", node_id=a)
-                add_template_for_node("datetime.html", a)
+                    a = insert_node(name="a", value=None)
+                    insert_route(path="/a/", node_id=a)
+                    add_template_for_node("datetime.html", a)
 
                 rv = c.get("/a/", follow_redirects=True)
                 # self.app.logger.debug(rv.data)
@@ -1054,11 +1103,13 @@ class Filters(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                a = insert_node(name="a", value=None)
-                insert_route(path="/a/", node_id=a)
-                add_template_for_node("timedelta.html", a)
+                    a = insert_node(name="a", value=None)
+                    insert_route(path="/a/", node_id=a)
+                    add_template_for_node("timedelta.html", a)
 
                 rv = c.get("/a/", follow_redirects=True)
                 # self.app.logger.debug(rv.data)
@@ -1092,12 +1143,14 @@ class Documents(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
-                a = insert_node(name="simplefilename", value="imasimplefile.txt")
-                apage = insert_node(name="apage", value=None)
-                insert_node_node(node_id=apage, target_node_id=a)
-                insert_route(path="/a/", node_id=apage)
-                add_template_for_node("template.html", apage)
+                db = get_db()
+                with db:
+                    init_db()
+                    a = insert_node(name="simplefilename", value="imasimplefile.txt")
+                    apage = insert_node(name="apage", value=None)
+                    insert_node_node(node_id=apage, target_node_id=a)
+                    insert_route(path="/a/", node_id=apage)
+                    add_template_for_node("template.html", apage)
 
                 rv = c.get("/a/", follow_redirects=True)
                 assert b"imasimplefile.txt" in rv.data
@@ -1125,12 +1178,14 @@ class Documents(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
-                a = insert_node(name="simplefilename", value="imasimplefile.txt")
-                apage = insert_node(name="apage", value=None)
-                insert_node_node(node_id=apage, target_node_id=a)
-                insert_route(path="/a/", node_id=apage)
-                add_template_for_node("template.html", apage)
+                db = get_db()
+                with db:
+                    init_db()
+                    a = insert_node(name="simplefilename", value="imasimplefile.txt")
+                    apage = insert_node(name="apage", value=None)
+                    insert_node_node(node_id=apage, target_node_id=a)
+                    insert_route(path="/a/", node_id=apage)
+                    add_template_for_node("template.html", apage)
 
                 rv = c.get("/a/", follow_redirects=True)
                 assert b"Hello" in rv.data
@@ -1161,20 +1216,22 @@ class Documents(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                catimg = insert_node(
-                    name="acat", value="<img alt='a picture of a cat'/>"
-                )
-                insert_route(path="/cat/picture/", node_id=catimg)
+                    catimg = insert_node(
+                        name="acat", value="<img alt='a picture of a cat'/>"
+                    )
+                    insert_route(path="/cat/picture/", node_id=catimg)
 
-                a = insert_node(
-                    name="simplefilename", value="imasimplefilewithunicode.txt"
-                )
-                apage = insert_node(name="apage", value=None)
-                insert_node_node(node_id=apage, target_node_id=a)
-                insert_route(path="/a/", node_id=apage)
-                add_template_for_node("template.html", apage)
+                    a = insert_node(
+                        name="simplefilename", value="imasimplefilewithunicode.txt"
+                    )
+                    apage = insert_node(name="apage", value=None)
+                    insert_node_node(node_id=apage, target_node_id=a)
+                    insert_route(path="/a/", node_id=apage)
+                    add_template_for_node("template.html", apage)
 
                 rv = c.get("/a/", follow_redirects=True)
                 assert bytes("Àрpĺè", "utf-8") in rv.data
@@ -1256,12 +1313,14 @@ Spain.</p>"""
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
-                a = insert_node(name="simplefilename", value="imasimplefile.md")
-                apage = insert_node(name="apage", value=None)
-                insert_node_node(node_id=apage, target_node_id=a)
-                insert_route(path="/a/", node_id=apage)
-                add_template_for_node("template.html", apage)
+                db = get_db()
+                with db:
+                    init_db()
+                    a = insert_node(name="simplefilename", value="imasimplefile.md")
+                    apage = insert_node(name="apage", value=None)
+                    insert_node_node(node_id=apage, target_node_id=a)
+                    insert_route(path="/a/", node_id=apage)
+                    add_template_for_node("template.html", apage)
 
                 rv = c.get("/a/", follow_redirects=True)
                 # self.app.logger.debug('data: %s', rv.data.decode('utf-8'))
@@ -1289,21 +1348,23 @@ class ShortcodeRoute(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                page = insert_node(name="page", value=None)
-                insert_route(path="/", node_id=page)
-                add_template_for_node("simple.html", page)
+                    page = insert_node(name="page", value=None)
+                    insert_route(path="/", node_id=page)
+                    add_template_for_node("simple.html", page)
 
-                catimg = insert_node(
-                    name="acat", value="<img alt='a picture of a cat'/>"
-                )
-                insert_route(path="/cat/picture/", node_id=catimg)
+                    catimg = insert_node(
+                        name="acat", value="<img alt='a picture of a cat'/>"
+                    )
+                    insert_route(path="/cat/picture/", node_id=catimg)
 
-                text = "something [chill route /cat/picture/ ] [blah blah[chill route /dog/pic] the end"
-                textnode = insert_node(name="cat", value=text)
+                    text = "something [chill route /cat/picture/ ] [blah blah[chill route /dog/pic] the end"
+                    textnode = insert_node(name="cat", value=text)
 
-                insert_node_node(node_id=page, target_node_id=textnode)
+                    insert_node_node(node_id=page, target_node_id=textnode)
 
                 rv = c.get("/", follow_redirects=True)
                 assert (
@@ -1334,19 +1395,21 @@ class ShortcodeRoute(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                page = insert_node(name="page", value=None)
-                insert_route(path="/", node_id=page)
-                add_template_for_node("simple.html", page)
+                    page = insert_node(name="page", value=None)
+                    insert_route(path="/", node_id=page)
+                    add_template_for_node("simple.html", page)
 
-                catimg = insert_node(name="acat", value=u"Àрpĺè")
-                insert_route(path="/cat/picture/", node_id=catimg)
+                    catimg = insert_node(name="acat", value=u"Àрpĺè")
+                    insert_route(path="/cat/picture/", node_id=catimg)
 
-                text = "something [chill route /cat/picture/ ] [blah blah[chill route /dog/pic] the end"
-                textnode = insert_node(name="cat", value=text)
+                    text = "something [chill route /cat/picture/ ] [blah blah[chill route /dog/pic] the end"
+                    textnode = insert_node(name="cat", value=text)
 
-                insert_node_node(node_id=page, target_node_id=textnode)
+                    insert_node_node(node_id=page, target_node_id=textnode)
 
                 rv = c.get("/", follow_redirects=True)
                 assert (
@@ -1382,19 +1445,21 @@ class ShortcodePageURI(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                page = insert_node(name="page", value=None)
-                insert_route(path="/", node_id=page)
-                add_template_for_node("simple.html", page)
+                    page = insert_node(name="page", value=None)
+                    insert_route(path="/", node_id=page)
+                    add_template_for_node("simple.html", page)
 
-                catpage = insert_node(name="acat", value="a page for cat")
-                insert_route(path="/cat/", node_id=catpage)
+                    catpage = insert_node(name="acat", value="a page for cat")
+                    insert_route(path="/cat/", node_id=catpage)
 
-                text = "something link for cat page that does exist = '[chill page_uri cat ]' link for dog that does not exist = '[chill page_uri dog]'"
-                textnode = insert_node(name="cat", value=text)
+                    text = "something link for cat page that does exist = '[chill page_uri cat ]' link for dog that does not exist = '[chill page_uri dog]'"
+                    textnode = insert_node(name="cat", value=text)
 
-                insert_node_node(node_id=page, target_node_id=textnode)
+                    insert_node_node(node_id=page, target_node_id=textnode)
 
                 rv = c.get("/", follow_redirects=True)
                 assert (
@@ -1429,25 +1494,26 @@ class PostMethod(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
-                cur = db.cursor()
-                cur.execute(
+                db = get_db()
+                with db:
+                    init_db()
+                    cur = db.cursor()
+                    cur.execute(
+                        """
+                    create table Llama (
+                      llama_name varchar(255),
+                      location varchar(255),
+                      description text
+                      );
                     """
-                create table Llama (
-                  llama_name varchar(255),
-                  location varchar(255),
-                  description text
-                  );
-                """
-                )
-                cur.close()
-                db.commit()
+                    )
+                    cur.close()
 
-                llamas_id = insert_node(name="llamas", value=None)
-                insert_route(
-                    path="/api/llamas/", node_id=llamas_id, weight=1, method="POST"
-                )
-                insert_query(name="insert_llama.sql", node_id=llamas_id)
+                    llamas_id = insert_node(name="llamas", value=None)
+                    insert_route(
+                        path="/api/llamas/", node_id=llamas_id, weight=1, method="POST"
+                    )
+                    insert_query(name="insert_llama.sql", node_id=llamas_id)
 
                 llama_1 = {
                     "llama_name": "Rocky",
@@ -1465,13 +1531,14 @@ class PostMethod(ChillTestCase):
                 rv = c.post("/api/llamas/", data=llama_2)
                 assert 201 == rv.status_code
 
-                select_llama = insert_node(name="llamas", value=None)
-                insert_route(
-                    path="/api/llamas/name/<llama_name>/",
-                    node_id=select_llama,
-                    weight=1,
-                )
-                insert_query(name="select_llama.sql", node_id=select_llama)
+                with db:
+                    select_llama = insert_node(name="llamas", value=None)
+                    insert_route(
+                        path="/api/llamas/name/<llama_name>/",
+                        node_id=select_llama,
+                        weight=1,
+                    )
+                    insert_query(name="select_llama.sql", node_id=select_llama)
 
                 rv = c.get("/api/llamas/name/Rocky/", follow_redirects=True)
                 rv_json = json.loads(rv.data)
@@ -1503,28 +1570,29 @@ class PutMethod(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
-                cur = db.cursor()
-                cur.execute(
+                db = get_db()
+                with db:
+                    init_db()
+                    cur = db.cursor()
+                    cur.execute(
+                        """
+                    create table Llama (
+                      llama_name varchar(255),
+                      location varchar(255),
+                      description text
+                      );
                     """
-                create table Llama (
-                  llama_name varchar(255),
-                  location varchar(255),
-                  description text
-                  );
-                """
-                )
-                cur.close()
-                db.commit()
+                    )
+                    cur.close()
 
-                llamas_id = insert_node(name="llamas", value=None)
-                insert_route(
-                    path="/api/llamas/name/<llama_name>/",
-                    node_id=llamas_id,
-                    weight=1,
-                    method="PUT",
-                )
-                insert_query(name="insert_llama.sql", node_id=llamas_id)
+                    llamas_id = insert_node(name="llamas", value=None)
+                    insert_route(
+                        path="/api/llamas/name/<llama_name>/",
+                        node_id=llamas_id,
+                        weight=1,
+                        method="PUT",
+                    )
+                    insert_query(name="insert_llama.sql", node_id=llamas_id)
 
                 llama_1 = {
                     "llama_name": "Socky",
@@ -1534,13 +1602,14 @@ class PutMethod(ChillTestCase):
                 rv = c.put("/api/llamas/name/Socky/", data=llama_1)
                 assert 201 == rv.status_code
 
-                select_llama = insert_node(name="llamas", value=None)
-                insert_route(
-                    path="/api/llamas/name/<llama_name>/",
-                    node_id=select_llama,
-                    weight=1,
-                )
-                insert_query(name="select_llama.sql", node_id=select_llama)
+                with db:
+                    select_llama = insert_node(name="llamas", value=None)
+                    insert_route(
+                        path="/api/llamas/name/<llama_name>/",
+                        node_id=select_llama,
+                        weight=1,
+                    )
+                    insert_query(name="select_llama.sql", node_id=select_llama)
 
                 rv = c.get("/api/llamas/name/Socky/", follow_redirects=True)
                 rv_json = json.loads(rv.data)
@@ -1567,34 +1636,35 @@ class PatchMethod(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
-                cur = db.cursor()
-                cur.execute(
+                db = get_db()
+                with db:
+                    init_db()
+                    cur = db.cursor()
+                    cur.execute(
+                        """
+                    create table Llama (
+                      llama_name varchar(255),
+                      location varchar(255),
+                      description text
+                      );
                     """
-                create table Llama (
-                  llama_name varchar(255),
-                  location varchar(255),
-                  description text
-                  );
-                """
-                )
+                    )
 
-                cur.execute(
+                    cur.execute(
+                        """
+                      insert into Llama (llama_name) values ('Pocky');
                     """
-                  insert into Llama (llama_name) values ('Pocky');
-                """
-                )
-                cur.close()
-                db.commit()
+                    )
+                    cur.close()
 
-                llamas_id = insert_node(name="llamas", value=None)
-                insert_route(
-                    path="/api/llamas/name/<llama_name>/",
-                    node_id=llamas_id,
-                    weight=1,
-                    method="PATCH",
-                )
-                insert_query(name="update_llama.sql", node_id=llamas_id)
+                    llamas_id = insert_node(name="llamas", value=None)
+                    insert_route(
+                        path="/api/llamas/name/<llama_name>/",
+                        node_id=llamas_id,
+                        weight=1,
+                        method="PATCH",
+                    )
+                    insert_query(name="update_llama.sql", node_id=llamas_id)
 
                 llama_1 = {
                     "llama_name": "Pocky",
@@ -1604,13 +1674,14 @@ class PatchMethod(ChillTestCase):
                 rv = c.patch("/api/llamas/name/Pocky/", data=llama_1)
                 assert 201 == rv.status_code
 
-                select_llama = insert_node(name="llamas", value=None)
-                insert_route(
-                    path="/api/llamas/name/<llama_name>/",
-                    node_id=select_llama,
-                    weight=1,
-                )
-                insert_query(name="select_llama.sql", node_id=select_llama)
+                with db:
+                    select_llama = insert_node(name="llamas", value=None)
+                    insert_route(
+                        path="/api/llamas/name/<llama_name>/",
+                        node_id=select_llama,
+                        weight=1,
+                    )
+                    insert_query(name="select_llama.sql", node_id=select_llama)
 
                 rv = c.get("/api/llamas/name/Pocky/", follow_redirects=True)
                 rv_json = json.loads(rv.data)
@@ -1637,42 +1708,43 @@ class DeleteMethod(ChillTestCase):
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
-                cur = db.cursor()
-                cur.execute(
+                db = get_db()
+                with db:
+                    init_db()
+                    cur = db.cursor()
+                    cur.execute(
+                        """
+                    create table Llama (
+                      llama_name varchar(255),
+                      location varchar(255),
+                      description text
+                      );
                     """
-                create table Llama (
-                  llama_name varchar(255),
-                  location varchar(255),
-                  description text
-                  );
-                """
-                )
+                    )
 
-                cur.execute(
+                    cur.execute(
+                        """
+                      insert into Llama (llama_name, location, description) values ('Docky', 'somewhere', 'damaged');
                     """
-                  insert into Llama (llama_name, location, description) values ('Docky', 'somewhere', 'damaged');
-                """
-                )
-                cur.close()
-                db.commit()
+                    )
+                    cur.close()
 
-                select_llama = insert_node(name="llamas", value=None)
-                insert_route(
-                    path="/api/llamas/name/<llama_name>/",
-                    node_id=select_llama,
-                    weight=1,
-                )
-                insert_query(name="select_llama.sql", node_id=select_llama)
+                    select_llama = insert_node(name="llamas", value=None)
+                    insert_route(
+                        path="/api/llamas/name/<llama_name>/",
+                        node_id=select_llama,
+                        weight=1,
+                    )
+                    insert_query(name="select_llama.sql", node_id=select_llama)
 
-                llamas_id = insert_node(name="llamas", value=None)
-                insert_route(
-                    path="/api/llamas/name/<llama_name>/",
-                    node_id=llamas_id,
-                    weight=1,
-                    method="DELETE",
-                )
-                insert_query(name="delete_llama.sql", node_id=llamas_id)
+                    llamas_id = insert_node(name="llamas", value=None)
+                    insert_route(
+                        path="/api/llamas/name/<llama_name>/",
+                        node_id=llamas_id,
+                        weight=1,
+                        method="DELETE",
+                    )
+                    insert_query(name="delete_llama.sql", node_id=llamas_id)
 
                 rv = c.get("/api/llamas/name/Docky/", follow_redirects=True)
                 assert 200 == rv.status_code
@@ -1696,7 +1768,7 @@ class YAMLChillNode(ChillTestCase):
             documents = yaml.safe_load_all(contents)
             for item in documents:
                 self.app.logger.debug("check_dump {}".format(item))
-                assert isinstance(item, ChillNode) == True
+                assert isinstance(item, ChillNode) is True
 
                 if isinstance(expected_chill_nodes, list):
                     match = expected_chill_nodes.pop(
@@ -1723,7 +1795,9 @@ value: "simple string value"
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -1760,7 +1834,9 @@ value: "another string value"
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -1800,7 +1876,9 @@ value: get-total-count.sql
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -1855,19 +1933,20 @@ value: select_llama.sql
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
-                cur = db.cursor()
-                cur.execute(
+                db = get_db()
+                with db:
+                    init_db()
+                    cur = db.cursor()
+                    cur.execute(
+                        """
+                    create table Llama (
+                      llama_name varchar(255),
+                      location varchar(255),
+                      description text
+                      );
                     """
-                create table Llama (
-                  llama_name varchar(255),
-                  location varchar(255),
-                  description text
-                  );
-                """
-                )
-                cur.close()
-                db.commit()
+                    )
+                    cur.close()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -1928,7 +2007,9 @@ value: "simple"
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -1961,7 +2042,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -1994,7 +2077,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2024,7 +2109,9 @@ value: Yes
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 try:
                     load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
@@ -2053,7 +2140,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 try:
                     load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
@@ -2083,7 +2172,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 try:
                     load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
@@ -2111,7 +2202,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 try:
                     load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
@@ -2140,7 +2233,9 @@ value: None
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 try:
                     load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
@@ -2173,7 +2268,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2211,7 +2308,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2256,7 +2355,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2311,7 +2412,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2365,7 +2468,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2419,7 +2524,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2466,29 +2573,30 @@ value: get-list-of-animals.sql
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
-                cur = db.cursor()
-                cur.execute(
+                    cur = db.cursor()
+                    cur.execute(
+                        """
+                    create table Animal (
+                      id integer,
+                      name varchar(30),
+                      description text
+                      );
                     """
-                create table Animal (
-                  id integer,
-                  name varchar(30),
-                  description text
-                  );
-                """
-                )
-                cur.execute(
-                    "insert into Animal (name, description) values ('horse', '4 legged furry thing');"
-                )
-                cur.execute(
-                    "insert into Animal (name, description) values ('llama', 'furry thing with four legs');"
-                )
-                cur.execute(
-                    "insert into Animal (name, description) values ('cow', 'a furry thing that also has 4 legs');"
-                )
-                cur.close()
-                db.commit()
+                    )
+                    cur.execute(
+                        "insert into Animal (name, description) values ('horse', '4 legged furry thing');"
+                    )
+                    cur.execute(
+                        "insert into Animal (name, description) values ('llama', 'furry thing with four legs');"
+                    )
+                    cur.execute(
+                        "insert into Animal (name, description) values ('cow', 'a furry thing that also has 4 legs');"
+                    )
+                    cur.close()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2532,7 +2640,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2572,7 +2682,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 
@@ -2655,7 +2767,9 @@ value:
 
         with self.app.app_context():
             with self.app.test_client() as c:
-                init_db()
+                db = get_db()
+                with db:
+                    init_db()
 
                 load_yaml(os.path.join(self.tmp_template_dir, "test-data.yaml"))
 

@@ -7,22 +7,18 @@ from werkzeug.exceptions import HTTPException
 
 from flask import (
     abort,
-    redirect,
-    Blueprint,
     current_app,
-    render_template,
     json,
     request,
     make_response,
-    app,
     url_for,
 )
 from flask.views import MethodView
 
-from chill.app import db
-from chill.database import fetch_query_string, serialize_sqlite3_results
+from chill.database import get_db, fetch_query_string, serialize_sqlite3_results
 from chill.api import render_node, _query
 from chill import shortcodes
+
 
 # def get_map_adapter():
 #    map_adapter = getattr(
@@ -33,17 +29,16 @@ def check_map(uri, url_root):
     """
     # TODO: Building the Map each time this is called seems like it could be more effiecent.
     result = []
+    db = get_db()
     try:
         cur = db.cursor()
         result = cur.execute(
             fetch_query_string("select_route_where_dynamic.sql")
         ).fetchall()
         cur.close()
-        db.commit()
     except sqlite3.OperationalError as err:
         current_app.logger.error("OperationalError: %s", err)
         cur.close()
-        db.commit()
         return (None, None)
     if result:
         # routes = result.as_dict()
@@ -80,6 +75,7 @@ def node_from_uri(uri, method="GET"):
     select_node_from_route = fetch_query_string("select_node_from_route.sql")
 
     result = None
+    db = get_db()
     cur = db.cursor()
     try:
         result = cur.execute(
@@ -104,7 +100,6 @@ def node_from_uri(uri, method="GET"):
                 current_app.logger.error("DatabaseError: %s", err)
 
     cur.close()
-    db.commit()
     return (result, rule_kw)
 
 
@@ -129,8 +124,9 @@ class PageView(MethodView):
         "For sql queries that start with 'SELECT ...'"
         (node, rule_kw) = node_from_uri(uri)
 
-        if node == None:
+        if node is None:
             abort(404)
+
         rule_kw.update(node)
         values = rule_kw
         xhr_data = request.get_json(silent=True)
@@ -162,7 +158,7 @@ class PageView(MethodView):
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
-        if node == None:
+        if node is None:
             abort(404)
 
         rule_kw.update(node)
@@ -185,7 +181,7 @@ class PageView(MethodView):
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
-        if node == None:
+        if node is None:
             abort(404)
 
         rule_kw.update(node)
@@ -208,7 +204,7 @@ class PageView(MethodView):
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
-        if node == None:
+        if node is None:
             abort(404)
 
         rule_kw.update(node)
@@ -231,7 +227,7 @@ class PageView(MethodView):
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
-        if node == None:
+        if node is None:
             abort(404)
 
         rule_kw.update(node)
@@ -263,7 +259,7 @@ def route_handler(context, content, pargs, kwargs):
     """
     (node, rule_kw) = node_from_uri(pargs[0])
 
-    if node == None:
+    if node is None:
         return u"<!-- 404 '{0}' -->".format(pargs[0])
 
     rule_kw.update(node)

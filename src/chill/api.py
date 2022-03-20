@@ -2,8 +2,7 @@ import sqlite3
 
 from flask import current_app, render_template
 
-from chill.app import db
-from chill.database import fetch_query_string, serialize_sqlite3_results
+from chill.database import get_db, fetch_query_string, serialize_sqlite3_results
 
 
 def _short_circuit(value=None):
@@ -55,6 +54,7 @@ def _short_circuit(value=None):
 def _query(_node_id, value=None, **kw):
     "Look up value by using Query table"
     query_result = []
+    db = get_db()
     cur = db.cursor()
     try:
         query_result = cur.execute(
@@ -63,7 +63,6 @@ def _query(_node_id, value=None, **kw):
     except sqlite3.DatabaseError as err:
         current_app.logger.error("DatabaseError: %s, %s", err, kw)
         cur.close()
-        db.commit()
         return value
     # current_app.logger.debug("queries kw: %s", kw)
     # current_app.logger.debug("queries value: %s", value)
@@ -103,12 +102,16 @@ def _query(_node_id, value=None, **kw):
         value = values
     # current_app.logger.debug("value: %s", value)
     cur.close()
-    db.commit()
+    if not current_app.config.get("database_readonly"):
+        # Only need to commit a transaction if the database is not in read only
+        # mode.
+        db.commit()
     return value
 
 
 def _template(node_id, value=None):
     "Check if a template is assigned to it and render that with the value"
+    db = get_db()
     if value:
         value = serialize_sqlite3_results(value)
     result = []
@@ -118,7 +121,6 @@ def _template(node_id, value=None):
         result = cur.execute(select_template_from_node, {"node_id": node_id})
         template_result = result.fetchone()
         cur.close()
-        db.commit()
         if template_result and template_result["name"]:
             template = template_result["name"]
 

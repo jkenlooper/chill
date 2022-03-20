@@ -5,13 +5,20 @@ uses some of the helper functions from chill.database. One of them is the
 `insert_node` function which simply inserts a name and value to the `Node`
 database table.
 
-    from chill.app import make_app, db
-    from chill.database import insert_node
+    from chill.app import make_app
+    from chill.database import (
+        get_db, insert_node, insert_route, insert_query,
+        add_template_for_node, insert_node_node)
 
     app = make_app(config='site.cfg', DEBUG=True)
 
     with app.app_context():
+        db = get_db()
         testnode = insert_node(name='testnode', value='just testing')
+
+        # ...insert_route and other calls that modify the database.
+
+        # Do a commit here since the insert_node modifies the database.
         db.commit()
 
 The following code creates a simple homepage that uses a template and is
