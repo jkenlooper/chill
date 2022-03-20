@@ -36,7 +36,6 @@ from gevent import monkey
 
 monkey.patch_all()
 
-from builtins import map
 import os
 import subprocess
 import sqlite3

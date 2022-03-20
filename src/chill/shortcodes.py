@@ -48,17 +48,12 @@ Author: Darren Mulholland <dmulholland@outlook.ie>
 License: This work has been placed in the public domain.
 
 """
-from __future__ import print_function
 
-from builtins import bytes
-from builtins import str
-from builtins import object
 
 __version__ = "2.0.1"
 
 
 import re
-import sys
 
 
 # Stores registered shortcode functions indexed by tag.

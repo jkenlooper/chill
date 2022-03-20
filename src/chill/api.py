@@ -1,10 +1,9 @@
-from __future__ import absolute_import
 import sqlite3
 
 from flask import current_app, render_template
 
 from chill.app import db
-from .database import fetch_query_string, serialize_sqlite3_results
+from chill.database import fetch_query_string, serialize_sqlite3_results
 
 
 def _short_circuit(value=None):

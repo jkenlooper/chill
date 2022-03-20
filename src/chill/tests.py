@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from builtins import range, bytes
 import unittest
 import tempfile
 import os

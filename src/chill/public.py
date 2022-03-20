@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from builtins import str
 import os
 import os.path
 import sqlite3
@@ -22,9 +20,9 @@ from flask import (
 from flask.views import MethodView
 
 from chill.app import db
-from .database import fetch_query_string, serialize_sqlite3_results
-from .api import render_node, _query
-from . import shortcodes
+from chill.database import fetch_query_string, serialize_sqlite3_results
+from chill.api import render_node, _query
+from chill import shortcodes
 
 # def get_map_adapter():
 #    map_adapter = getattr(

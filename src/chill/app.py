@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-from builtins import bytes
 import os
 import time
 import sqlite3
@@ -12,7 +10,7 @@ from jinja2 import FileSystemLoader
 from babel import dates
 from humanize import naturaltime
 
-from . import shortcodes
+from chill import shortcodes
 
 
 class ChillFlask(Flask):
