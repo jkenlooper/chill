@@ -1646,6 +1646,76 @@ class PostMethod(ChillTestCase):
                 assert set(llama_2.keys()) == set(rv_json.keys())
                 assert set(llama_2.values()) == set(rv_json.values())
 
+    def test_replace_of_method_value(self):
+        """The 'method' value is not able to be changed in chill."""
+        with open(os.path.join(self.tmp_template_dir, "insert_llama.sql"), "w") as f:
+            f.write(
+                """
+                insert into Llama (llama_name, location, description, method) values (:llama_name, :location, :description, :method);
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
+            f.write(
+                """
+              select * from Llama
+              where llama_name = :llama_name;
+              """
+            )
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                db = get_db()
+                with db:
+                    init_db()
+                    cur = db.cursor()
+                    # The database table has a 'method' column which will not be
+                    # compatible with chill and the current insert_llama.sql
+                    # query.
+                    cur.execute(
+                        """
+                    create table Llama (
+                      llama_name varchar(255),
+                      location varchar(255),
+                      description text,
+                      method varchar(255)
+                      );
+                    """
+                    )
+                    cur.close()
+
+                    llamas_id = insert_node(name="llamas", value=None)
+                    insert_route(
+                        path="/api/llamas/", node_id=llamas_id, weight=1, method="POST"
+                    )
+                    insert_query(name="insert_llama.sql", node_id=llamas_id)
+
+                llama_1 = {
+                    "llama_name": "Rocky",
+                    "location": "unknown",
+                    "description": "first llama",
+                    "method": "Tie llama to POST",
+                }
+                rv = c.post("/api/llamas/", data=llama_1)
+                assert 400 == rv.status_code
+
+                llama_2 = {
+                    "llama_name": "Nocky",
+                    "location": "unknown",
+                    "description": "second llama",
+                    "method": "POST",
+                }
+                rv = c.post("/api/llamas/", data=llama_2)
+                assert 400 == rv.status_code
+
+                llama_3 = {
+                    "llama_name": "Nocky",
+                    "location": "unknown",
+                    "description": "second llama",
+                    "method": "GET",
+                }
+                rv = c.post("/api/llamas/", data=llama_3)
+                assert 400 == rv.status_code
+
 
 class PutMethod(ChillTestCase):
     def test_a(self):

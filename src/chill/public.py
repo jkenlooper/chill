@@ -129,12 +129,18 @@ class PageView(MethodView):
 
         rule_kw.update(node)
         values = rule_kw
+        if "method" in values.keys():
+            abort(500)
+
         xhr_data = request.get_json(silent=True)
         if xhr_data:
             values.update(xhr_data)
         values.update(request.form.to_dict(flat=True))
         values.update(request.args.to_dict(flat=True))
         values.update(request.cookies)
+        if "method" in values.keys():
+            abort(400)
+
         values["method"] = request.method
         noderequest = values.copy()
         noderequest.pop("node_id")
@@ -157,7 +163,9 @@ class PageView(MethodView):
         "For sql queries that start with 'INSERT ...'"
 
         if current_app.config.get("database_readonly"):
-            current_app.logger.warning(f"Can't handle {request.method} request method for {uri} when database is read only")
+            current_app.logger.warning(
+                f"Can't handle {request.method} request method for {uri} when database is read only"
+            )
             abort(400)
 
         # get node...
@@ -167,11 +175,16 @@ class PageView(MethodView):
 
         rule_kw.update(node)
         values = rule_kw
+        if "method" in values.keys():
+            abort(500)
         xhr_data = request.get_json(silent=True)
         if xhr_data:
             values.update(xhr_data)
         values.update(request.form.to_dict(flat=True))
         values.update(request.args.to_dict(flat=True))
+
+        if "method" in values.keys():
+            abort(400)
         values["method"] = request.method
 
         # Execute the sql query with the data
@@ -184,7 +197,9 @@ class PageView(MethodView):
         "For sql queries that start with 'INSERT ...' or 'UPDATE ...'"
 
         if current_app.config.get("database_readonly"):
-            current_app.logger.warning(f"Can't handle {request.method} request method for {uri} when database is read only")
+            current_app.logger.warning(
+                f"Can't handle {request.method} request method for {uri} when database is read only"
+            )
             abort(400)
 
         # get node...
@@ -194,11 +209,17 @@ class PageView(MethodView):
 
         rule_kw.update(node)
         values = rule_kw
+        if "method" in values.keys():
+            abort(500)
+
         xhr_data = request.get_json(silent=True)
         if xhr_data:
             values.update(xhr_data)
         values.update(request.form.to_dict(flat=True))
         values.update(request.args.to_dict(flat=True))
+
+        if "method" in values.keys():
+            abort(400)
         values["method"] = request.method
 
         # Execute the sql query with the data
@@ -211,7 +232,9 @@ class PageView(MethodView):
         "For sql queries that start with 'UPDATE ...'"
 
         if current_app.config.get("database_readonly"):
-            current_app.logger.warning(f"Can't handle {request.method} request method for {uri} when database is read only")
+            current_app.logger.warning(
+                f"Can't handle {request.method} request method for {uri} when database is read only"
+            )
             abort(400)
 
         # get node...
@@ -221,11 +244,17 @@ class PageView(MethodView):
 
         rule_kw.update(node)
         values = rule_kw
+        if "method" in values.keys():
+            abort(500)
+
         xhr_data = request.get_json(silent=True)
         if xhr_data:
             values.update(xhr_data)
         values.update(request.form.to_dict(flat=True))
         values.update(request.args.to_dict(flat=True))
+
+        if "method" in values.keys():
+            abort(400)
         values["method"] = request.method
 
         # Execute the sql query with the data
@@ -238,7 +267,9 @@ class PageView(MethodView):
         "For sql queries that start with 'DELETE from ...'"
 
         if current_app.config.get("database_readonly"):
-            current_app.logger.warning(f"Can't handle {request.method} request method for {uri} when database is read only")
+            current_app.logger.warning(
+                f"Can't handle {request.method} request method for {uri} when database is read only"
+            )
             abort(400)
 
         # get node...
@@ -248,11 +279,17 @@ class PageView(MethodView):
 
         rule_kw.update(node)
         values = rule_kw
+        if "method" in values.keys():
+            abort(500)
+
         xhr_data = request.get_json(silent=True)
         if xhr_data:
             values.update(xhr_data)
         values.update(request.form.to_dict(flat=True))
         values.update(request.args.to_dict(flat=True))
+
+        if "method" in values.keys():
+            abort(400)
         values["method"] = request.method
 
         # Execute the sql query with the data
@@ -276,7 +313,7 @@ def route_handler(context, content, pargs, kwargs):
     (node, rule_kw) = node_from_uri(pargs[0])
 
     if node is None:
-        return u"<!-- 404 '{0}' -->".format(pargs[0])
+        return "<!-- 404 '{0}' -->".format(pargs[0])
 
     rule_kw.update(node)
     values = rule_kw

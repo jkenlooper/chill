@@ -53,6 +53,11 @@ def _short_circuit(value=None):
 
 def _query(_node_id, value=None, **kw):
     "Look up value by using Query table"
+    readonly_query = (
+        False if kw["method"] in ("POST", "PUT", "PATCH", "DELETE") else True
+    )
+    if current_app.config.get("database_readonly") and not readonly_query:
+        raise Exception("Database is currently readonly, but started processing a query method that was not readonly")
     query_result = []
     db = get_db()
     cur = db.cursor()
@@ -102,10 +107,15 @@ def _query(_node_id, value=None, **kw):
         value = values
     # current_app.logger.debug("value: %s", value)
     cur.close()
+
+    if readonly_query and db.in_transaction:
+        current_app.logger.error("There are uncommitted changes to db when query should have been readonly")
+        raise Exception("There are uncommitted changes to db when query should have been readonly")
     if not current_app.config.get("database_readonly"):
         # Only need to commit a transaction if the database is not in read only
         # mode.
         db.commit()
+
     return value
 
 
@@ -139,6 +149,7 @@ def render_node(_node_id, value=None, noderequest={}, **kw):
     "Recursively render a node's value"
     if value is None:
         kw.update(noderequest)
+        kw["method"] = "GET"
         results = _query(_node_id, **kw)
         current_app.logger.debug("render_node results: %s", results)
         if results:
