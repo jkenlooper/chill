@@ -156,6 +156,10 @@ class PageView(MethodView):
     def post(self, uri=""):
         "For sql queries that start with 'INSERT ...'"
 
+        if current_app.config.get("database_readonly"):
+            current_app.logger.warning(f"Can't handle {request.method} request method for {uri} when database is read only")
+            abort(400)
+
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
         if node is None:
@@ -178,6 +182,10 @@ class PageView(MethodView):
 
     def put(self, uri=""):
         "For sql queries that start with 'INSERT ...' or 'UPDATE ...'"
+
+        if current_app.config.get("database_readonly"):
+            current_app.logger.warning(f"Can't handle {request.method} request method for {uri} when database is read only")
+            abort(400)
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
@@ -202,6 +210,10 @@ class PageView(MethodView):
     def patch(self, uri=""):
         "For sql queries that start with 'UPDATE ...'"
 
+        if current_app.config.get("database_readonly"):
+            current_app.logger.warning(f"Can't handle {request.method} request method for {uri} when database is read only")
+            abort(400)
+
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
         if node is None:
@@ -224,6 +236,10 @@ class PageView(MethodView):
 
     def delete(self, uri=""):
         "For sql queries that start with 'DELETE from ...'"
+
+        if current_app.config.get("database_readonly"):
+            current_app.logger.warning(f"Can't handle {request.method} request method for {uri} when database is read only")
+            abort(400)
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)

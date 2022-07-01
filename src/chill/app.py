@@ -182,7 +182,8 @@ def make_app(config=None, database_readonly=False, **kw):
         return naturaltime(value)
 
     # Add the markdown filter for the templates
-    md = Markdown(app)
+    # https://pythonhosted.org/Flask-Markdown/
+    Markdown(app)
 
     @app.template_filter("readfile")
     def readfile(filename):
