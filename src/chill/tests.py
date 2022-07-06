@@ -207,6 +207,100 @@ class SimpleCheckReadonly(ChillTestCase):
                     assert 400 == rv.status_code
 
 
+    def test_immutable_methods_when_is_readonly(self):
+        """Check post (which can be immutable) and get methods when db is readonly"""
+        with open(os.path.join(self.tmp_template_dir, "insert_llama.sql"), "w") as f:
+            f.write(
+                """
+              insert into Llama (llama_name, location, description) values (:llama_name, :location, :description);
+              """
+            )
+        with open(os.path.join(self.tmp_template_dir, "select_llama.sql"), "w") as f:
+            f.write(
+                """
+              select * from Llama
+              where llama_name = :llama_name;
+              """
+            )
+
+        with self.app.app_context():
+            with self.app.test_client() as c:
+                db = get_db()
+                with db:
+                    init_db()
+
+                    cur = db.cursor()
+                    cur.execute(
+                        """
+                    create table Llama (
+                      llama_name varchar(255),
+                      location varchar(255),
+                      description text
+                      );
+                    """
+                    )
+                    cur.close()
+
+                    api_llamas_id = insert_node(name="api_llamas", value=None)
+                    insert_route(
+                        path="/api/llamas/", node_id=api_llamas_id, weight=1, method="POST"
+                    )
+                    insert_query(name="insert_llama.sql", node_id=api_llamas_id)
+
+                    get_llamas_id = insert_node(name="get_llamas", value=None)
+                    insert_route(
+                        path="/search/llamas/", node_id=get_llamas_id, weight=1, method="GET"
+                    )
+                    insert_query(name="select_llama.sql", node_id=get_llamas_id)
+
+                    post_search_llamas_id = insert_node(name="post_search_llamas", value=None)
+                    insert_route(
+                        path="/search/llamas/", node_id=post_search_llamas_id, weight=1, method="POST"
+                    )
+                    insert_query(name="select_llama.sql", node_id=post_search_llamas_id)
+
+                # Insert first llama when db is not readonly
+                llama_1 = {
+                    "llama_name": "Rocky",
+                    "location": "unknown",
+                    "description": "first llama",
+                }
+                rv = c.post("/api/llamas/", data=llama_1)
+                assert 201 == rv.status_code
+
+                # Get a new db connection that is readonly
+                close_db()
+                self.app.config["database_readonly"] = True
+                get_db()
+
+                llama_2 = {
+                    "llama_name": "Nocky",
+                    "location": "unknown",
+                    "description": "second llama",
+                }
+                rv = c.post("/api/llamas/", data=llama_2)
+                assert 400 == rv.status_code
+                close_db()
+
+                get_db()
+                rv = c.post("/search/llamas/", data={"llama_name": "Rocky"})
+                assert 200 == rv.status_code
+                rv_json = json.loads(rv.data)
+                self.app.logger.debug(rv_json)
+                assert set(llama_1.keys()) == set(rv_json.keys())
+                assert set(llama_1.values()) == set(rv_json.values())
+                close_db()
+
+                get_db()
+                rv = c.get("/search/llamas/?llama_name=Rocky")
+                assert 200 == rv.status_code
+                rv_json = json.loads(rv.data)
+                self.app.logger.debug(rv_json)
+                assert set(llama_1.keys()) == set(rv_json.keys())
+                assert set(llama_1.values()) == set(rv_json.values())
+                close_db()
+
+
 class Route(ChillTestCase):
     def test_paths(self):
         with self.app.app_context():

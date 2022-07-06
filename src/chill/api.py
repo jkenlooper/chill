@@ -2,7 +2,7 @@ import sqlite3
 
 from flask import current_app, render_template
 
-from chill.database import get_db, fetch_query_string, serialize_sqlite3_results
+from chill.database import get_db, fetch_query_string, serialize_sqlite3_results, ChillDBNotWritableError
 
 
 def _short_circuit(value=None):
@@ -53,10 +53,9 @@ def _short_circuit(value=None):
 
 def _query(_node_id, value=None, **kw):
     "Look up value by using Query table"
-    readonly_query = (
-        False if kw["method"] in ("POST", "PUT", "PATCH", "DELETE") else True
-    )
-    if current_app.config.get("database_readonly") and not readonly_query:
+    # GET query method can only be read
+    # POST query method can be read or write
+    if current_app.config.get("database_readonly") and kw["method"] in ("PUT", "PATCH", "DELETE"):
         raise Exception("Database is currently readonly, but started processing a query method that was not readonly")
     query_result = []
     db = get_db()
@@ -72,6 +71,7 @@ def _query(_node_id, value=None, **kw):
     # current_app.logger.debug("queries kw: %s", kw)
     # current_app.logger.debug("queries value: %s", value)
     # current_app.logger.debug("queries: %s", serialize_sqlite3_results(query_result))
+    ignored_db_error = False
     if query_result:
         values = []
         for query_name in [x["name"] for x in query_result]:
@@ -87,6 +87,7 @@ def _query(_node_id, value=None, **kw):
                     # result = cur.execute(statement, **skw)
                     result = cur.execute(fetch_query_string(query_name), kw)
                 except (sqlite3.DatabaseError, sqlite3.ProgrammingError) as err:
+                    ignored_db_error = True
                     current_app.logger.error(
                         "DatabaseError (%s) %s: %s", query_name, kw, err
                     )
@@ -108,7 +109,18 @@ def _query(_node_id, value=None, **kw):
     # current_app.logger.debug("value: %s", value)
     cur.close()
 
-    if readonly_query and db.in_transaction:
+    if kw["method"] == "GET" and db.in_transaction:
+        raise Exception("There are uncommitted changes to db when query was GET")
+    if kw["method"] == "POST" and (db.in_transaction or ignored_db_error) and current_app.config.get("database_readonly"):
+        if db.in_transaction:
+            current_app.logger.error("There are uncommitted changes to read only db connection when query was POST")
+            raise ChillDBNotWritableError("There are uncommitted changes to read only db connection when query was POST")
+        elif ignored_db_error:
+            current_app.logger.error("There were database query errors to read only db connection when query was POST")
+            raise ChillDBNotWritableError("There were database query errors to read only db connection when query was POST")
+        else:
+            raise Exception("Not handled error.")
+    if current_app.config.get("database_readonly") and db.in_transaction:
         current_app.logger.error("There are uncommitted changes to db when query should have been readonly")
         raise Exception("There are uncommitted changes to db when query should have been readonly")
     if not current_app.config.get("database_readonly"):

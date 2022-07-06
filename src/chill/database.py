@@ -25,6 +25,10 @@ CHILL_CREATE_TABLE_FILES = (
 )
 
 
+class ChillDBNotWritableError(Exception):
+    "Error when trying to write to the sqlite database when it is read only."
+
+
 def get_db():
     if 'db' not in g:
 

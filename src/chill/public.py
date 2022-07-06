@@ -15,8 +15,8 @@ from flask import (
 )
 from flask.views import MethodView
 
-from chill.database import get_db, fetch_query_string, serialize_sqlite3_results
-from chill.api import render_node, _query
+from chill.database import get_db, fetch_query_string, serialize_sqlite3_results, ChillDBNotWritableError
+from chill.api import render_node, _query, _short_circuit
 from chill import shortcodes
 
 
@@ -151,7 +151,7 @@ class PageView(MethodView):
         rendered = render_node(node["id"], noderequest=noderequest, **values)
         # current_app.logger.debug("rendered: %s", rendered)
         if rendered:
-            if not isinstance(rendered, (str, str, int, float)):
+            if not isinstance(rendered, (str, int, float)):
                 # return a json string
                 return json.jsonify(serialize_sqlite3_results(rendered))
             return rendered
@@ -160,13 +160,7 @@ class PageView(MethodView):
         abort(404)
 
     def post(self, uri=""):
-        "For sql queries that start with 'INSERT ...'"
-
-        if current_app.config.get("database_readonly"):
-            current_app.logger.warning(
-                f"Can't handle {request.method} request method for {uri} when database is read only"
-            )
-            abort(400)
+        "For sql queries that start with 'SELECT ...' or 'INSERT ...'"
 
         # get node...
         (node, rule_kw) = node_from_uri(uri, method=request.method)
@@ -188,9 +182,26 @@ class PageView(MethodView):
         values["method"] = request.method
 
         # Execute the sql query with the data
-        _query(node["id"], **values)
+        try:
+            query_result = _query(node["id"], **values)
+        except (ChillDBNotWritableError):
+            current_app.logger.warning(
+                f"Can't handle {request.method} request method for {uri} when database is read only"
+            )
+            abort(400)
 
-        response = make_response("ok", 201)
+        # A POST can return a response in case it is used like a GET method.  An
+        # example would be for a complex search query.
+        if query_result and query_result != [[{}]]:
+            query_result = _short_circuit(query_result)
+            if not isinstance(query_result, (str, int, float)):
+                # return a json string
+                return json.jsonify(serialize_sqlite3_results(query_result))
+            return query_result
+
+        else:
+            response = make_response("ok", 201)
+
         return response
 
     def put(self, uri=""):
