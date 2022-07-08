@@ -1,8 +1,6 @@
-# syntax=docker/dockerfile:1.3.0-labs
+# syntax=docker/dockerfile:1.4.1
 
-FROM python:3.10.0-buster
-#FROM python:3.9.9-buster
-#FROM python:3.8.10-buster
+FROM python:3.9-buster
 
 ARG DEBIAN_FRONTEND=noninteractive
 
