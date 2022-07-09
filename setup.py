@@ -4,7 +4,7 @@ import pathlib
 
 
 here = pathlib.Path(__file__).parent.resolve()
-__version__ = "0.9.0-alpha.4"  # Also set in src/chill/_version.py
+__version__ = "0.9.0"  # Also set in src/chill/_version.py
 long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
