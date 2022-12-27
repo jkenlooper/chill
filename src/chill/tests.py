@@ -326,7 +326,7 @@ class Route(ChillTestCase):
 
                 rv = c.get("/", follow_redirects=True)
                 assert b"hello" == rv.data
-                rv = c.get("/.", follow_redirects=True)
+                rv = c.get("/.", follow_redirects=True) # TODO
                 assert b"hello" == rv.data
                 rv = c.get("/index.html", follow_redirects=True)
                 assert b"hello" == rv.data
@@ -376,7 +376,7 @@ class Route(ChillTestCase):
 
                 rv = c.get("/", follow_redirects=True)
                 assert 404 == rv.status_code
-                rv = c.get("/1", follow_redirects=True)
+                rv = c.get("/1", follow_redirects=True) # TODO
                 assert b"hello" == rv.data
                 rv = c.get("/1/", follow_redirects=True)
                 assert b"hello" == rv.data
@@ -423,7 +423,7 @@ class Route(ChillTestCase):
 
             with self.app.test_client() as c:
 
-                rv = c.get("/apple", follow_redirects=True)
+                rv = c.get("/apple", follow_redirects=True) # TODO
                 assert b"b" == rv.data
                 rv = c.get("/animals/ape", follow_redirects=True)
                 assert b"aardvark" == rv.data
@@ -1125,7 +1125,7 @@ class Template(ChillTestCase):
                     insert_route(path="/test/1/", node_id=test_id)
                     add_template_for_node("template_a.html", test_id)
 
-                rv = c.get("/test/1", follow_redirects=True)
+                rv = c.get("/test/1", follow_redirects=True) # TODO
                 assert b"testing one" in rv.data
 
                 with db:

@@ -21,8 +21,8 @@ Options:
   --yaml <file>     A yaml file with ChillNode objects [default: ./chill-data.yaml]
 
 Subcommands:
-    run     - Start the web server in the foreground. Don't use for production.
-    serve   - Starts a daemon web server with Gevent.
+    run     - Start the Flask development server. Do not use it in a production deployment.
+    serve   - Start a Python WSGI HTTP server with Gunicorn.
     freeze  - Freeze the application by creating a static version of it.
     init    - Initialize the current directory with base starting files and database.
     initdb  - Initialize Chill database tables only.
@@ -32,14 +32,11 @@ Subcommands:
     migrate - Perform a database migration from one version to the next.
 
 """
-from gevent import monkey
-
-monkey.patch_all()
-
 import os
 import subprocess
 import sqlite3
 
+import gunicorn.app.base
 from docopt import docopt
 from flask_frozen import Freezer
 
@@ -72,6 +69,19 @@ import json
 # Set the HOST to 127.0.0.1 for internal
 HOST = getenv("CHILL_HOST", default="0.0.0.0")
 PORT = int(getenv("CHILL_PORT", default="5000"))
+
+# Worker count is recommended to set based on cpu count and not go over 12.
+# Using a default of 1 should be good for low traffic deployments.
+# import multiprocessing
+# worker_count = (multiprocessing.cpu_count() * 2) + 1
+#WORKERS = int(getenv("CHILL_WORKERS", default="1"))
+
+# Process name to use for the workers. The port will be appended to the end.
+#PROC_NAME = getenv("CHILL_PROC_NAME", default="chill")
+
+# Max requests before a worker is restarted. Useful for mitigating potential memory leaks.
+#MAX_REQUESTS = int(getenv("CHILL_MAX_REQUESTS", default="1000"))
+#MAX_REQUESTS_JITTER = int(getenv("CHILL_MAX_REQUESTS_JITTER", default="20"))
 
 # Optional if needing to freeze the site and absolute URLs are needed. See the
 # FREEZER_BASE_URL setting below.
@@ -353,7 +363,7 @@ def set_sqlite_journal_mode(app):
 
 # bin/run
 def run(config, database_readonly=False):
-    "Start the web server in the foreground. Don't use for production."
+    "Start the Flask development server. Do not use it in a production deployment."
     app = make_app(config=config, database_readonly=database_readonly)
 
     set_sqlite_journal_mode(app)
@@ -367,27 +377,48 @@ def run(config, database_readonly=False):
 
 # bin/serve
 def serve(config, database_readonly=False):
-    "Serve the app with Gevent"
-    from gevent import pywsgi, signal_handler
-    import signal
+    "Start a Python WSGI HTTP server with Gunicorn."
 
     app = make_app(config=config, database_readonly=database_readonly)
 
     set_sqlite_journal_mode(app)
 
+    class StandaloneApplication(gunicorn.app.base.BaseApplication):
+        "Create a stand alone application based on gunicorn with the chill site.cfg and other common configurations."
+        def __init__(self, app, options=None):
+            self.options = options or {}
+            self.app = app
+            super().__init__()
+
+        def load_config(self):
+            config = {key: value for key, value in self.options.items() if key in self.cfg.settings and value is not None}
+            for key, value in config.items():
+                self.cfg.set(key.lower(), value)
+
+        def load(self):
+            return self.app
+
     host = app.config.get("HOST", "127.0.0.1")
-    port = app.config.get("PORT", 5000)
-    app.logger.info("serving on {host}:{port}".format(**locals()))
-    http_server = pywsgi.WSGIServer((host, port), app)
+    port = int(app.config.get("PORT", 5000))
+    workers = int(app.config.get("WORKERS", 1))
+    proc_name = app.config.get("PROC_NAME", "chill")
+    loglevel = "debug" if app.config.get("DEBUG", False) else "warning"
+    max_requests = int(app.config.get("MAX_REQUESTS", 1000))
+    max_requests_jitter = int(app.config.get("MAX_REQUESTS_JITTER", 20))
+    app.logger.info(f"serving on {host}:{port}")
+    # https://docs.gunicorn.org/en/latest/settings.html
+    options = {
+        "bind": f"{host}:{port}",
+        "workers": workers,
+        "worker_class": "sync",
+        "accesslog": "-",
+        "loglevel": loglevel,
+        "proc_name": f"{proc_name}-{port}",
+        "max_requests": max_requests,
+        "max_requests_jitter": max_requests_jitter,
+    }
 
-    def shutdown():
-        app.logger.info("Stopping Chill app")
-        http_server.stop(timeout=10)
-        exit(signal.SIGTERM)
-
-    signal_handler(signal.SIGTERM, shutdown)
-    signal_handler(signal.SIGINT, shutdown)
-    http_server.serve_forever(stop_timeout=10)
+    StandaloneApplication(app, options).run()
 
 
 # bin/freeze

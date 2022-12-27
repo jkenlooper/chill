@@ -4,7 +4,7 @@ import pathlib
 
 
 here = pathlib.Path(__file__).parent.resolve()
-__version__ = "0.9.0"  # Also set in src/chill/_version.py
+__version__ = "0.10.0-alpha.1"  # Also set in src/chill/_version.py
 long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
@@ -42,16 +42,18 @@ setup(
     test_suite="chill.tests",
     install_requires=[
         "Flask>=2,<3",
-        "Jinja2>=3",
-        "Frozen-Flask==0.18",
         "Flask-Markdown==0.3",
         "PyYAML",
-        "gevent",
-        "docopt==0.6.2",
-        "MarkupSafe>=2,<3",
-        "babel",
+        "Babel",
         "humanize",
     ],
+    extras_require={
+        "cli": [
+            "gunicorn>=20",
+            "Frozen-Flask>=0.18",
+            "docopt>=0.6.2",
+        ]
+    },
     python_requires='>=3.8, <4',
     entry_points={"console_scripts": ["chill = chill.script:main"]},
 )
