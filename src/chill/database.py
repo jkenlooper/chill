@@ -3,7 +3,7 @@ import json
 import sqlite3
 
 from flask import current_app, g
-from werkzeug.security import safe_join
+from werkzeug.utils import safe_join
 
 
 CHILL_DROP_TABLE_FILES = (
