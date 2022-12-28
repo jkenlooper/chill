@@ -326,34 +326,29 @@ class Route(ChillTestCase):
 
                 rv = c.get("/", follow_redirects=True)
                 assert b"hello" == rv.data
-                rv = c.get("/.", follow_redirects=True) # TODO
-                assert b"hello" == rv.data
                 rv = c.get("/index.html", follow_redirects=True)
                 assert b"hello" == rv.data
                 rv = c.get("", follow_redirects=True)
                 assert b"hello" == rv.data
-
-                rv = c.get("/one", follow_redirects=True)
-                assert b"1" == rv.data
                 rv = c.get("/one/", follow_redirects=True)
                 assert b"1" == rv.data
-                rv = c.get("/one/.", follow_redirects=True)
+                rv = c.get("/one/./", follow_redirects=True)
                 assert b"1" == rv.data
                 rv = c.get("/one/index.html", follow_redirects=True)
                 assert b"1" == rv.data
-                rv = c.get("/one/two", follow_redirects=True)
+                rv = c.get("/one/two/", follow_redirects=True)
                 assert b"2" == rv.data
-                rv = c.get("/one/foo/../two", follow_redirects=True)
+                rv = c.get("/one/foo/../two/", follow_redirects=True)
                 assert b"2" == rv.data
-                rv = c.get("/./one//two", follow_redirects=True)
+                rv = c.get("/./one//two/", follow_redirects=True)
                 assert b"2" == rv.data
                 rv = c.get("/one/two/", follow_redirects=True)
                 assert b"2" == rv.data
                 rv = c.get("/one/two/index.html", follow_redirects=True)
                 assert b"2" == rv.data
-                rv = c.get("/one/two/three", follow_redirects=True)
+                rv = c.get("/one/two/three/", follow_redirects=True)
                 assert b"3" == rv.data
-                rv = c.get("/one/two/other_three", follow_redirects=True)
+                rv = c.get("/one/two/other_three/", follow_redirects=True)
                 assert b"3" == rv.data
                 rv = c.get("/one/two/other_three/index.html", follow_redirects=True)
                 assert b"3" == rv.data
@@ -376,8 +371,6 @@ class Route(ChillTestCase):
 
                 rv = c.get("/", follow_redirects=True)
                 assert 404 == rv.status_code
-                rv = c.get("/1", follow_redirects=True) # TODO
-                assert b"hello" == rv.data
                 rv = c.get("/1/", follow_redirects=True)
                 assert b"hello" == rv.data
                 # No longer supports this
@@ -423,13 +416,13 @@ class Route(ChillTestCase):
 
             with self.app.test_client() as c:
 
-                rv = c.get("/apple", follow_redirects=True) # TODO
+                rv = c.get("/apple/", follow_redirects=True)
                 assert b"b" == rv.data
-                rv = c.get("/animals/ape", follow_redirects=True)
+                rv = c.get("/animals/ape/", follow_redirects=True)
                 assert b"aardvark" == rv.data
-                rv = c.get("/animals/ape/1", follow_redirects=True)
+                rv = c.get("/animals/ape/1/", follow_redirects=True)
                 assert b"b" == rv.data
-                rv = c.get("/vegetables", follow_redirects=True)
+                rv = c.get("/vegetables/", follow_redirects=True)
                 assert b"b" == rv.data
                 rv = c.get("/vegetables/pear/", follow_redirects=True)
                 assert b"b" == rv.data
@@ -951,7 +944,7 @@ class Query(ChillTestCase):
 
                     insert_route(path="/simple/", node_id=simple_id)
 
-                rv = c.get("/simple", follow_redirects=True)
+                rv = c.get("/simple/")
                 assert 200 == rv.status_code
                 simple_json = json.loads(rv.data)
                 assert "yup" == simple_json["a"]
@@ -1068,7 +1061,8 @@ class Query(ChillTestCase):
                 # self.app.config["database_readonly"] = True
                 # db_ro = get_db(self.app.config)
 
-                rv = c.get("/page1", follow_redirects=True)
+                rv = c.get("/page1/")
+                self.app.logger.debug(rv)
                 self.app.logger.debug("data: %s", rv.data.decode("utf-8"))
                 assert 200 == rv.status_code
                 rv_json = json.loads(rv.data)
@@ -1125,7 +1119,7 @@ class Template(ChillTestCase):
                     insert_route(path="/test/1/", node_id=test_id)
                     add_template_for_node("template_a.html", test_id)
 
-                rv = c.get("/test/1", follow_redirects=True) # TODO
+                rv = c.get("/test/1/", follow_redirects=True)
                 assert b"testing one" in rv.data
 
                 with db:
@@ -1133,7 +1127,7 @@ class Template(ChillTestCase):
                     insert_route(path="/fruit/a/", node_id=a_id)
                     add_template_for_node("template_a.html", a_id)
 
-                rv = c.get("/fruit/a", follow_redirects=True)
+                rv = c.get("/fruit/a/", follow_redirects=True)
                 assert b"apple" in rv.data
                 assert b"template_a" in rv.data
 
@@ -1149,7 +1143,7 @@ class Template(ChillTestCase):
                     # overwrite ( fruit/a use to be set to template_a.html )
                     add_template_for_node("template_b.html", a_id)
 
-                rv = c.get("/fruit/a", follow_redirects=True)
+                rv = c.get("/fruit/a/", follow_redirects=True)
                 assert b"apple" in rv.data
                 assert b"template_b" in rv.data
 

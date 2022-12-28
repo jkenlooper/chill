@@ -41,8 +41,7 @@ setup(
     zip_safe=False,
     test_suite="chill.tests",
     install_requires=[
-        "Flask>=2,<2.2",
-        "Werkzeug>=2.0,<2.2",
+        "Flask>=2,<3",
         "Flask-Markdown==0.3",
         "PyYAML",
         "Babel",

@@ -44,8 +44,8 @@ def check_map(uri, url_root):
         # routes = result.as_dict()
         # (routes, col_names) = rowify(result, c.description)
         # current_app.logger.debug( [x['rule'] for x in routes] )
-        rules = [Rule(r["rule"], endpoint="dynamic") for r in result]
-        d_map = Map(rules)
+        rules = [Rule(r["rule"], endpoint="dynamic", strict_slashes=True, merge_slashes=True) for r in result]
+        d_map = Map(rules, strict_slashes=True, merge_slashes=True)
         map_adapter = d_map.bind(url_root)
         # current_app.logger.debug(uri)
         try:
