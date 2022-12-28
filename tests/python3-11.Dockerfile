@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4.3
 
-FROM python:3.9-buster
+FROM python:3.11-buster
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -42,7 +42,7 @@ apt-get --yes install --no-install-suggests --no-install-recommends \
 
 mkdir -p /var/lib/chill/python
 
-expected_python_version="Python 3.9.16"
+expected_python_version="Python 3.11.1"
 actual_python_version="$(python -V)"
 set -x; test "$actual_python_version" = "$expected_python_version"; set +x
 

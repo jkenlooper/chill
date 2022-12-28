@@ -48,6 +48,10 @@ ln -s /usr/bin/python3 /usr/bin/python
 
 mkdir -p /var/lib/chill/python
 
+expected_python_version="Python 3.10.9"
+actual_python_version="$(python -V)"
+set -x; test "$actual_python_version" = "$expected_python_version"; set +x
+
 # Only download to a directory to allow the pip install to happen later with
 # a set --find-links option.
 python -m pip download \
