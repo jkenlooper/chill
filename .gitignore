@@ -11,3 +11,4 @@
 /src/chill.egg-info/
 /src/chill/__pycache/
 /pyvenv.cfg
+/dist
