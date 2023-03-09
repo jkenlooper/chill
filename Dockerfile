@@ -1,36 +1,34 @@
 # syntax=docker/dockerfile:1.4.3
 
-# UPKEEP due: "2023-01-10" label: "Alpine Linux base image" interval: "+3 months"
-# docker pull alpine:3.16.2
+# UPKEEP due: "2023-04-21" label: "Alpine Linux base image" interval: "+3 months"
+# docker pull alpine:3.17.1
 # docker image ls --digests alpine
-FROM alpine:3.16.2@sha256:bc41182d7ef5ffc53a40b044e725193bc10142a1243f395ee852a8d9730fc2ad as build
+FROM alpine:3.17.1@sha256:f271e74b17ced29b915d351685fd4644785c6d1559dd1f2d4189a5e851ef753a
 
 LABEL org.opencontainers.image.authors="Jake Hickenlooper <jake@weboftomorrow.com>"
 
+RUN <<DEV_USER
+# Create dev user
+set -o errexit
+addgroup -g 44444 dev
+adduser -u 44444 -G dev -s /bin/sh -D dev
+DEV_USER
+
+# The chill user is created mostly for backwards compatibility
 RUN <<CHILL_USER
 # Create chill user
 set -o errexit
 addgroup -g 2000 chill
 adduser -u 2000 -G chill -s /bin/sh -D chill
+# Create directory where running chill app database will be.
+mkdir -p /var/lib/chill/sqlite3
+chown -R chill:chill /var/lib/chill
 CHILL_USER
 
-WORKDIR /home/chill
+WORKDIR /home/dev/app
 
-# UPKEEP due: "2023-03-23" label: "Python pip" interval: "+3 months"
-# https://pypi.org/project/pip/
-ARG PIP_VERSION=22.3.1
-# UPKEEP due: "2023-03-23" label: "Python wheel" interval: "+3 months"
-# https://pypi.org/project/wheel/
-ARG WHEEL_VERSION=0.38.4
-# UPKEEP due: "2023-03-23" label: "Python Cython" interval: "+3 months"
-# https://pypi.org/project/Cython/
-ARG CYTHON_VERSION=0.29.32
-# UPKEEP due: "2023-03-23" label: "Python gunicorn" interval: "+3 months"
-# https://pypi.org/project/gunicorn/
-ARG GUNICORN_VERSION="20.1.0"
-
-RUN <<BUILD_DEPENDENCIES
-# Install build dependencies
+RUN <<PACKAGE_DEPENDENCIES
+# apk add package dependencies
 set -o errexit
 apk update
 apk add --no-cache \
@@ -40,105 +38,96 @@ apk add --no-cache \
   python3 \
   python3-dev \
   py3-pip \
+  py3-yaml \
   libffi-dev \
   build-base \
   musl-dev
 
-ln -s /usr/bin/python3 /usr/bin/python
-
-mkdir -p /var/lib/chill/python
-
-expected_python_version="Python 3.10.9"
+expected_python_version="Python 3.10.10"
 actual_python_version="$(python -V)"
 set -x; test "$actual_python_version" = "$expected_python_version"; set +x
-
-# Only download to a directory to allow the pip install to happen later with
-# a set --find-links option.
-python -m pip download \
-  --disable-pip-version-check \
-  --destination-directory /var/lib/chill/python \
-  gunicorn[setproctitle]=="$GUNICORN_VERSION" \
-  pip=="$PIP_VERSION" \
-  wheel=="$WHEEL_VERSION" \
-  Cython=="$CYTHON_VERSION" \
-  Frozen-Flask>=0.18 \
-  docopt>=0.6.2
-BUILD_DEPENDENCIES
-
-COPY requirements.txt /home/chill/requirements.txt
-RUN <<PIP_DOWNLOAD_REQS
-# Download Python packages listed in requirements.txt
-set -o errexit
-python -m pip download \
-  --disable-pip-version-check \
-  --destination-directory /var/lib/chill/python \
-  -r /home/chill/requirements.txt
-PIP_DOWNLOAD_REQS
+PACKAGE_DEPENDENCIES
 
 RUN  <<PYTHON_VIRTUALENV
 # Setup for python virtual env
 set -o errexit
-mkdir -p /home/chill/app
-mkdir -p /usr/local/src/chill-venv
-python -m venv /usr/local/src/chill-venv
-# The chill user will need write access since pip install will be adding files to
-# the chill-venv directory.
-chown -R chill:chill /usr/local/src/chill-venv
+mkdir -p /home/dev/app
+chown -R dev:dev /home/dev/app
+su dev -c '/usr/bin/python3 -m venv /home/dev/app/.venv'
 PYTHON_VIRTUALENV
 # Activate python virtual env by updating the PATH
-ENV VIRTUAL_ENV=/usr/local/src/chill-venv
+ENV VIRTUAL_ENV=/home/dev/app/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
+COPY --chown=dev:dev pip-requirements.txt /home/dev/app/pip-requirements.txt
+COPY --chown=dev:dev dep /home/dev/app/dep
+
+USER dev
+
 RUN <<PIP_INSTALL
-# Install downloaded Python packages
+# Install pip-requirements.txt
 set -o errexit
+# Install these first so packages like PyYAML don't have errors with 'bdist_wheel'
+python -m pip install wheel
+python -m pip install pip
+python -m pip install hatchling
 python -m pip install \
-  --disable-pip-version-check \
-  --no-index --find-links /var/lib/chill/python \
-  pip \
-  wheel \
-  Cython \
-  gunicorn[setproctitle] \
-  Frozen-Flask \
-  docopt
-python -m pip install \
-  --disable-pip-version-check \
-  --no-index --find-links /var/lib/chill/python \
-  -r /home/chill/requirements.txt
+  --no-index \
+  --no-build-isolation \
+  --find-links /home/dev/app/dep/ \
+  -r /home/dev/app/pip-requirements.txt
 PIP_INSTALL
 
-WORKDIR /home/chill/app
-COPY --chown=chill:chill COPYING /home/chill/app/
-COPY --chown=chill:chill COPYING.LESSER /home/chill/app/
-COPY --chown=chill:chill setup.py /home/chill/app/
-COPY --chown=chill:chill README.md /home/chill/app/
-COPY --chown=chill:chill src/chill /home/chill/app/src/chill
+COPY --chown=dev:dev requirements.txt /home/dev/app/requirements.txt
+COPY --chown=dev:dev requirements-cli.txt /home/dev/app/requirements-cli.txt
+COPY --chown=dev:dev requirements-dev.txt /home/dev/app/requirements-dev.txt
+COPY --chown=dev:dev requirements-test.txt /home/dev/app/requirements-test.txt
+COPY --chown=dev:dev pyproject.toml /home/dev/app/pyproject.toml
+COPY --chown=dev:dev src/chill/_version.py /home/dev/app/src/chill/_version.py
+COPY --chown=dev:dev README.md /home/dev/app/README.md
+COPY --chown=dev:dev COPYING /home/dev/app/
+COPY --chown=dev:dev COPYING.LESSER /home/dev/app/
+RUN <<PIP_INSTALL_APP
+# Install the local python packages.
+set -o errexit
 
+# Only pip install with the local python packages cache.
+python -m pip install --disable-pip-version-check --compile \
+  --no-index \
+  --no-build-isolation \
+  -r /home/dev/app/requirements.txt
+python -m pip install --disable-pip-version-check --compile \
+  --no-index \
+  --no-build-isolation \
+  -r /home/dev/app/requirements-cli.txt
+python -m pip install --disable-pip-version-check --compile \
+  --no-index \
+  --no-build-isolation \
+  -r /home/dev/app/requirements-dev.txt
+python -m pip install --disable-pip-version-check --compile \
+  --no-index \
+  --no-build-isolation \
+  -r /home/dev/app/requirements-test.txt
+PIP_INSTALL_APP
+
+COPY --chown=dev:dev src /home/dev/app/src
 RUN <<INSTALL_CHILL
 # Install chill
 set -o errexit
-python -m pip install \
-  --disable-pip-version-check \
-  --no-index --find-links /var/lib/chill/python \
-  --compile .
+python -m pip install --disable-pip-version-check --compile \
+  --no-index \
+  --no-build-isolation \
+  /home/dev/app
 python src/chill/tests.py
 chill --version
 INSTALL_CHILL
 
-
 ARG CHILL_DATABASE_URI=/var/lib/chill/sqlite3/db
 ENV CHILL_DATABASE_URI=$CHILL_DATABASE_URI
 
-RUN <<CHILL_SETUP
-# Setup chill
-set -o errexit
-# Create directory where running chill app database will be.
-mkdir -p /var/lib/chill/sqlite3
-chown -R chill:chill /var/lib/chill
-chown -R chill:chill /home/chill
-CHILL_SETUP
-
 USER chill
+
+WORKDIR /home/chill/app
 
 VOLUME /var/lib/chill/sqlite3
 VOLUME /home/chill/app
@@ -146,7 +135,7 @@ VOLUME /home/chill/app
 # Default port for chill application is 5000
 EXPOSE 5000
 
-ENTRYPOINT ["/usr/local/src/chill-venv/bin/chill"]
+ENTRYPOINT ["chill"]
 
 CMD ["--help"]
 

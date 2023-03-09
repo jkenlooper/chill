@@ -3,6 +3,7 @@
 Build chill image and tag it to latest.
 
 ```bash
+./update-dep.sh
 DOCKER_BUILDKIT=1 docker build -t chill:latest .
 ```
 

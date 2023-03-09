@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chill"
+dynamic = ['version']
+description = "Database driven web application framework in Flask"
+readme = "README.md"
+license.text = "LGPLv3+"
+requires-python = ">=3.8, <4"
+authors = [
+    { name = "Jake Hickenlooper", email = "jake@weboftomorrow.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Framework :: Flask",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Natural Language :: English",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Internet :: WWW/HTTP :: Site Management",
+    "Topic :: Internet :: WWW/HTTP :: WSGI",
+    "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+  "Flask>=2,<3",
+  "Flask-Markdown==0.3",
+  "PyYAML",
+
+  # TODO Fix babel 2.12.1 incompatibility
+  "Babel>=2.0,<=2.11",
+
+  "humanize",
+]
+
+[project.urls]
+Homepage = "https://github.com/jkenlooper/chill"
+
+[project.optional-dependencies]
+
+cli = [
+  "gunicorn>=20",
+  "Frozen-Flask>=0.18",
+  "docopt>=0.6.2",
+]
+test = [
+    "coverage",
+    "pytest",
+]
+dev = [
+]
+
+[project.scripts]
+chill = "chill.script:main"
+
+
+[tool.hatch.version]
+path = "src/chill/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+]
+
+[tool.bandit]
+exclude_dirs = ["src/chill/tests.py", "src/chill/test_api.py", "src/chill/test_loader.py"]
