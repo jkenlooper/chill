@@ -47,10 +47,13 @@ shift $((OPTIND - 1))
 mkdir -p "$project_dir/dep"
 image_name="$project_name"
 docker image rm "$image_name" > /dev/null 2>&1 || printf ""
+set -x
 DOCKER_BUILDKIT=1 docker build \
+  --quiet \
   -t "$image_name" \
   -f "$project_dir/update-dep.Dockerfile" \
   "$project_dir" > /dev/null
+set +x
 
 container_name="$project_name"
 if [ "$interactive" = "y" ]; then

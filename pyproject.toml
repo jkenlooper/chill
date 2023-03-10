@@ -71,4 +71,8 @@ include = [
 ]
 
 [tool.bandit]
-exclude_dirs = ["src/chill/tests.py", "src/chill/test_api.py", "src/chill/test_loader.py"]
+exclude_dirs = [
+  "src/chill/tests.py",
+  "src/chill/test_api.py",
+  "src/chill/test_loader.py"
+]

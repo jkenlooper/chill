@@ -27,8 +27,9 @@ CHILL_USER
 
 WORKDIR /home/dev/app
 
+ARG EXPECTED_PYTHON_VERSION="Python 3.10.10"
 RUN <<PACKAGE_DEPENDENCIES
-# apk add package dependencies
+# Install package dependencies and verify python version
 set -o errexit
 apk update
 apk add --no-cache \
@@ -43,9 +44,8 @@ apk add --no-cache \
   build-base \
   musl-dev
 
-expected_python_version="Python 3.10.10"
 actual_python_version="$(python -V)"
-set -x; test "$actual_python_version" = "$expected_python_version"; set +x
+set -x; test "$actual_python_version" = "$EXPECTED_PYTHON_VERSION"; set +x
 PACKAGE_DEPENDENCIES
 
 RUN  <<PYTHON_VIRTUALENV
@@ -53,7 +53,7 @@ RUN  <<PYTHON_VIRTUALENV
 set -o errexit
 mkdir -p /home/dev/app
 chown -R dev:dev /home/dev/app
-su dev -c '/usr/bin/python3 -m venv /home/dev/app/.venv'
+su dev -c 'python -m venv /home/dev/app/.venv'
 PYTHON_VIRTUALENV
 # Activate python virtual env by updating the PATH
 ENV VIRTUAL_ENV=/home/dev/app/.venv
@@ -67,6 +67,8 @@ USER dev
 RUN <<PIP_INSTALL
 # Install pip-requirements.txt
 set -o errexit
+actual_python_version="$(python -V)"
+set -x; test "$actual_python_version" = "$EXPECTED_PYTHON_VERSION"; set +x
 # Install these first so packages like PyYAML don't have errors with 'bdist_wheel'
 python -m pip install wheel
 python -m pip install pip

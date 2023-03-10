@@ -16,6 +16,7 @@ DEV_USER
 
 WORKDIR /home/dev/app
 
+ARG EXPECTED_PYTHON_VERSION="Python 3.10.10"
 RUN <<PACKAGE_DEPENDENCIES
 # apk add package dependencies
 set -o errexit
@@ -32,9 +33,8 @@ apk add --no-cache \
   build-base \
   musl-dev
 
-expected_python_version="Python 3.10.10"
 actual_python_version="$(python -V)"
-set -x; test "$actual_python_version" = "$expected_python_version"; set +x
+set -x; test "$actual_python_version" = "$EXPECTED_PYTHON_VERSION"; set +x
 PACKAGE_DEPENDENCIES
 
 RUN  <<PYTHON_VIRTUALENV
@@ -53,9 +53,14 @@ COPY --chown=dev:dev pyproject.toml /home/dev/app/pyproject.toml
 COPY --chown=dev:dev src/chill/_version.py /home/dev/app/src/chill/_version.py
 COPY --chown=dev:dev dep /home/dev/app/dep
 COPY --chown=dev:dev README.md /home/dev/app/README.md
+
+USER dev
+
 RUN <<PIP_DOWNLOAD
 # Download python packages listed in pyproject.toml
 set -o errexit
+actual_python_version="$(python -V)"
+set -x; test "$actual_python_version" = "$EXPECTED_PYTHON_VERSION"; set +x
 # Install these first so packages like PyYAML don't have errors with 'bdist_wheel'
 python -m pip install wheel
 python -m pip install pip
@@ -73,8 +78,6 @@ python -m pip download --disable-pip-version-check \
     --destination-directory /home/dev/app/dep \
     .[cli,dev,test]
 PIP_DOWNLOAD
-
-USER dev
 
 RUN <<PIP_INSTALL
 # Install pip-requirements.txt
@@ -97,15 +100,6 @@ done
 HERE
 chmod +x /home/dev/sleep.sh
 SETUP
-
-RUN <<PIP_DOWNLOAD_APP_DEPENDENCIES
-# Download python packages described in pyproject.toml
-set -o errexit
-python -m pip download --disable-pip-version-check \
-    --exists-action i \
-    --destination-directory /home/dev/app/dep \
-    .[dev,test]
-PIP_DOWNLOAD_APP_DEPENDENCIES
 
 RUN <<UPDATE_REQUIREMENTS
 # Generate the hashed requirements*.txt files that the main container will use.
