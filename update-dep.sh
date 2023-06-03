@@ -49,7 +49,6 @@ image_name="$project_name"
 docker image rm "$image_name" > /dev/null 2>&1 || printf ""
 set -x
 DOCKER_BUILDKIT=1 docker build \
-  --quiet \
   -t "$image_name" \
   -f "$project_dir/update-dep.Dockerfile" \
   "$project_dir" > /dev/null

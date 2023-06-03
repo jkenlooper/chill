@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.4.3
+# syntax=docker/dockerfile:1.5.2
 
 FROM python:3.8-buster
 
@@ -60,6 +60,9 @@ COPY --chown=dev:dev src/chill/_version.py /home/dev/app/src/chill/_version.py
 # Skip copy of any actual dep/* files, just want an empty directory made
 COPY --chown=dev:dev dep/.gitkeep /home/dev/app/dep/.gitkeep
 COPY --chown=dev:dev README.md /home/dev/app/README.md
+
+USER dev
+
 RUN <<PIP_DOWNLOAD
 # Download python packages listed in pyproject.toml
 set -o errexit
@@ -83,8 +86,6 @@ python -m pip download --disable-pip-version-check \
     --destination-directory /home/dev/app/dep \
     .[cli,dev,test]
 PIP_DOWNLOAD
-
-USER dev
 
 RUN <<PIP_INSTALL
 # Install pip-requirements.txt

@@ -1,11 +1,11 @@
-# syntax=docker/dockerfile:1.4.3
+# syntax=docker/dockerfile:1.5.2
 
 # Modified from the original in python-worker directory in https://github.com/jkenlooper/cookiecutters .
 
-# UPKEEP due: "2023-04-21" label: "Alpine Linux base image" interval: "+3 months"
-# docker pull alpine:3.17.1
+# UPKEEP due: "2023-09-03" label: "Alpine Linux base image" interval: "+3 months"
+# docker pull alpine:3.18.0
 # docker image ls --digests alpine
-FROM alpine:3.17.1@sha256:f271e74b17ced29b915d351685fd4644785c6d1559dd1f2d4189a5e851ef753a
+FROM alpine:3.18.0@sha256:02bb6f428431fbc2809c5d1b41eab5a68350194fb508869a33cb1af4444c9b11
 
 RUN <<DEV_USER
 # Create dev user
@@ -16,7 +16,7 @@ DEV_USER
 
 WORKDIR /home/dev/app
 
-ARG EXPECTED_PYTHON_VERSION="Python 3.10.10"
+ARG EXPECTED_PYTHON_VERSION="Python 3.11.3"
 RUN <<PACKAGE_DEPENDENCIES
 # apk add package dependencies
 set -o errexit
@@ -28,7 +28,6 @@ apk add --no-cache \
   python3 \
   python3-dev \
   py3-pip \
-  py3-yaml \
   libffi-dev \
   build-base \
   musl-dev
@@ -42,7 +41,7 @@ RUN  <<PYTHON_VIRTUALENV
 set -o errexit
 mkdir -p /home/dev/app
 chown -R dev:dev /home/dev/app
-su dev -c '/usr/bin/python3 -m venv /home/dev/app/.venv'
+su dev -c 'python -m venv /home/dev/app/.venv'
 PYTHON_VIRTUALENV
 # Activate python virtual env by updating the PATH
 ENV VIRTUAL_ENV=/home/dev/app/.venv
