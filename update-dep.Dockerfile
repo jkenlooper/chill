@@ -16,7 +16,7 @@ DEV_USER
 
 WORKDIR /home/dev/app
 
-ARG EXPECTED_PYTHON_VERSION="Python 3.11.3"
+ARG EXPECTED_PYTHON_VERSION="Python 3.11.4"
 RUN <<PACKAGE_DEPENDENCIES
 # apk add package dependencies
 set -o errexit

@@ -45,6 +45,6 @@ pytz==2023.3 \
 pyyaml==6.0 \
     --hash=sha256:68fb519c14306fec9720a2a5b45bc9f0c8d1b9c72adf45c37baedfcd949c35a2
     # via chill (pyproject.toml)
-werkzeug==2.3.4 \
-    --hash=sha256:48e5e61472fee0ddee27ebad085614ebedb7af41e88f687aaf881afb723a162f
+werkzeug==2.3.6 \
+    --hash=sha256:935539fa1413afbb9195b24880778422ed620c0fc09670945185cce4d91a8890
     # via flask

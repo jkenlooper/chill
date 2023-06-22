@@ -21,7 +21,7 @@ CHILL_USER
 
 WORKDIR /home/dev/app
 
-ARG EXPECTED_PYTHON_VERSION="Python 3.9.16"
+ARG EXPECTED_PYTHON_VERSION="Python 3.9.17"
 RUN <<PACKAGE_DEPENDENCIES
 # Install package dependencies and verify python version
 set -o errexit
