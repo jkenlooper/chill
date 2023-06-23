@@ -52,8 +52,8 @@ packaging==23.1 \
 pluggy==1.2.0 \
     --hash=sha256:c2fd55a7d7a3863cba1a013e4e2414658b1d07b6bc57b3919e0c63c9abb99849
     # via pytest
-pytest==7.3.2 \
-    --hash=sha256:cdcbd012c9312258922f8cd3f1b62a6580fdced17db6014896053d47cddf9295
+pytest==7.4.0 \
+    --hash=sha256:78bf16451a2eb8c7a2ea98e32dc119fd2aa758f1d5d66dbf0a59d69a3969df32
     # via chill (pyproject.toml)
 pytz==2023.3 \
     --hash=sha256:a151b3abb88eda1d4e34a9814df37de2a80e301e68ba0fd856fb9b46bfbbbffb

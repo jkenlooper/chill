@@ -69,13 +69,7 @@ set -o errexit
 actual_python_version="$(python -V)"
 set -x; test "$actual_python_version" = "$EXPECTED_PYTHON_VERSION"; set +x
 # Install these first so packages like PyYAML don't have errors with 'bdist_wheel'
-python -m pip install wheel
-python -m pip install pip
-python -m pip install hatchling
-python -m pip install \
-  --no-index \
-  --no-build-isolation \
-  --find-links /home/dev/app/dep/ \
+python -m pip install --disable-pip-version-check \
   -r /home/dev/app/pip-requirements.txt
 PIP_INSTALL
 
