@@ -67,8 +67,8 @@ import json
 
 # Set the HOST to 0.0.0.0 for being an externally visible server.
 # Set the HOST to 127.0.0.1 for internal
-HOST = getenv("CHILL_HOST", default="0.0.0.0")
-PORT = int(getenv("CHILL_PORT", default="5000"))
+HOST = getenv("HOST", default="127.0.0.1")
+PORT = int(getenv("PORT", default="5000"))
 
 # Worker count is recommended to set based on cpu count and not go over 12.
 # Using a default of 1 should be good for low traffic deployments.
