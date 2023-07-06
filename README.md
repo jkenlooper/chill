@@ -19,7 +19,7 @@ the page.
 
 Chill can be installed via pip.
 ```bash
-python3 -m pip install chill
+python3 -m pip install chill[cli]
 ```
 
 Or from within this cloned project; install with pip in editable mode.  It is
@@ -31,7 +31,7 @@ python3 -m venv .
 source ./bin/activate
 
 # Install chill in editable mode
-python3 -m pip install -e .
+python -m pip install -e .[cli,test]
 ```
 
 This will create a script called `chill`.  Type `chill --help` for help on using
@@ -80,10 +80,36 @@ chill.  See the
 
 ## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+Please contact me or create an issue.
 
-Please make sure to update tests as appropriate.
+Any submitted changes to this project require the commits to be signed off with
+the [git command option
+'--signoff'](https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---signoff).
+This ensures that the committer has the rights to submit the changes under the
+project's license and agrees to the [Developer Certificate of
+Origin](https://developercertificate.org).
 
 ## License
 
 [GNU Lesser General Public License v3.0](https://choosealicense.com/licenses/lgpl-3.0/)
+
+## Maintenance
+
+Where possible, an upkeep comment has been added to various parts of the source
+code. These are known areas that will require updates over time to reduce
+software rot. The upkeep comment follows this pattern to make it easier for
+commands like grep to find these comments.
+
+Example UPKEEP comment has at least a 'due:' or 'label:' or 'interval:' value
+surrounded by double quotes (").
+````
+Example-> # UPKEEP due: "2022-12-14" label: "an example upkeep label" interval: "+4 months"
+````
+
+The grep command to find all upkeep comments with their line numbers.
+```bash
+# Search for UPKEEP comments.
+grep -r -n -E "^\W+UPKEEP\W+(due:\W?\".*?\"|label:\W?\".*?\"|interval:\W?\".*?\")" .
+
+# Or show only past due UPKEEP comments.
+make upkeep
