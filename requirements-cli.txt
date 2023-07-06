@@ -32,8 +32,8 @@ frozen-flask==0.18 \
 gunicorn==20.1.0 \
     --hash=sha256:9dcc4547dbb1cb284accfb15ab5667a0e5d1881cc443e0677b4882a4067a807e
     # via chill (pyproject.toml)
-humanize==4.6.0 \
-    --hash=sha256:401201aca462749773f02920139f302450cb548b70489b9b4b92be39fe3c3c50
+humanize==4.7.0 \
+    --hash=sha256:df7c429c2d27372b249d3f26eb53b07b166b661326e0325793e0a988082e3889
     # via chill (pyproject.toml)
 itsdangerous==2.1.2 \
     --hash=sha256:2c2349112351b88699d8d4b6b075022c0808887cb7ad10069318a8b0bc88db44

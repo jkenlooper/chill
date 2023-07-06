@@ -25,8 +25,8 @@ flask==2.3.2 \
 flask-markdown==0.3 \
     --hash=sha256:d8c3f02545b395ad525b86760ad721a2c50efa3b8e602a8d486a1f47f68c6250
     # via chill (pyproject.toml)
-humanize==4.6.0 \
-    --hash=sha256:401201aca462749773f02920139f302450cb548b70489b9b4b92be39fe3c3c50
+humanize==4.7.0 \
+    --hash=sha256:df7c429c2d27372b249d3f26eb53b07b166b661326e0325793e0a988082e3889
     # via chill (pyproject.toml)
 iniconfig==2.0.0 \
     --hash=sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374
