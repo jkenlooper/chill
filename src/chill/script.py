@@ -21,8 +21,8 @@ Options:
   --yaml <file>     A yaml file with ChillNode objects [default: ./chill-data.yaml]
 
 Subcommands:
-    run     - Start the Flask development server. Do not use it in a production deployment.
-    serve   - Start a Python WSGI HTTP server with Gunicorn.
+    run     - Start the development server. Do not use it in a production deployment.
+    serve   - Start the production server.
     freeze  - Freeze the application by creating a static version of it.
     init    - Initialize the current directory with base starting files and database.
     initdb  - Initialize Chill database tables only.
@@ -363,23 +363,20 @@ def set_sqlite_journal_mode(app):
 
 # bin/run
 def run(config, database_readonly=False):
-    "Start the Flask development server. Do not use it in a production deployment."
-    app = make_app(config=config, database_readonly=database_readonly)
-
-    set_sqlite_journal_mode(app)
-
-    app.run(
-        host=app.config.get("HOST", "127.0.0.1"),
-        port=app.config.get("PORT", 5000),
-        use_reloader=True,
-    )
+    "Serve a Python app ready for development use and reload if files change. Do not use it in a production deployment."
+    app = make_app(config=config, database_readonly=database_readonly, reload=True, loglevel="info")
+    start(app)
 
 
 # bin/serve
 def serve(config, database_readonly=False):
-    "Start a Python WSGI HTTP server with Gunicorn."
-
+    "Serve a Python app ready for production use."
     app = make_app(config=config, database_readonly=database_readonly)
+    start(app)
+
+
+def start(app):
+    "Start a Python WSGI HTTP server with Gunicorn."
 
     set_sqlite_journal_mode(app)
 
@@ -402,10 +399,12 @@ def serve(config, database_readonly=False):
     port = int(app.config.get("PORT", 5000))
     workers = int(app.config.get("WORKERS", 1))
     proc_name = app.config.get("PROC_NAME", "chill")
-    loglevel = "debug" if app.config.get("DEBUG", False) else "warning"
+    loglevel = "debug" if app.config.get("DEBUG", False) else app.config.get("loglevel", "warning")
     max_requests = int(app.config.get("MAX_REQUESTS", 1000))
     max_requests_jitter = int(app.config.get("MAX_REQUESTS_JITTER", 20))
     app.logger.info(f"serving on {host}:{port}")
+    reload = app.config.get("reload", False)
+    reload_extra_files = app.config.get("reload_extra_files", [])
     # https://docs.gunicorn.org/en/latest/settings.html
     options = {
         "bind": f"{host}:{port}",
@@ -413,6 +412,8 @@ def serve(config, database_readonly=False):
         "worker_class": "sync",
         "accesslog": "-",
         "loglevel": loglevel,
+        "reload": reload,
+        "reload_extra_files": [] if not reload else reload_extra_files,
         "proc_name": f"{proc_name}-{port}",
         "max_requests": max_requests,
         "max_requests_jitter": max_requests_jitter,

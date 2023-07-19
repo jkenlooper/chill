@@ -1,5 +1,6 @@
 import os
 import time
+from pathlib import Path
 
 from flask import Flask, Blueprint, Markup
 from flask.helpers import send_from_directory
@@ -257,5 +258,11 @@ def make_app(config=None, database_readonly=False, **kw):
     page.add_url_rule("/<path:uri>/", view_func=PageView.as_view("page_uri"))
     page.add_url_rule("/<path:uri>/index.html", view_func=PageView.as_view("uri_index"))
     app.register_blueprint(page, url_prefix=app.config.get("PUBLIC_URL_PREFIX", ""))
+
+    if app.config.get("reload"):
+        reload_extra_files = []
+        for item in filter(None, [chill_queries_folder, user_queries_folder, document_folder, template_folder]):
+            reload_extra_files.extend(map(str, Path(item).glob("**/*")))
+        app.config["reload_extra_files"] = reload_extra_files
 
     return app
