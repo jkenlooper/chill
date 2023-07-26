@@ -32,7 +32,6 @@ class ChillDBNotWritableError(Exception):
 def get_db():
     if 'db' not in g:
 
-        # TODO Include arg to sqlite3.connect detect_types=sqlite3.PARSE_DECLTYPES ?
         db_file = current_app.config.get("CHILL_DATABASE_URI")
         if db_file and not db_file.startswith(":"):
             if not current_app.config.get("database_readonly"):
@@ -91,6 +90,7 @@ def init_db():
     for filename in CHILL_CREATE_TABLE_FILES:
         cur.execute(fetch_query_string(filename))
     cur.close()
+    db.commit()
 
 
 def drop_db():
@@ -108,6 +108,7 @@ def drop_db():
     for filename in CHILL_DROP_TABLE_FILES:
         cur.execute(fetch_query_string(filename))
     cur.close()
+    db.commit()
 
 
 class RowEncoder(json.JSONEncoder):

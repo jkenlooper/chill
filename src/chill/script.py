@@ -370,7 +370,12 @@ def set_sqlite_journal_mode(app):
 # bin/run
 def run(config, database_readonly=False):
     "Serve a Python app ready for development use and reload if files change. Do not use it in a production deployment."
-    app = make_app(config=config, database_readonly=database_readonly, reload=True, loglevel="info")
+    app = make_app(
+        config=config,
+        database_readonly=database_readonly,
+        reload=True,
+        loglevel="info",
+    )
     start(app)
 
 
@@ -446,7 +451,7 @@ def freeze(config, urls_file=None):
         app = make_app(config=config, URLS_FILE=urls_file, database_readonly=True)
     else:
         app = make_app(config=config, database_readonly=True)
-    app.logger.info("freezing app to directory: %s" % app.config["FREEZER_DESTINATION"])
+    app.logger.info(f"freezing app to directory: {app.config['FREEZER_DESTINATION']}")
     freezer = Freezer(app)
 
     @freezer.register_generator
