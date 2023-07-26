@@ -347,10 +347,10 @@ def dump_yaml(yaml_file):
 def load_yaml(yaml_file):
     "Load ChillNode yaml objects into chill database."
 
+    current_app.logger.debug(f"Loading yaml file: {yaml_file}")
     with open(yaml_file, "r") as f:
         documents = yaml.safe_load_all(f.read())
         for item in documents:
-            # current_app.logger.debug(item)
             if isinstance(item, ChillNode):
                 try:
                     item.load()

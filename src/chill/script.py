@@ -76,6 +76,9 @@ PORT = int(getenv("PORT", default="5000"))
 # worker_count = (multiprocessing.cpu_count() * 2) + 1
 #WORKERS = int(getenv("CHILL_WORKERS", default="1"))
 
+# Comma separated chill data yaml files.
+#CHILL_DATA = getenv("CHILL_DATA", default="chill-data.yaml")
+
 # Process name to use for the workers. The port will be appended to the end.
 #PROC_NAME = getenv("CHILL_PROC_NAME", default="chill")
 
@@ -382,6 +385,16 @@ def start(app):
     "Start a Python WSGI HTTP server with Gunicorn."
 
     set_sqlite_journal_mode(app)
+    chill_data_files = list(map(lambda x: x.strip(), app.config.get("CHILL_DATA", "chill-data.yaml").split(",")))
+    with app.app_context():
+        app.logger.info(f"Loading database from {', '.join(chill_data_files)} files.")
+        db = get_db()
+        with db:
+            drop_db()
+            init_db()
+
+        for chill_data_file in chill_data_files:
+            load_yaml(chill_data_file)
 
     class StandaloneApplication(gunicorn.app.base.BaseApplication):
         "Create a stand alone application based on gunicorn with the chill site.cfg and other common configurations."
@@ -393,6 +406,7 @@ def start(app):
         def load_config(self):
             config = {key: value for key, value in self.options.items() if key in self.cfg.settings and value is not None}
             for key, value in config.items():
+                self.app.logger.debug(f"Setting config item: {key}")
                 self.cfg.set(key.lower(), value)
 
         def load(self):
