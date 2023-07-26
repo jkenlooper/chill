@@ -169,6 +169,9 @@ THEME_TEMPLATE_FOLDER = getenv("CHILL_THEME_TEMPLATE_FOLDER", default="templates
 # SQL queries and such to load data into your templates.
 #THEME_SQL_FOLDER = getenv("CHILL_THEME_SQL_FOLDER", default="queries")
 
+# Default locale is set to english.
+#LOCALE = "en"
+
 # Helpful to have this set to True if you want to fix stuff.
 #DEBUG = getenv("CHILL_DEBUG", default="False").lower() == "true"
 

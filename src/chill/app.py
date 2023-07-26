@@ -175,7 +175,7 @@ def make_app(config=None, database_readonly=False, **kw):
     @app.template_filter("datetime")
     def datetime(value, format="y-MM-dd HH:mm:ss"):
         "Date time filter that uses babel to format."
-        return dates.format_datetime(value, format)
+        return dates.format_datetime(value, format, locale=app.config.get("LOCALE", "en"))
 
     @app.template_filter("timedelta")
     def timedelta(value):

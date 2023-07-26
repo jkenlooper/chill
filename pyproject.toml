@@ -34,10 +34,7 @@ dependencies = [
   "Flask>=2,<3",
   "Flask-Markdown==0.3",
   "PyYAML",
-
-  # TODO Fix babel 2.12.1 incompatibility
-  "Babel>=2.0,<=2.11",
-
+  "Babel",
   "humanize",
 ]
 
