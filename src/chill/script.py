@@ -35,6 +35,7 @@ Subcommands:
 import os
 import subprocess
 import sqlite3
+import tempfile
 
 import gunicorn.app.base
 from docopt import docopt
@@ -92,6 +93,14 @@ HOSTNAME = getenv("CHILL_HOSTNAME", default="localhost")
 
 # Path to sqlite3 database file
 CHILL_DATABASE_URI = getenv("CHILL_DATABASE_URI", default="db")
+
+# If the CHILL_SQL_DUMP_TABLES is set; Chill will create a chill-dump.sql file
+# with the tables matching the pattern. Each time Chill starts it will load data
+# from chill-dump.sql and when it exits it will recreate the chill-dump.sql file
+# with the tables that matched the pattern set for CHILL_SQL_DUMP_TABLES. Use
+# the pattern "%" to match all tables. Note that the Chill managed tables will
+# not be included as they are managed by CHILL_DATA.
+#CHILL_SQL_DUMP_TABLES = ""
 
 # Set the sqlite journal_mode
 # https://sqlite.org/pragma.html#pragma_journal_mode
@@ -390,16 +399,96 @@ def start(app):
     "Start a Python WSGI HTTP server with Gunicorn."
 
     set_sqlite_journal_mode(app)
-    chill_data_files = list(map(lambda x: x.strip(), app.config.get("CHILL_DATA", "chill-data.yaml").split(",")))
+    chill_data_files = []
+    chill_data_yaml_files = list(map(lambda x: x.strip(), app.config.get("CHILL_DATA", "chill-data.yaml").split(",")))
+    chill_data_files.extend(chill_data_yaml_files)
+    chill_sql_dump_tables = app.config.get("CHILL_SQL_DUMP_TABLES", "").strip()
+    app.logger.debug(f"{chill_sql_dump_tables=}")
+    db_file = app.config.get("CHILL_DATABASE_URI")
+    chill_dump_sql_file = "chill-dump.sql"
+    if os.path.isfile(chill_dump_sql_file):
+        chill_data_files.insert(0, chill_dump_sql_file)
     with app.app_context():
         app.logger.info(f"Loading database from {', '.join(chill_data_files)} files.")
         db = get_db()
         with db:
             drop_db()
+            if chill_sql_dump_tables:
+                tmp_db_file = tempfile.mkstemp()[1]
+                subprocess.run(
+                    [
+                        "sqlite3",
+                        tmp_db_file,
+                        f".read {chill_dump_sql_file}",
+                    ],
+                    check=True,
+                )
+                result = subprocess.run(
+                    [
+                        "sqlite3",
+                        tmp_db_file,
+                        f".tables '{chill_sql_dump_tables}'",
+                    ],
+                    capture_output=True,
+                    check=True,
+                )
+                os.unlink(tmp_db_file)
+                other_tables = str(result.stdout.decode()).split()
+                if len(other_tables):
+                    chill_dump_backup = chill_dump_sql_file + ".bak"
+                    app.logger.info(f"Backing up current database file to: {chill_dump_backup}. This is in case the sqlite database was modified when Chill was not running.")
+                    result = subprocess.run(
+                        [
+                            "sqlite3",
+                            db_file,
+                            ".dump",
+                        ],
+                        capture_output=True,
+                        check=True,
+                    )
+                    with open(chill_dump_backup, "wb") as f:
+                        f.write(result.stdout)
+
+                    app.logger.info(f"Dropping tables {other_tables=}")
+                    cur = db.cursor()
+                    # Switch off foreign_keys while the other tables are being
+                    # deleted. The assumption is that these tables may have
+                    # constraints, but only within the dump tables and not from
+                    # outside tables not being deleted.
+                    cur.execute("pragma foreign_keys = OFF;")
+                    for table in other_tables:
+                        app.logger.debug(f"Dropping table {table}")
+                        cur.execute(f"drop table if exists {table}")
+                    db.commit()
+                    cur.execute("pragma foreign_keys = ON;")
+                    cur.close()
+                    # load
+                    result = subprocess.run(
+                        [
+                            "sqlite3",
+                            db_file,
+                            f".tables",
+                        ],
+                        capture_output=True,
+                        check=True,
+                    )
+                    app.logger.debug(result)
+                    if os.path.isfile(chill_dump_sql_file):
+                        result = subprocess.run(
+                            [
+                                "sqlite3",
+                                db_file,
+                                f".read {chill_dump_sql_file}",
+                            ],
+                            capture_output=True,
+                            check=True,
+                        )
+                        # Drop chill tables again in case the chill dump sql added them.
+                        drop_db()
             init_db()
 
-        for chill_data_file in chill_data_files:
-            load_yaml(chill_data_file)
+        for chill_data_yaml_file in chill_data_yaml_files:
+            load_yaml(chill_data_yaml_file)
 
     class StandaloneApplication(gunicorn.app.base.BaseApplication):
         "Create a stand alone application based on gunicorn with the chill site.cfg and other common configurations."
@@ -416,6 +505,40 @@ def start(app):
 
         def load(self):
             return self.app
+
+    def on_exit(server):
+        app.logger.debug("on_exit")
+        if chill_sql_dump_tables:
+            app.logger.debug(f"Has {chill_sql_dump_tables=}")
+            with app.app_context():
+                # Drop chill tables since that data should be in chill-data.yaml files.
+                app.logger.info("Dropping Chill tables.")
+                drop_db()
+            result = subprocess.run(
+                [
+                    "sqlite3",
+                    db_file,
+                    ".dump",
+                ],
+                capture_output=True,
+                check=True,
+            )
+            with open(chill_dump_sql_file, "wb") as f:
+                f.write(b"--- ")
+                f.write(b"\n--- ".join([
+                    b"This file is loaded into the sqlite database when Chill starts.",
+                    b"",
+                    b"This file is recreated each time when Chill exits. It will dump all tables",
+                    b"matching the pattern:",
+                    bytes(chill_sql_dump_tables, encoding="utf-8"),
+                    b"with the exception of Chill managed tables.",
+                    b"",
+                    b"WARNING: Do not modify this file while Chill is running.",
+                    b"",
+                    b"WARNING: Only make changes to the active sqlite database when Chill is running.",
+                ]))
+                f.write(b"\n\n")
+                f.write(result.stdout)
 
     host = app.config.get("HOST", "127.0.0.1")
     port = int(app.config.get("PORT", 5000))
@@ -439,6 +562,7 @@ def start(app):
         "proc_name": f"{proc_name}-{port}",
         "max_requests": max_requests,
         "max_requests_jitter": max_requests_jitter,
+        "on_exit": on_exit,
     }
 
     StandaloneApplication(app, options).run()

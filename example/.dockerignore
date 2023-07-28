@@ -1,0 +1,7 @@
+*
+!/chill-data.yaml
+!/chill-dump.sql
+!/documents/*
+!/queries/*
+!/site.cfg
+!/templates/*
