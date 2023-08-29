@@ -1,2 +1,0 @@
-include src/chill/queries/*.sql
-global-exclude *.pyc

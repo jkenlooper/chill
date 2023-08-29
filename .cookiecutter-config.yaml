@@ -1,4 +1,0 @@
-default_context:
-  slugname: "chill"
-  targets: "src docs example .github"
-  code_formatter_directory: ".code-formatter"
